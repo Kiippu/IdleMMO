@@ -22,15 +22,17 @@ export function feedPush(state, kind, who, text) {
   cr.feed.unshift(e); if (cr.feed.length > FEED_CAP) cr.feed.length = FEED_CAP;
   return e;
 }
-// Treasury audit log: every entry is a change in total treasury (gold + escrow). Escrow-only
-// rebalances (post / cancel requisitions) don't land here because the total is unchanged;
-// the live requisition list already tells members which gold is reserved. delta = 0 entries
-// are silently dropped so the log stays signal-only.
-export function logTreasury(state, kind, delta, who, reason) {
+// Treasury audit log: gold entries record a change in total treasury (gold + escrow); escrow-only
+// rebalances (post / cancel requisitions) don't land here because the total is unchanged and the
+// live requisition list already tells members which gold is reserved. Item entries (vault stock
+// consumed in the raid) carry delta=0 and `item` = {id, qty}. Gold entries with delta=0 are
+// silently dropped so the log stays signal-only.
+export function logTreasury(state, kind, delta, who, reason, extras?) {
   const cr = state.crew; if (!cr || !cr.treasury) return null;
-  if (!delta) return null;
+  if (!delta && !(extras && extras.itemId)) return null;
   if (!Array.isArray(cr.treasury.log)) cr.treasury.log = [];
-  const e = { t: ctx.now(), week: num(state.week, 1), kind, who: who || 'You', delta, reason };
+  const e: any = { t: ctx.now(), week: num(state.week, 1), kind, who: who || 'You', delta: num(delta, 0), reason };
+  if (extras && extras.itemId) { e.itemId = extras.itemId; if (extras.qty != null) e.qty = extras.qty; if (extras.grade != null) e.grade = extras.grade; }
   cr.treasury.log.unshift(e); if (cr.treasury.log.length > TREASURY_LOG_CAP) cr.treasury.log.length = TREASURY_LOG_CAP;
   return e;
 }

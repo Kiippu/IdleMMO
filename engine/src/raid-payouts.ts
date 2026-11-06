@@ -5,7 +5,7 @@
 import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, itemName, nextId } from './core';
 import { addItem } from './inventory';
 import { findGear } from './gear';
-import { CHECK_LABEL, TIER_NAME, ROLE_MIX, mulberry, clone, roleDef } from './v4-helpers';
+import { CHECK_LABEL, TIER_NAME, ROLE_MIX, mulberry, clone, roleDef, invTake, WORST } from './v4-helpers';
 import { nowOf, weekStartOf, windowFor } from './clock';
 import { ensureRecord, curRecord } from './server';
 import { autoLock, tierFor } from './raid-rules';
@@ -119,13 +119,32 @@ export function resolveRaid(state, opts, events) {
     sim.cpHit.forEach((at) => { const ci = []; grant(state, ci, boss.bossMat, 2, 1); grant(state, ci, boss.floorItem || 'coal', 1, randInt(3, 6)); grant(state, ci, pickLootItem(state, boss, 'buff'), 1, 1); chests.push({ at, items: ci }); });
   }
   sim.cpHit.forEach((at) => { if (!rec.checkpointsPaid.includes(at)) rec.checkpointsPaid.push(at); });
-  // crew treasury gold by turnout (never by contribution)
+  // Crew vault stock submitted via town contracts is consumed during the raid; the fight
+  // simulation applied food/heal survival and buff-potion check bonuses (see raid-sim.fightCtx).
+  // Decrement the vault here and log each item move so members can audit what the raid cost.
+  if (state.crew && state.crew.vault && state.crew.vault.inv && sim.vaultConsumed) {
+    Object.keys(sim.vaultConsumed).forEach((id) => {
+      const qty = num(sim.vaultConsumed[id], 0); if (!(qty > 0)) return;
+      const taken = invTake(state.crew.vault.inv, id, qty, WORST, 0);
+      const totalTaken = taken.reduce((a, t) => a + t.qty, 0);
+      if (totalTaken > 0) logTreasury(state, 'vault', 0, 'Raid', `${totalTaken} ${itemName(id)} used in raid`, { itemId: id, qty: -totalTaken });
+    });
+  }
+  // Crew treasury gold by turnout AND contribution (never by boss HP).
+  // avgContribution = crew's filled share of expected-per-attendee work, clamped 0..1.
+  // crewHave aggregates the crew's actual check fill across waves; crewNeed is the fair-share
+  // expectation accumulated from attendance. Ratio = "did the crew pull their weight?" If
+  // they over-performed it stays capped at 1 so the cap still binds; the formula collapses to
+  // the old turnout-only shape when every attendee filled 100% of their fair share.
+  const crewHave = sim.waves.reduce((a: number, w: any) => a + num(w.crewHave, 0), 0);
+  const crewNeed = sim.waves.reduce((a: number, w: any) => a + num(w.crewNeed, 0), 0);
+  const avgContribution = crewNeed > 0 ? clamp(crewHave / crewNeed, 0, 1) : 0;
   const btier = num(rec.index, 0) + 1;
-  const crewGold = Math.min(num(c.crewGoldCap, 180) * btier, num(c.crewGoldPerAttendee, 10) * btier * sim.attendCount);
+  const crewGold = Math.min(num(c.crewGoldCap, 180) * btier, Math.round(num(c.crewGoldPerAttendee, 10) * btier * sim.attendCount * avgContribution));
   if (state.crew && state.crew.treasury) {
     state.crew.treasury.gold += crewGold;
-    feedPush(state, 'payout', 'Raid', `Raid payout: ${crewGold}g to the treasury (${sim.attendCount} turned out).`);
-    logTreasury(state, 'payout', +crewGold, 'Raid', `Raid payout (${sim.attendCount} turned out)`);
+    feedPush(state, 'payout', 'Raid', `Raid payout: ${crewGold}g to the treasury (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution).`);
+    logTreasury(state, 'payout', +crewGold, 'Raid', `Raid payout (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution)`);
     econ(state, 'raidGold', crewGold);
   }
   // kill: lottery, ladder, buff

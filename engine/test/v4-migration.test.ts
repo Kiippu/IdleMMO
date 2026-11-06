@@ -203,3 +203,54 @@ describe('treasury log', () => {
     expect(s.crew.treasury.log.length).toBeLessThanOrEqual(80);
   });
 });
+
+describe('vault consumption in raids', () => {
+  it('consumes food and buff potions from the vault when the raid resolves', async () => {
+    const { E, mod } = await freshEngine();
+    const s = E.newState();
+    // Seed the vault with food + a buff potion. Pick items that exist in DATA.
+    const foodId = Object.keys(mod.DATA.items).find((id: string) => mod.DATA.items[id].kind === 'food') as string;
+    const potionId = Object.keys(mod.DATA.items).find((id: string) => {
+      const it = mod.DATA.items[id]; return it.kind === 'potion' && it.buff && it.buff.pct > 0;
+    }) as string;
+    expect(foodId).toBeTruthy();
+    expect(potionId).toBeTruthy();
+    s.crew.vault.inv[foodId] = [0, 5, 0, 0, 0];   // 5 Standard-grade food
+    s.crew.vault.inv[potionId] = [0, 3, 0, 0, 0]; // 3 Standard-grade buff potions
+    const logBefore = s.crew.treasury.log.length;
+    const r = E.runRaid(s);
+    expect(r.ok).toBe(true);
+    // Both items are gone from the vault.
+    expect((s.crew.vault.inv[foodId] || []).reduce((a: number, b: number) => a + b, 0)).toBe(0);
+    expect((s.crew.vault.inv[potionId] || []).reduce((a: number, b: number) => a + b, 0)).toBe(0);
+    // Two new 'vault' log entries (one per item) with itemId + negative qty.
+    const vaultEntries = s.crew.treasury.log.slice(0, s.crew.treasury.log.length - logBefore).filter((e: any) => e.kind === 'vault');
+    expect(vaultEntries.length).toBe(2);
+    vaultEntries.forEach((e: any) => {
+      expect(e.itemId).toBeDefined();
+      expect(e.qty).toBeLessThan(0);
+      expect(e.delta).toBe(0);
+    });
+  });
+
+  it('payout scales with turnout: full crew pays more than a solo player', async () => {
+    const full = await freshEngine();
+    const solo = await freshEngine();
+    const fullState = full.E.newState();
+    const soloState = solo.E.newState();
+    soloState.crew.members = []; // player joins alone
+
+    const fullBefore = fullState.crew.treasury.gold;
+    const soloBefore = soloState.crew.treasury.gold;
+    const fullR = full.E.runRaid(fullState);
+    const soloR = solo.E.runRaid(soloState);
+    expect(fullR.ok).toBe(true);
+    expect(soloR.ok).toBe(true);
+    const fullDelta = fullState.crew.treasury.gold - fullBefore;
+    const soloDelta = soloState.crew.treasury.gold - soloBefore;
+    // Full-crew payout is strictly larger than a solo-player payout (same boss tier, same
+    // seed → same avgContribution in each case; the difference is attendCount).
+    expect(fullDelta).toBeGreaterThan(soloDelta);
+    expect(fullDelta).toBeGreaterThan(0);
+  });
+});
