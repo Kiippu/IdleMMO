@@ -168,7 +168,6 @@ E.raidPreview = function (state) {
   if (pp.units === 0) advice.push('Pack your raid pouch: the fight only uses food and potions in the pouch.');
   const weakMatch = num(ps.elements[boss.weakTo], 0) > 0;
   if (boss.weakTo && rec.revealedWeek != null) advice.push(weakMatch ? `Your ${boss.weakTo} damage exploits ${boss.name}'s weakness.` : `${boss.name} is weak to ${boss.weakTo}.`);
-  if (state.tokens > 0 && !num(state.raid.rules.tokens, 0)) advice.push(`You have ${state.tokens} raid tokens. Commit some for extra core tickets.`);
   return { boss, bossHp: rec.hpLeft, bossHpPct: rec.hpLeft / rec.maxHp, playerPower: ps.power, expectedShare: proj.weekShare, foodCount: pp.food + fp.food, potionCount: pp.potions + fp.potion, weakMatch, advice, tier: proj.tier };
 };
 export function foodAndPotions(state) {

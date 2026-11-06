@@ -31,6 +31,18 @@ describe('v4 → v5 migration', () => {
     expect(out.supply).toBeUndefined();
   });
 
+  it('drops raid tokens (state.tokens and raid.rules.tokens)', async () => {
+    const { E } = await freshEngine();
+    const base = E.newState();
+    const raw = v4SaveFrom(base, {
+      tokens: 7,
+      raid: Object.assign({}, base.raid, { rules: Object.assign({}, base.raid.rules, { tokens: 3 }) }),
+    });
+    const out = E.migrate(raw);
+    expect(out.tokens).toBeUndefined();
+    expect(out.raid.rules.tokens).toBeUndefined();
+  });
+
   it('preserves player gold, hp, skills, inv, gear, equipped, crew, clock, server, economy, loadouts', async () => {
     const { E } = await freshEngine();
     const base = E.newState();

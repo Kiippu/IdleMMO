@@ -13,12 +13,11 @@ import { cleanSlots } from './loadouts';
 
 // ================================================================ v4: raid rules, plan, pouch, lock
 export function normRules(state, r) {
-  const out = Object.assign({ eatAt: 0.5, stance: 'balanced', tactic: 'focus', tokens: 0 }, r || {});
+  const out = Object.assign({ eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, r || {});
   out.eatAt = Math.round(clamp(num(Number(out.eatAt), 0.5), 0.3, 0.8) * 100) / 100;
   if (!STANCES.includes(out.stance)) out.stance = 'balanced';
   if (!TACTICS.includes(out.tactic)) out.tactic = 'focus';
-  out.tokens = clamp(Math.floor(num(Number(out.tokens), 0)), 0, Math.max(0, Math.floor(num(state.tokens, 0))));
-  return { eatAt: out.eatAt, stance: out.stance, tactic: out.tactic, tokens: out.tokens };
+  return { eatAt: out.eatAt, stance: out.stance, tactic: out.tactic };
 }
 export function lockedNow(state) { return !!(state.raid.lock && state.raid.lock.week === state.week); }
 export function raidDoneThisWeek(state) { return num(state.raid.resolvedWeek, 0) >= state.week; }

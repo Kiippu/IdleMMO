@@ -98,11 +98,9 @@ export function resolveRaid(state, opts, events) {
     SLOTS.forEach((s) => { const g = findGear(state, lock.slots[s]); if (g && g.dur > 0) { g.dur = Math.max(0, Math.round((g.dur - wear) * 100) / 100); if (g.dur <= 0) E.log(state, 'warn', `Your ${E.gearName(g)} broke in the raid.`); } });
     const mx = E.playerStats(state).maxHp; state.hp = Math.max(1, Math.round(sim.endHp > 0 ? Math.min(mx, sim.endHp) : mx * 0.3));
   }
-  const tokens = joined ? clamp(num(lock.rules.tokens, 0), 0, num(state.tokens, 0)) : 0;
-  state.tokens = Math.max(0, num(state.tokens, 0) - tokens);
   const hpBefore = rec.hpLeft;
   rec.hpLeft = Math.max(0, Math.round(sim.hpAfter)); rec.weekends++;
-  if (joined) { rec.joinedWeekends++; rec.tokens += tokens; }
+  if (joined) { rec.joinedWeekends++; }
   rec.myPoints += joined ? sim.weekPoints : 0; rec.totalPoints += sim.weekTotal;
   const weekShare = joined ? sim.weekPoints / Math.max(1e-9, sim.weekTotal) : 0;
   const share = rec.myPoints / Math.max(1e-9, rec.totalPoints);
@@ -131,7 +129,7 @@ export function resolveRaid(state, opts, events) {
   }
   // kill: lottery, ladder, buff
   const held = rec.joinedWeekends > 0 ? coreOddsFor(state, rec, boss, cumTier) : null;
-  let cores = { drawn: false, tickets: held ? held.tickets : 0, breakdown: held ? held.breakdown : { floor: 0, tier: 0, tokens: 0 }, tier, tokens: rec.tokens, won: 0, coreItemId: boss.coreItem || null, chance: 0, pityBefore: num(state.raid.corePity, 0), pityAfter: num(state.raid.corePity, 0) };
+  let cores = { drawn: false, tickets: held ? held.tickets : 0, breakdown: held ? held.breakdown : { floor: 0, tier: 0 }, tier, won: 0, coreItemId: boss.coreItem || null, chance: 0, pityBefore: num(state.raid.corePity, 0), pityAfter: num(state.raid.corePity, 0) };
   let weekBuff = null;
   const won = sim.killed;
   if (won) {
@@ -189,7 +187,7 @@ export function resolveRaid(state, opts, events) {
   if (!lb.some((r) => r.you)) { const mine = boards.damage.totals.findIndex((r) => r.mine); const r = boards.damage.totals[mine]; if (r) lb[7] = { name: r.guild, guild: r.guild, role: 'striker', value: r.value, rank: mine + 1, you: true }; }
   const eatenAll = Object.assign({}, sim.eaten); Object.keys(sim.potionsUsed).forEach((k) => { eatenAll[k] = (eatenAll[k] || 0) + sim.potionsUsed[k]; });
   const result = { won, bossHpBefore: Math.round(hpBefore), bossHpAfter: rec.hpLeft, damage: Math.round(sim.totals.damage), healing: Math.round(sim.totals.healing), mitigated: Math.round(sim.totals.mitigation),
-    sharePct: weekShare, eaten: eatenAll, loot: recap.payout.items, gold: 0, tokensEarned: 0, leaderboard: lb, faints: sim.faints, tokensCommitted: tokens,
+    sharePct: weekShare, eaten: eatenAll, loot: recap.payout.items, gold: 0, leaderboard: lb, faints: sim.faints,
     checksPassed: sim.waves.filter((w) => w.result !== 'unfinished').map((w) => w.result === 'passed'), bossId: boss.id, bossName: boss.name, week: state.week, rules: joined ? Object.assign({}, lock.rules) : null, recapId: recap.id, tier };
   state.raid.last = clone(result);
   if (joined) E.log(state, 'raid', won ? `${boss.name} defeated! ${recap.tierLabel} (${(share * 100).toFixed(3)}% share). ${cores.won ? 'You won a core!' : `${cores.tickets} core tickets, no core this time.`}`
@@ -200,8 +198,10 @@ export function resolveRaid(state, opts, events) {
 }
 export function coreOddsFor(state, rec, boss, cumTier) {
   const tk = cfg().tierTickets || { floor: 1, bronze: 2, silver: 4, gold: 8 };
-  const breakdown = { floor: rec.joinedWeekends > 0 ? num(tk.floor, 1) : 0, tier: num(tk[cumTier], 0), tokens: num(rec.tokens, 0) };
-  const tickets = breakdown.floor + breakdown.tier + breakdown.tokens;
+  // v5 formula: turnout floor (if you joined this boss once) + contribution tier (from fight share).
+  // Stage C enriches the tier basis to also account for pouch submissions via contracts.
+  const breakdown = { floor: rec.joinedWeekends > 0 ? num(tk.floor, 1) : 0, tier: num(tk[cumTier], 0) };
+  const tickets = breakdown.floor + breakdown.tier;
   const pity = num(state.raid.corePity, 0); const pityMax = num(cfg().corePityMax, 3);
   const parts = Math.round(num(state.server.pop, 1200) * num(cfg().serverTurnout, 0.85));
   const serverTickets = parts * (num(tk.floor, 1) + 2.6 + 0.8);

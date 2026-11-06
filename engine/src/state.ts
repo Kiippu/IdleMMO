@@ -18,12 +18,12 @@ import { ensureV4 } from './crew-economy';
 E.newState = function () {
   const c = cfg(); const now = ctx.now();
   const s = {
-    v: SCHEMA, createdAt: now, lastSeen: now, gold: num(c.startingGold, 150), tokens: 0, week: 1, hp: 1, focus: 0,
+    v: SCHEMA, createdAt: now, lastSeen: now, gold: num(c.startingGold, 150), week: 1, hp: 1, focus: 0,
     skills: {}, mastery: {}, pity: {}, inv: {}, gear: [],
     equipped: { weapon: null, offhand: null, head: null, chest: null, legs: null, ring: null },
     active: null, settings: { matPriority: 'best', useCatalyst: false, useCore: false },
     market: { listings: [], mine: [], refreshedAt: now, age: 0 },
-    raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus', tokens: 0 }, last: null },
+    raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, last: null },
     log: [], seq: 1
   };
   skillDefs().forEach((d) => { s.skills[d.id] = { xp: 0 }; });
@@ -56,8 +56,8 @@ export function migrate(raw) {
   const legacyV3 = raw.v == null || raw.v === 1;
   const s = E.newState(); const fresh = s;
   const out = Object.assign({}, fresh, raw, { v: SCHEMA });
-  ['gold', 'tokens', 'week', 'hp', 'focus', 'createdAt', 'lastSeen', 'seq'].forEach((k) => { out[k] = num(raw[k], fresh[k]); });
-  out.week = Math.max(1, Math.floor(out.week)); out.tokens = Math.max(0, Math.floor(out.tokens)); out.focus = clamp(out.focus, 0, 100);
+  ['gold', 'week', 'hp', 'focus', 'createdAt', 'lastSeen', 'seq'].forEach((k) => { out[k] = num(raw[k], fresh[k]); });
+  out.week = Math.max(1, Math.floor(out.week)); out.focus = clamp(out.focus, 0, 100);
   out.skills = {}; skillDefs().forEach((d) => { out.skills[d.id] = { xp: Math.max(0, num(raw.skills[d.id] && raw.skills[d.id].xp, 0)) }; });
   out.mastery = raw.mastery && typeof raw.mastery === 'object' ? raw.mastery : {};
   out.pity = raw.pity && typeof raw.pity === 'object' ? raw.pity : {};
@@ -95,6 +95,9 @@ export function migrate(raw) {
   out.log = arr(raw.log).filter((l) => l && l.text).slice(0, LOG_CAP);
   // v5: supply board removed. Any carried-over state.supply from v1/v3/v4 is dropped.
   delete out.supply;
+  // v5: raid tokens removed. Hoarded tokens on v4 saves are discarded; stale rec.tokens
+  // on per-boss records is left as dead data (nothing reads it after the raid-payouts rewrite).
+  delete out.tokens;
   ensureV4(out);
   if (legacyV3) {
     const rec = curRecord(out); const v3max = num(V3_BOSS_HP[out.raid.ladder], 0);
