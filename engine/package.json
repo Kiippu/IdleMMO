@@ -10,8 +10,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "extract-legacy": "node scripts/extract-legacy.mjs",
-    "record-fixtures": "node scripts/record-fixtures.mjs"
+    "extract-legacy": "node scripts/extract-legacy.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

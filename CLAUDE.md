@@ -74,25 +74,17 @@ Art and UI
 6. Launch (move to Workers Paid, payments, quality pass).
 Also: remove dev-only tools before players see them (devSetClock / Raid "next week" button, crew "Testing" panel).
 
-## Current state (2026-11-06) — phase 0 was interrupted, review before trusting it
-Branch `rebuild/phase-0`. Nothing is committed yet. Work was done from a Linux VM, so:
-- Delete every `node_modules` and run `npm install` again on Windows (Linux binaries for esbuild/rollup/workerd
-  won't run). The root `package-lock.json` may need regenerating.
-- `.npmrc` sets `legacy-peer-deps=true` to dodge an npm 10.9 install crash with vitest. Try removing it on npm 11.
-Scaffold (finished, partly verified): root npm workspaces (engine, client, server), `client/` Vite 8 + Svelte 5.57
-placeholder with the five tabs and tokens (light + dark), `client/public/_headers`, `server/` Worker
-(wrangler 4.158, `wrangler.jsonc`, D1 `DB`, DO `Guild`, weekly cron `0 22 * * 6` UTC, `GET /api/health`,
-`migrations/0001_init.sql`), router tests in plain Node, `.github/workflows/ci.yml`, `README.md`, `art/CREDITS.md`.
-Verified: install, client build, typechecks, 3 server tests, `wrangler deploy --dry-run`.
-NOT verified (workerd crashed in the VM): `wrangler dev`, curl `/api/health` and `/`, and the scheduled handler
-(`curl "http://localhost:8787/cdn-cgi/handler/scheduled?cron=0+22+*+*+6"` with `--test-scheduled`).
-Engine (interrupted mid-port, status unknown):
-- `engine/scripts/extract-legacy.mjs` slices data.js/engine.js out of `index.html` into `engine/legacy/`.
-- `engine/legacy/harness.mjs` runs them in a Node vm with seeded RNG (mulberry32), fake clock, in-memory localStorage.
-- `engine/scenarios/` + `engine/scripts/record-fixtures.mjs` wrote fixtures in `engine/fixtures/`
-  (new-state, gather-ticks, offline, craft, gear-loadouts, market, crew, supply, weekly-clock, raid, migrate).
-- `engine/src/*.ts`: many modules exist (data, actions, crafting/gear, market, crew, raid rules/sim/payouts,
-  weekly, state/migrate, selftest...) but completeness, typecheck and parity were never confirmed.
-- `engine/test/legacy-selftest.test.ts` and `parity.test.ts` exist; results unknown.
-- `engine/package.json` pins TypeScript 5.6 / Vitest 2 while the root uses TypeScript 6 / Vitest 4: align them.
-- No `engine/PORTING.md` yet: write one (done / left / old-engine quirks to preserve).
+## Current state (2026-11-06) — phase 0 complete, cutting phase 1
+Phase 0 is merged to `main` (PR #1, `a22a399`). The TS engine reproduces the legacy prototype byte-for-byte
+under the parity gate. About to cut `rebuild/phase-1` for the design-update work (roadmap item 1).
+- Branch: `rebuild/phase-1` (to be created).
+- Engine: `npm run test -w @guildwright/engine` is green — 16/16 (11 parity fixtures + 5 legacy-selftest seeds).
+  `npm run typecheck -w @guildwright/engine` is clean. See `engine/PORTING.md` for what's ported and the
+  §2 "Not ported / deferred" list — that list is phase 1's scope.
+- Scaffold verified: root npm workspaces, `client/` (Vite 8 + Svelte 5.57 placeholder with the five tabs and
+  design tokens), `server/` Worker (wrangler 4.158, D1 `DB`, DO `Guild`, weekly cron `0 22 * * 6` UTC,
+  `GET /api/health`, `migrations/0001_init.sql`), `.github/workflows/ci.yml`.
+- Still not re-verified on this Windows checkout: `wrangler dev` live run + `/api/health` + `--test-scheduled`
+  (workerd crashed in the Linux VM during phase 0). Pick this up when a server change is needed in phase 1.
+- `.npmrc` still sets `legacy-peer-deps=true` to dodge an npm 10.9 install crash with vitest. Try removing it
+  on npm 11 the next time deps are bumped.

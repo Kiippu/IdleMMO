@@ -1,26 +1,31 @@
-# Phase 0 engine port
+# Engine port notes
 
 This document tracks the port of the single-file prototype's JavaScript engine
 (`index.html` → sliced into `engine/legacy/engine.js`) into the TypeScript module
 at `engine/src/`.
 
-The port is behaviour-only. Phase 0 must reproduce every fixture recorded from
-the legacy build under a seeded RNG. Design changes land in phase 1.
+Phase 0 was a behavioural port. Phase 1 applies the "Settled decisions" from
+`CLAUDE.md` (gold-only, supply/tokens/war-chest out, town contracts from
+treasury, treasury log, one action slot, specialization switch, real-speed
+tuning, NPC stand-ins). The phase-0 parity harness (11 scenario fixtures,
+`record-fixtures.mjs`, `test/parity.test.ts`, `test/helpers.ts`) was removed
+at the start of phase 1 because every fixture encoded numbers the new rules
+deliberately break. See §4 for how to read back that history if a regression
+shows up.
 
-## Gate status (verified)
+## Gate status (current)
 
 - `node engine/scripts/extract-legacy.mjs` from the repo root re-slices
   `engine/legacy/data.js` and `engine/legacy/engine.js` from `index.html` with no
   diff against the checked-in copy — the legacy sources match the prototype
-  byte-for-byte.
+  byte-for-byte. The prototype is still the behaviour reference for anything
+  the phase-1 rules don't touch.
 - `npm run typecheck -w @guildwright/engine` is clean.
-- `npm run test -w @guildwright/engine` passes all 16 tests:
-    - 11 parity scenarios (`new-state`, `gather-ticks`, `offline`, `craft`,
-      `gear-loadouts`, `market`, `crew`, `supply`, `weekly-clock`, `raid`,
-      `migrate`).
-    - 5 seeds of the legacy `E._test` smoke run (`1`, `2`, `3`, `42`, `1337`),
-      which exercises the byte-for-byte legacy engine under the same seeded
-      RNG + fake clock harness used for parity.
+- `npm run test -w @guildwright/engine` runs the 5-seed legacy `E._test` smoke
+  (`test/legacy-selftest.test.ts`): seeds `1`, `2`, `3`, `42`, `1337` boot the
+  byte-for-byte legacy engine under a seeded RNG + fake clock and run the
+  prototype's own assertions. This is a "the prototype still works" tripwire,
+  not a parity gate on the TS port.
 
 ## 1. What is ported
 
@@ -78,9 +83,10 @@ save migration.
 
 ## 3. Old-engine quirks preserved on purpose
 
-Reading these as bugs and "cleaning them up" will break the parity gate. Every
-quirk listed here is intentional — the legacy build shipped with it and the
-recorded fixtures encode it.
+These were preserved during the phase-0 port because the recorded fixtures
+encoded them. The fixtures are gone in phase 1, but the quirks still shape the
+TS engine. Treat them as design decisions, not bugs — "cleaning them up"
+changes rules that the owner has not signed off on.
 
 RNG and iteration order
 - The legacy build consumes RNG inside `Object.keys(x).forEach(...)` loops
@@ -160,30 +166,20 @@ Typing notes (for anyone who tightens `tsconfig.json` later)
   so a stale src from a previous realm can invalidate them; `vi.resetModules()`
   resets everything per parity run.
 
-## 4. Re-recording fixtures (only if the legacy source changes)
+## 4. Phase-0 parity harness (removed, how to resurrect)
 
-Stop and think before you do this. Regenerating the fixtures rebases the
-"correct answer" to whatever the current legacy source produces. If you
-accidentally re-record against a drifted legacy file, the TS port will "pass"
-against a baseline that no longer matches the prototype.
+The parity harness is deleted on `rebuild/phase-1` but still lives on the
+phase-0 merge commit. If a phase-1 change breaks something that worked in
+phase 0 and you want to bisect:
 
-Safe procedure, on a clean checkout:
-
-1. From the repo root, re-slice the legacy sources from `index.html`:
-   `node engine/scripts/extract-legacy.mjs`
-2. `git status engine/legacy/` — if anything changed, the prototype moved and
-   you should understand why before continuing.
-3. Re-record the fixtures from the (now updated) legacy vm:
-   `node engine/scripts/record-fixtures.mjs`
-4. `git diff engine/fixtures/` and read every changed byte. If the delta
-   looks wrong, revert and investigate the legacy change first.
-5. `npm run test -w @guildwright/engine` — the TS port must still match, or
-   there is a quirk in the legacy delta that needs porting too.
-
-You should not need to re-record during normal phase 0 work. The only valid
-reasons are: a real fix in `index.html` that the owner has agreed to, or a
-seed/harness change (very rare). Design changes do NOT re-record: they land
-in phase 1 against a fresh baseline.
+1. `git show origin/main:engine/scripts/record-fixtures.mjs > /tmp/record.mjs`
+   (and `engine/scenarios/index.mjs`, `engine/test/parity.test.ts`,
+   `engine/test/helpers.ts`, `engine/fixtures/*.json`) — all of them lived at
+   paths you can pull back with `git show` or `git checkout origin/main --`.
+2. Run the harness against the suspect commit.
+3. Delete again when you're done — phase 1 rules make a parity gate
+   meaningless, so these files should never be checked back in on the
+   phase-1 branch.
 
 ## 5. Public API shape (don't drift)
 
