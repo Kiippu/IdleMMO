@@ -49,10 +49,10 @@ export function gapDraft(state, gap) {
   const itemId = gapItem(state, gap.check); const it = item(itemId) || { name: itemId };
   const qty = clamp(Math.ceil(num(gap.shortUnits, 20)), 10, 40);
   const rewardPer = Math.max(1, Math.round(E.itemValue(itemId, 1) * 0.4));
-  const coin = Math.floor(num(state.crew && state.crew.treasury && state.crew.treasury.coin, 0));
+  const gold = Math.floor(num(state.crew && state.crew.treasury && state.crew.treasury.gold, 0));
   const escrow = qty * rewardPer;
   return { itemId, qty, rewardPer, minGrade: 1, note: `${gap.text}. Saturday raid needs ${qty} ${it.name}.`,
-    escrow, freeCoin: coin, affordable: escrow <= coin, maxRewardPer: Math.floor(coin / qty) };
+    escrow, freeGold: gold, affordable: escrow <= gold, maxRewardPer: Math.floor(gold / qty) };
 }
 export function buildDebrief(state, sim) {
   const gaps = []; const fine = [];
@@ -119,13 +119,13 @@ export function resolveRaid(state, opts, events) {
     sim.cpHit.forEach((at) => { const ci = []; grant(state, ci, boss.bossMat, 2, 1); grant(state, ci, boss.floorItem || 'coal', 1, randInt(3, 6)); grant(state, ci, pickLootItem(state, boss, 'buff'), 1, 1); chests.push({ at, items: ci }); });
   }
   sim.cpHit.forEach((at) => { if (!rec.checkpointsPaid.includes(at)) rec.checkpointsPaid.push(at); });
-  // crew treasury coin by turnout (never by contribution)
+  // crew treasury gold by turnout (never by contribution)
   const btier = num(rec.index, 0) + 1;
-  const crewCoin = Math.min(num(c.crewCoinCap, 180) * btier, num(c.crewCoinPerAttendee, 10) * btier * sim.attendCount);
+  const crewGold = Math.min(num(c.crewGoldCap, 180) * btier, num(c.crewGoldPerAttendee, 10) * btier * sim.attendCount);
   if (state.crew && state.crew.treasury) {
-    state.crew.treasury.coin += crewCoin;
-    feedPush(state, 'payout', 'Raid', `Raid payout: ${crewCoin} coin to the treasury (${sim.attendCount} turned out).`);
-    econ(state, 'raidCoin', crewCoin);
+    state.crew.treasury.gold += crewGold;
+    feedPush(state, 'payout', 'Raid', `Raid payout: ${crewGold}g to the treasury (${sim.attendCount} turned out).`);
+    econ(state, 'raidGold', crewGold);
   }
   // kill: lottery, ladder, buff
   const held = rec.joinedWeekends > 0 ? coreOddsFor(state, rec, boss, cumTier) : null;
@@ -171,7 +171,7 @@ export function resolveRaid(state, opts, events) {
     checks: sim.waves.map((w) => ({ wave: w.wave, phase: w.phase, phaseName: w.phaseName, check: w.check, label: w.label, result: w.result, overtime: w.overtime,
       yourShare: w.yourShare, yourText: w.yourText, your: Math.round(w.your), total: Math.round(w.total), need: Math.round(w.need), crewHave: Math.round(w.crewHave), crewNeed: Math.round(w.crewNeed), helped: w.your > 0,
       auraTier: w.auraTier, auraTierMin: w.auraTierMin, auraWeakened: w.auraWeakened, auraLoss: w.auraLoss, auraWeakFrames: w.auraWeakFrames, fainted: w.fainted })),
-    payout: { floor: { items: floorItems, tickets: joined ? num((c.tierTickets || {}).floor, 1) : 0 }, tier: { tier, items: tierItems, tickets: joined ? num((c.tierTickets || {})[tier], 0) : 0 }, chests, crewCoin, coin: 0, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
+    payout: { floor: { items: floorItems, tickets: joined ? num((c.tierTickets || {}).floor, 1) : 0 }, tier: { tier, items: tierItems, tickets: joined ? num((c.tierTickets || {})[tier], 0) : 0 }, chests, crewGold, gold: 0, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
     cores, weekBuff, auras: sim.auras.map((a) => ({ guild: a.guild, type: a.type, tier: a.tier, strength: num((cfg().auraStrength || [])[a.tier], 0), mine: a.mine })), auraWeakenedWave: sim.auraWeakenedWave,
     moments, bestMoment: best ? { frame: best.frame, t: best.t, at: startedAt + best.frame * frameMs, kind: best.kind, text: best.text, value: best.value } : null,
     windowStart: win.start, windowEnd: win.end, frameMs, instant: !!opts.instant,

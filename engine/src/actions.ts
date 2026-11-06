@@ -244,8 +244,8 @@ export function completeOnce(state, act, events) {
       return;
     }
     if (act.skill === 'mender' && ps.heal > 0) state.hp = Math.min(ps.maxHp, state.hp + ps.heal * 0.5);
-    const coins = Array.isArray(act.coins) ? randInt(num(act.coins[0], 0), num(act.coins[1], num(act.coins[0], 0))) : Math.max(0, Math.round(num(act.coins, 0)));
-    state.gold += coins;
+    const gold = Array.isArray(act.gold) ? randInt(num(act.gold[0], 0), num(act.gold[1], num(act.gold[0], 0))) : Math.max(0, Math.round(num(act.gold, 0)));
+    state.gold += gold;
     const drops = [];
     arr(act.drops).forEach((d) => {
       if (!d || !item(d.item) || rand() >= num(d.chance, 0) * (1 + skillBonusCached(state, act.skill).drops)) return;
@@ -255,7 +255,7 @@ export function completeOnce(state, act, events) {
     state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
     const xp = num(act.xp, 0) * xpMult;
     const role = ROLES.includes(act.skill) ? act.skill : 'striker';
-    events.push({ type: 'kill', actionId: act.id, coins, drops, damageTaken: dmg });
+    events.push({ type: 'kill', actionId: act.id, gold, drops, damageTaken: dmg });
     events.push({ type: 'complete', actionId: act.id, kind: act.kind, items: drops, xp });
     addXp(state, role, xp, events);
     autoEat(state, events, 0.5, E.playerStats(state).maxHp);

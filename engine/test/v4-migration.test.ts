@@ -43,6 +43,36 @@ describe('v4 → v5 migration', () => {
     expect(out.raid.rules.tokens).toBeUndefined();
   });
 
+  it('renames treasury.coin → treasury.gold and economy.raidCoin → raidGold', async () => {
+    const { E } = await freshEngine();
+    const base = E.newState();
+    // base already has v5 fields (gold, raidGold). Replace them with v4 names to simulate
+    // a save from before the rename.
+    const crew = Object.assign({}, base.crew, {
+      treasury: { coin: 250, escrow: 10 },
+    });
+    const economy = {
+      raidCoin: 540,
+      reqPaid: 60,
+      weeks: [
+        { week: 1, raidCoin: 180, reqPaid: 20 },
+        { week: 2, raidCoin: 360, reqPaid: 40 },
+      ],
+    };
+    const raw = v4SaveFrom(base, { crew, economy });
+    // strip the v5 .gold the base had, so we're really testing the .coin path
+    delete raw.crew.treasury.gold;
+    const out = E.migrate(raw);
+    expect(out.crew.treasury.coin).toBeUndefined();
+    expect(out.crew.treasury.gold).toBe(250);
+    expect(out.crew.treasury.escrow).toBe(10);
+    expect(out.economy.raidCoin).toBeUndefined();
+    expect(out.economy.raidGold).toBe(540);
+    expect(out.economy.weeks[0].raidCoin).toBeUndefined();
+    expect(out.economy.weeks[0].raidGold).toBe(180);
+    expect(out.economy.weeks[1].raidGold).toBe(360);
+  });
+
   it('preserves player gold, hp, skills, inv, gear, equipped, crew, clock, server, economy, loadouts', async () => {
     const { E } = await freshEngine();
     const base = E.newState();

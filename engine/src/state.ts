@@ -99,6 +99,22 @@ export function migrate(raw) {
   // on per-boss records is left as dead data (nothing reads it after the raid-payouts rewrite).
   delete out.tokens;
   ensureV4(out);
+  // v5: coin → gold on the crew treasury and the economy ledger. ensureV4 above already
+  // normalised out.crew.treasury.gold to 0 if the raw save only had .coin; fold the legacy
+  // value in and drop it. Same for state.economy.raidCoin (incl. per-week entries).
+  if (out.crew && out.crew.treasury && 'coin' in out.crew.treasury) {
+    out.crew.treasury.gold = num(out.crew.treasury.gold, 0) + num(out.crew.treasury.coin, 0);
+    delete out.crew.treasury.coin;
+  }
+  if (out.economy) {
+    if ('raidCoin' in out.economy) {
+      out.economy.raidGold = num(out.economy.raidGold, 0) + num(out.economy.raidCoin, 0);
+      delete out.economy.raidCoin;
+    }
+    arr(out.economy.weeks).forEach((w) => {
+      if (w && 'raidCoin' in w) { w.raidGold = num(w.raidGold, 0) + num(w.raidCoin, 0); delete w.raidCoin; }
+    });
+  }
   if (legacyV3) {
     const rec = curRecord(out); const v3max = num(V3_BOSS_HP[out.raid.ladder], 0);
     const pctLeft = v3max > 0 && isFinite(rr.bossHp) && rr.bossHp > 0 ? clamp(rr.bossHp / v3max, 0.05, 1) : 1;
