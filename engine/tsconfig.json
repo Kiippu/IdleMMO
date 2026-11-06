@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    // Phase 0 port: the engine is a near-mechanical port of a dynamic JS file,
+    // so strict null / implicit-any / arity checks fight the port on every line
+    // (see engine/PORTING.md). Correctness is proven by parity.test.ts + legacy-selftest.test.ts
+    // against the recorded fixtures, not by the type checker. Phase 1 can tighten this.
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noImplicitThis": false,
+    "alwaysStrict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowJs": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "legacy/*.d.mts", "scenarios/*.d.mts"]
+}

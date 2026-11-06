@@ -1,0 +1,15 @@
+{
+  "name": "guildwright",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": ["engine", "client", "server"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev:client": "npm run dev -w @guildwright/client",
+    "dev:server": "npm run dev -w @guildwright/server",
+    "tunnel": "cloudflared tunnel --url http://localhost:8787",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  }
+}

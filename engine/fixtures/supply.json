@@ -1,0 +1,3425 @@
+{
+ "name": "supply",
+ "seed": 808,
+ "start": 1793610000000,
+ "tz": "UTC",
+ "steps": [
+  {
+   "label": "quote",
+   "now": 1793610000000,
+   "result": [
+    {
+     "coins": 1152,
+     "tokens": 23
+    },
+    {
+     "coins": 5760,
+     "tokens": 115
+    },
+    {
+     "coins": 6336,
+     "tokens": 126
+    },
+    {
+     "coins": 14400,
+     "tokens": 288
+    },
+    {
+     "coins": 16704,
+     "tokens": 334
+    }
+   ],
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 150,
+    "tokens": 0,
+    "week": 1,
+    "hp": 70,
+    "focus": 0,
+    "skills": {
+     "mining": {
+      "xp": 0
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {},
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "frostward_tonic": [
+      300,
+      0,
+      0,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": null,
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "nd",
+       "seller": "Halvard",
+       "itemId": "bone_shard",
+       "grade": 1,
+       "qty": 22,
+       "price": 2
+      },
+      {
+       "id": "n9",
+       "seller": "Dunmore",
+       "itemId": "bread",
+       "grade": 1,
+       "qty": 27,
+       "price": 2
+      },
+      {
+       "id": "n7",
+       "seller": "Kestra",
+       "itemId": "bronze_bar",
+       "grade": 0,
+       "qty": 23,
+       "price": 5
+      },
+      {
+       "id": "ne",
+       "seller": "Dunmore",
+       "itemId": "copper_bar",
+       "grade": 0,
+       "qty": 36,
+       "price": 4
+      },
+      {
+       "id": "nc",
+       "seller": "Holt",
+       "itemId": "faint_essence",
+       "grade": 1,
+       "qty": 38,
+       "price": 4
+      },
+      {
+       "id": "n8",
+       "seller": "Ilsabet",
+       "itemId": "grilled_minnows",
+       "grade": 1,
+       "qty": 29,
+       "price": 5
+      },
+      {
+       "id": "n5",
+       "seller": "Gideon",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 22,
+       "price": 13
+      },
+      {
+       "id": "n6",
+       "seller": "Corvin",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 21,
+       "price": 9
+      },
+      {
+       "id": "n4",
+       "seller": "Oswin",
+       "itemId": "tin_ore",
+       "grade": 0,
+       "qty": 13,
+       "price": 2
+      },
+      {
+       "id": "nf",
+       "seller": "Gideon",
+       "itemId": "wisplight_salve",
+       "grade": 1,
+       "qty": 40,
+       "price": 17
+      },
+      {
+       "id": "na",
+       "seller": "Linnet",
+       "itemId": "trout",
+       "grade": 3,
+       "qty": 6,
+       "price": 10
+      },
+      {
+       "id": "nb",
+       "seller": "Corvin",
+       "itemId": "iron_ore",
+       "grade": 0,
+       "qty": 16,
+       "price": 9
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610000000,
+     "age": 0
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "wisplight_salve",
+       "rate": 11.5,
+       "counter": true
+      },
+      {
+       "itemId": "amber_resin",
+       "rate": 6
+      },
+      {
+       "itemId": "copper_ore",
+       "rate": 1.4
+      },
+      {
+       "itemId": "grilled_minnows",
+       "rate": 3.5
+      },
+      {
+       "itemId": "tanned_leather",
+       "rate": 11.9
+      }
+     ],
+     "donated": {},
+     "earned": 0
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1738080,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1738080,
+       "hpLeft": 1738080,
+       "pop": 1207,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 20,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Barlow",
+       "skill": "smelting",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 3115634700,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.83,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Petra_V",
+       "skill": "smithing",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3399863455,
+       "basePf": 0.88,
+       "pf": 0.88,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": "woodworking",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 158034786,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.89,
+       "food": 9,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tobyn_Ash",
+       "skill": "jewelcrafting",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3121952921,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.94,
+       "food": 4,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Gideon",
+       "skill": "weaving",
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 3729423819,
+       "basePf": 0.84,
+       "pf": 0.84,
+       "attend": 0.92,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 966715140,
+       "basePf": 0.94,
+       "pf": 0.94,
+       "attend": 0.92,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2495128267,
+       "basePf": 1.26,
+       "pf": 1.26,
+       "attend": 0.92,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Kestra",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1346926090,
+       "basePf": 0.76,
+       "pf": 0.76,
+       "attend": 0.84,
+       "food": 6,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2056875895,
+       "basePf": 1.03,
+       "pf": 1.03,
+       "attend": 0.85,
+       "food": 10,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Holt",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3906894050,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wrenna",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1061672349,
+       "basePf": 0.79,
+       "pf": 0.79,
+       "attend": 0.8,
+       "food": 10,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Sable",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 51235978,
+       "basePf": 1.25,
+       "pf": 1.25,
+       "attend": 0.81,
+       "food": 5,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 2198280040,
+       "basePf": 0.77,
+       "pf": 0.77,
+       "attend": 0.81,
+       "food": 7,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Halvard",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 4088513895,
+       "basePf": 1.13,
+       "pf": 1.13,
+       "attend": 0.91,
+       "food": 7,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Juno_K",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 407912670,
+       "basePf": 0.72,
+       "pf": 0.72,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "jg",
+       "owner": "Gideon",
+       "actionId": "weave_linen",
+       "qty": 8,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jh",
+       "owner": "Fenwick",
+       "actionId": "pine_buckler",
+       "qty": 18,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "ji",
+       "owner": "Tobyn_Ash",
+       "actionId": "copper_band",
+       "qty": 5,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jj",
+       "owner": "Barlow",
+       "actionId": "smelt_copper",
+       "qty": 14,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 90,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     }
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1231,
+     "popHistory": [
+      1235,
+      1155,
+      1200,
+      1239
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lk",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "donate 60",
+   "now": 1793610000000,
+   "result": {
+    "ok": true,
+    "coins": 6336,
+    "tokens": 126,
+    "reason": ""
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 6486,
+    "tokens": 126,
+    "week": 1,
+    "hp": 70,
+    "focus": 0,
+    "skills": {
+     "mining": {
+      "xp": 0
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {},
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "frostward_tonic": [
+      240,
+      0,
+      0,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": null,
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "nd",
+       "seller": "Halvard",
+       "itemId": "bone_shard",
+       "grade": 1,
+       "qty": 22,
+       "price": 2
+      },
+      {
+       "id": "n9",
+       "seller": "Dunmore",
+       "itemId": "bread",
+       "grade": 1,
+       "qty": 27,
+       "price": 2
+      },
+      {
+       "id": "n7",
+       "seller": "Kestra",
+       "itemId": "bronze_bar",
+       "grade": 0,
+       "qty": 23,
+       "price": 5
+      },
+      {
+       "id": "ne",
+       "seller": "Dunmore",
+       "itemId": "copper_bar",
+       "grade": 0,
+       "qty": 36,
+       "price": 4
+      },
+      {
+       "id": "nc",
+       "seller": "Holt",
+       "itemId": "faint_essence",
+       "grade": 1,
+       "qty": 38,
+       "price": 4
+      },
+      {
+       "id": "n8",
+       "seller": "Ilsabet",
+       "itemId": "grilled_minnows",
+       "grade": 1,
+       "qty": 29,
+       "price": 5
+      },
+      {
+       "id": "n5",
+       "seller": "Gideon",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 22,
+       "price": 13
+      },
+      {
+       "id": "n6",
+       "seller": "Corvin",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 21,
+       "price": 9
+      },
+      {
+       "id": "n4",
+       "seller": "Oswin",
+       "itemId": "tin_ore",
+       "grade": 0,
+       "qty": 13,
+       "price": 2
+      },
+      {
+       "id": "nf",
+       "seller": "Gideon",
+       "itemId": "wisplight_salve",
+       "grade": 1,
+       "qty": 40,
+       "price": 17
+      },
+      {
+       "id": "na",
+       "seller": "Linnet",
+       "itemId": "trout",
+       "grade": 3,
+       "qty": 6,
+       "price": 10
+      },
+      {
+       "id": "nb",
+       "seller": "Corvin",
+       "itemId": "iron_ore",
+       "grade": 0,
+       "qty": 16,
+       "price": 9
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610000000,
+     "age": 0
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "wisplight_salve",
+       "rate": 11.5,
+       "counter": true
+      },
+      {
+       "itemId": "amber_resin",
+       "rate": 6
+      },
+      {
+       "itemId": "copper_ore",
+       "rate": 1.4
+      },
+      {
+       "itemId": "grilled_minnows",
+       "rate": 3.5
+      },
+      {
+       "itemId": "tanned_leather",
+       "rate": 11.9
+      }
+     ],
+     "donated": {
+      "frostward_tonic": 60
+     },
+     "earned": 6336
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1738080,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1738080,
+       "hpLeft": 1738080,
+       "pop": 1207,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610000000,
+      "kind": "market",
+      "text": "Donated 60 Frostward tonic to the supply board for 6336g and 126 tokens."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 20,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Barlow",
+       "skill": "smelting",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 3115634700,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.83,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Petra_V",
+       "skill": "smithing",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3399863455,
+       "basePf": 0.88,
+       "pf": 0.88,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": "woodworking",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 158034786,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.89,
+       "food": 9,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tobyn_Ash",
+       "skill": "jewelcrafting",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3121952921,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.94,
+       "food": 4,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Gideon",
+       "skill": "weaving",
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 3729423819,
+       "basePf": 0.84,
+       "pf": 0.84,
+       "attend": 0.92,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 966715140,
+       "basePf": 0.94,
+       "pf": 0.94,
+       "attend": 0.92,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2495128267,
+       "basePf": 1.26,
+       "pf": 1.26,
+       "attend": 0.92,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Kestra",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1346926090,
+       "basePf": 0.76,
+       "pf": 0.76,
+       "attend": 0.84,
+       "food": 6,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2056875895,
+       "basePf": 1.03,
+       "pf": 1.03,
+       "attend": 0.85,
+       "food": 10,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Holt",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3906894050,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wrenna",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1061672349,
+       "basePf": 0.79,
+       "pf": 0.79,
+       "attend": 0.8,
+       "food": 10,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Sable",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 51235978,
+       "basePf": 1.25,
+       "pf": 1.25,
+       "attend": 0.81,
+       "food": 5,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 2198280040,
+       "basePf": 0.77,
+       "pf": 0.77,
+       "attend": 0.81,
+       "food": 7,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Halvard",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 4088513895,
+       "basePf": 1.13,
+       "pf": 1.13,
+       "attend": 0.91,
+       "food": 7,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Juno_K",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 407912670,
+       "basePf": 0.72,
+       "pf": 0.72,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "jg",
+       "owner": "Gideon",
+       "actionId": "weave_linen",
+       "qty": 8,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jh",
+       "owner": "Fenwick",
+       "actionId": "pine_buckler",
+       "qty": 18,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "ji",
+       "owner": "Tobyn_Ash",
+       "actionId": "copper_band",
+       "qty": 5,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jj",
+       "owner": "Barlow",
+       "actionId": "smelt_copper",
+       "qty": 14,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 90,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     }
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1231,
+     "popHistory": [
+      1235,
+      1155,
+      1200,
+      1239
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lk",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "quote after",
+   "now": 1793610000000,
+   "result": {
+    "coins": 576,
+    "tokens": 12
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 6486,
+    "tokens": 126,
+    "week": 1,
+    "hp": 70,
+    "focus": 0,
+    "skills": {
+     "mining": {
+      "xp": 0
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {},
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "frostward_tonic": [
+      240,
+      0,
+      0,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": null,
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "nd",
+       "seller": "Halvard",
+       "itemId": "bone_shard",
+       "grade": 1,
+       "qty": 22,
+       "price": 2
+      },
+      {
+       "id": "n9",
+       "seller": "Dunmore",
+       "itemId": "bread",
+       "grade": 1,
+       "qty": 27,
+       "price": 2
+      },
+      {
+       "id": "n7",
+       "seller": "Kestra",
+       "itemId": "bronze_bar",
+       "grade": 0,
+       "qty": 23,
+       "price": 5
+      },
+      {
+       "id": "ne",
+       "seller": "Dunmore",
+       "itemId": "copper_bar",
+       "grade": 0,
+       "qty": 36,
+       "price": 4
+      },
+      {
+       "id": "nc",
+       "seller": "Holt",
+       "itemId": "faint_essence",
+       "grade": 1,
+       "qty": 38,
+       "price": 4
+      },
+      {
+       "id": "n8",
+       "seller": "Ilsabet",
+       "itemId": "grilled_minnows",
+       "grade": 1,
+       "qty": 29,
+       "price": 5
+      },
+      {
+       "id": "n5",
+       "seller": "Gideon",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 22,
+       "price": 13
+      },
+      {
+       "id": "n6",
+       "seller": "Corvin",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 21,
+       "price": 9
+      },
+      {
+       "id": "n4",
+       "seller": "Oswin",
+       "itemId": "tin_ore",
+       "grade": 0,
+       "qty": 13,
+       "price": 2
+      },
+      {
+       "id": "nf",
+       "seller": "Gideon",
+       "itemId": "wisplight_salve",
+       "grade": 1,
+       "qty": 40,
+       "price": 17
+      },
+      {
+       "id": "na",
+       "seller": "Linnet",
+       "itemId": "trout",
+       "grade": 3,
+       "qty": 6,
+       "price": 10
+      },
+      {
+       "id": "nb",
+       "seller": "Corvin",
+       "itemId": "iron_ore",
+       "grade": 0,
+       "qty": 16,
+       "price": 9
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610000000,
+     "age": 0
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "wisplight_salve",
+       "rate": 11.5,
+       "counter": true
+      },
+      {
+       "itemId": "amber_resin",
+       "rate": 6
+      },
+      {
+       "itemId": "copper_ore",
+       "rate": 1.4
+      },
+      {
+       "itemId": "grilled_minnows",
+       "rate": 3.5
+      },
+      {
+       "itemId": "tanned_leather",
+       "rate": 11.9
+      }
+     ],
+     "donated": {
+      "frostward_tonic": 60
+     },
+     "earned": 6336
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1738080,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1738080,
+       "hpLeft": 1738080,
+       "pop": 1207,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610000000,
+      "kind": "market",
+      "text": "Donated 60 Frostward tonic to the supply board for 6336g and 126 tokens."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 20,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Barlow",
+       "skill": "smelting",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 3115634700,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.83,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Petra_V",
+       "skill": "smithing",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3399863455,
+       "basePf": 0.88,
+       "pf": 0.88,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": "woodworking",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 158034786,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.89,
+       "food": 9,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tobyn_Ash",
+       "skill": "jewelcrafting",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3121952921,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.94,
+       "food": 4,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Gideon",
+       "skill": "weaving",
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 3729423819,
+       "basePf": 0.84,
+       "pf": 0.84,
+       "attend": 0.92,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 966715140,
+       "basePf": 0.94,
+       "pf": 0.94,
+       "attend": 0.92,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2495128267,
+       "basePf": 1.26,
+       "pf": 1.26,
+       "attend": 0.92,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Kestra",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1346926090,
+       "basePf": 0.76,
+       "pf": 0.76,
+       "attend": 0.84,
+       "food": 6,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2056875895,
+       "basePf": 1.03,
+       "pf": 1.03,
+       "attend": 0.85,
+       "food": 10,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Holt",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3906894050,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wrenna",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1061672349,
+       "basePf": 0.79,
+       "pf": 0.79,
+       "attend": 0.8,
+       "food": 10,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Sable",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 51235978,
+       "basePf": 1.25,
+       "pf": 1.25,
+       "attend": 0.81,
+       "food": 5,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 2198280040,
+       "basePf": 0.77,
+       "pf": 0.77,
+       "attend": 0.81,
+       "food": 7,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Halvard",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 4088513895,
+       "basePf": 1.13,
+       "pf": 1.13,
+       "attend": 0.91,
+       "food": 7,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Juno_K",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 407912670,
+       "basePf": 0.72,
+       "pf": 0.72,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "jg",
+       "owner": "Gideon",
+       "actionId": "weave_linen",
+       "qty": 8,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jh",
+       "owner": "Fenwick",
+       "actionId": "pine_buckler",
+       "qty": 18,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "ji",
+       "owner": "Tobyn_Ash",
+       "actionId": "copper_band",
+       "qty": 5,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jj",
+       "owner": "Barlow",
+       "actionId": "smelt_copper",
+       "qty": 14,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 90,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     }
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1231,
+     "popHistory": [
+      1235,
+      1155,
+      1200,
+      1239
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lk",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "donate 200",
+   "now": 1793610000000,
+   "result": {
+    "ok": true,
+    "coins": 9446,
+    "tokens": 189,
+    "reason": ""
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 15932,
+    "tokens": 315,
+    "week": 1,
+    "hp": 70,
+    "focus": 0,
+    "skills": {
+     "mining": {
+      "xp": 0
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {},
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "frostward_tonic": [
+      40,
+      0,
+      0,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": null,
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "nd",
+       "seller": "Halvard",
+       "itemId": "bone_shard",
+       "grade": 1,
+       "qty": 22,
+       "price": 2
+      },
+      {
+       "id": "n9",
+       "seller": "Dunmore",
+       "itemId": "bread",
+       "grade": 1,
+       "qty": 27,
+       "price": 2
+      },
+      {
+       "id": "n7",
+       "seller": "Kestra",
+       "itemId": "bronze_bar",
+       "grade": 0,
+       "qty": 23,
+       "price": 5
+      },
+      {
+       "id": "ne",
+       "seller": "Dunmore",
+       "itemId": "copper_bar",
+       "grade": 0,
+       "qty": 36,
+       "price": 4
+      },
+      {
+       "id": "nc",
+       "seller": "Holt",
+       "itemId": "faint_essence",
+       "grade": 1,
+       "qty": 38,
+       "price": 4
+      },
+      {
+       "id": "n8",
+       "seller": "Ilsabet",
+       "itemId": "grilled_minnows",
+       "grade": 1,
+       "qty": 29,
+       "price": 5
+      },
+      {
+       "id": "n5",
+       "seller": "Gideon",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 22,
+       "price": 13
+      },
+      {
+       "id": "n6",
+       "seller": "Corvin",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 21,
+       "price": 9
+      },
+      {
+       "id": "n4",
+       "seller": "Oswin",
+       "itemId": "tin_ore",
+       "grade": 0,
+       "qty": 13,
+       "price": 2
+      },
+      {
+       "id": "nf",
+       "seller": "Gideon",
+       "itemId": "wisplight_salve",
+       "grade": 1,
+       "qty": 40,
+       "price": 17
+      },
+      {
+       "id": "na",
+       "seller": "Linnet",
+       "itemId": "trout",
+       "grade": 3,
+       "qty": 6,
+       "price": 10
+      },
+      {
+       "id": "nb",
+       "seller": "Corvin",
+       "itemId": "iron_ore",
+       "grade": 0,
+       "qty": 16,
+       "price": 9
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610000000,
+     "age": 0
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "wisplight_salve",
+       "rate": 11.5,
+       "counter": true
+      },
+      {
+       "itemId": "amber_resin",
+       "rate": 6
+      },
+      {
+       "itemId": "copper_ore",
+       "rate": 1.4
+      },
+      {
+       "itemId": "grilled_minnows",
+       "rate": 3.5
+      },
+      {
+       "itemId": "tanned_leather",
+       "rate": 11.9
+      }
+     ],
+     "donated": {
+      "frostward_tonic": 260
+     },
+     "earned": 15782
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1738080,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1738080,
+       "hpLeft": 1738080,
+       "pop": 1207,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610000000,
+      "kind": "market",
+      "text": "Donated 200 Frostward tonic to the supply board for 9446g and 189 tokens."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "market",
+      "text": "Donated 60 Frostward tonic to the supply board for 6336g and 126 tokens."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 20,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Barlow",
+       "skill": "smelting",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 3115634700,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.83,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Petra_V",
+       "skill": "smithing",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3399863455,
+       "basePf": 0.88,
+       "pf": 0.88,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": "woodworking",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 158034786,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.89,
+       "food": 9,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tobyn_Ash",
+       "skill": "jewelcrafting",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3121952921,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.94,
+       "food": 4,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Gideon",
+       "skill": "weaving",
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 3729423819,
+       "basePf": 0.84,
+       "pf": 0.84,
+       "attend": 0.92,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 966715140,
+       "basePf": 0.94,
+       "pf": 0.94,
+       "attend": 0.92,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2495128267,
+       "basePf": 1.26,
+       "pf": 1.26,
+       "attend": 0.92,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Kestra",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1346926090,
+       "basePf": 0.76,
+       "pf": 0.76,
+       "attend": 0.84,
+       "food": 6,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2056875895,
+       "basePf": 1.03,
+       "pf": 1.03,
+       "attend": 0.85,
+       "food": 10,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Holt",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3906894050,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wrenna",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1061672349,
+       "basePf": 0.79,
+       "pf": 0.79,
+       "attend": 0.8,
+       "food": 10,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Sable",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 51235978,
+       "basePf": 1.25,
+       "pf": 1.25,
+       "attend": 0.81,
+       "food": 5,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 2198280040,
+       "basePf": 0.77,
+       "pf": 0.77,
+       "attend": 0.81,
+       "food": 7,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Halvard",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 4088513895,
+       "basePf": 1.13,
+       "pf": 1.13,
+       "attend": 0.91,
+       "food": 7,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Juno_K",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 407912670,
+       "basePf": 0.72,
+       "pf": 0.72,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "jg",
+       "owner": "Gideon",
+       "actionId": "weave_linen",
+       "qty": 8,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jh",
+       "owner": "Fenwick",
+       "actionId": "pine_buckler",
+       "qty": 18,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "ji",
+       "owner": "Tobyn_Ash",
+       "actionId": "copper_band",
+       "qty": 5,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jj",
+       "owner": "Barlow",
+       "actionId": "smelt_copper",
+       "qty": 14,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 90,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     }
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1231,
+     "popHistory": [
+      1235,
+      1155,
+      1200,
+      1239
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lk",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "donate missing",
+   "now": 1793610000000,
+   "result": {
+    "ok": false,
+    "coins": 0,
+    "tokens": 0,
+    "reason": "The board is not asking for nonexistent_item this week."
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 15932,
+    "tokens": 315,
+    "week": 1,
+    "hp": 70,
+    "focus": 0,
+    "skills": {
+     "mining": {
+      "xp": 0
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {},
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "frostward_tonic": [
+      40,
+      0,
+      0,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": null,
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "nd",
+       "seller": "Halvard",
+       "itemId": "bone_shard",
+       "grade": 1,
+       "qty": 22,
+       "price": 2
+      },
+      {
+       "id": "n9",
+       "seller": "Dunmore",
+       "itemId": "bread",
+       "grade": 1,
+       "qty": 27,
+       "price": 2
+      },
+      {
+       "id": "n7",
+       "seller": "Kestra",
+       "itemId": "bronze_bar",
+       "grade": 0,
+       "qty": 23,
+       "price": 5
+      },
+      {
+       "id": "ne",
+       "seller": "Dunmore",
+       "itemId": "copper_bar",
+       "grade": 0,
+       "qty": 36,
+       "price": 4
+      },
+      {
+       "id": "nc",
+       "seller": "Holt",
+       "itemId": "faint_essence",
+       "grade": 1,
+       "qty": 38,
+       "price": 4
+      },
+      {
+       "id": "n8",
+       "seller": "Ilsabet",
+       "itemId": "grilled_minnows",
+       "grade": 1,
+       "qty": 29,
+       "price": 5
+      },
+      {
+       "id": "n5",
+       "seller": "Gideon",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 22,
+       "price": 13
+      },
+      {
+       "id": "n6",
+       "seller": "Corvin",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 21,
+       "price": 9
+      },
+      {
+       "id": "n4",
+       "seller": "Oswin",
+       "itemId": "tin_ore",
+       "grade": 0,
+       "qty": 13,
+       "price": 2
+      },
+      {
+       "id": "nf",
+       "seller": "Gideon",
+       "itemId": "wisplight_salve",
+       "grade": 1,
+       "qty": 40,
+       "price": 17
+      },
+      {
+       "id": "na",
+       "seller": "Linnet",
+       "itemId": "trout",
+       "grade": 3,
+       "qty": 6,
+       "price": 10
+      },
+      {
+       "id": "nb",
+       "seller": "Corvin",
+       "itemId": "iron_ore",
+       "grade": 0,
+       "qty": 16,
+       "price": 9
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610000000,
+     "age": 0
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "wisplight_salve",
+       "rate": 11.5,
+       "counter": true
+      },
+      {
+       "itemId": "amber_resin",
+       "rate": 6
+      },
+      {
+       "itemId": "copper_ore",
+       "rate": 1.4
+      },
+      {
+       "itemId": "grilled_minnows",
+       "rate": 3.5
+      },
+      {
+       "itemId": "tanned_leather",
+       "rate": 11.9
+      }
+     ],
+     "donated": {
+      "frostward_tonic": 260
+     },
+     "earned": 15782
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1738080,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1738080,
+       "hpLeft": 1738080,
+       "pop": 1207,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610000000,
+      "kind": "market",
+      "text": "Donated 200 Frostward tonic to the supply board for 9446g and 189 tokens."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "market",
+      "text": "Donated 60 Frostward tonic to the supply board for 6336g and 126 tokens."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 20,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Barlow",
+       "skill": "smelting",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 3115634700,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.83,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Petra_V",
+       "skill": "smithing",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3399863455,
+       "basePf": 0.88,
+       "pf": 0.88,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": "woodworking",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 158034786,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.89,
+       "food": 9,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tobyn_Ash",
+       "skill": "jewelcrafting",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3121952921,
+       "basePf": 1.07,
+       "pf": 1.07,
+       "attend": 0.94,
+       "food": 4,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Gideon",
+       "skill": "weaving",
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 3729423819,
+       "basePf": 0.84,
+       "pf": 0.84,
+       "attend": 0.92,
+       "food": 9,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 966715140,
+       "basePf": 0.94,
+       "pf": 0.94,
+       "attend": 0.92,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2495128267,
+       "basePf": 1.26,
+       "pf": 1.26,
+       "attend": 0.92,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Kestra",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1346926090,
+       "basePf": 0.76,
+       "pf": 0.76,
+       "attend": 0.84,
+       "food": 6,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2056875895,
+       "basePf": 1.03,
+       "pf": 1.03,
+       "attend": 0.85,
+       "food": 10,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Holt",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3906894050,
+       "basePf": 1.17,
+       "pf": 1.17,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wrenna",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1061672349,
+       "basePf": 0.79,
+       "pf": 0.79,
+       "attend": 0.8,
+       "food": 10,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Sable",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 51235978,
+       "basePf": 1.25,
+       "pf": 1.25,
+       "attend": 0.81,
+       "food": 5,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 2198280040,
+       "basePf": 0.77,
+       "pf": 0.77,
+       "attend": 0.81,
+       "food": 7,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Halvard",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 4088513895,
+       "basePf": 1.13,
+       "pf": 1.13,
+       "attend": 0.91,
+       "food": 7,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Juno_K",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 407912670,
+       "basePf": 0.72,
+       "pf": 0.72,
+       "attend": 0.91,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "jg",
+       "owner": "Gideon",
+       "actionId": "weave_linen",
+       "qty": 8,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jh",
+       "owner": "Fenwick",
+       "actionId": "pine_buckler",
+       "qty": 18,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "ji",
+       "owner": "Tobyn_Ash",
+       "actionId": "copper_band",
+       "qty": 5,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jj",
+       "owner": "Barlow",
+       "actionId": "smelt_copper",
+       "qty": 14,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 90,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     }
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1231,
+     "popHistory": [
+      1235,
+      1155,
+      1200,
+      1239
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lk",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,7879 @@
+{
+ "name": "gather-ticks",
+ "seed": 202,
+ "start": 1793610000000,
+ "tz": "UTC",
+ "steps": [
+  {
+   "label": "start mine_copper",
+   "now": 1793610000000,
+   "result": {
+    "ok": true,
+    "reason": "",
+    "loadoutId": null
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 150,
+    "tokens": 0,
+    "week": 1,
+    "hp": 70,
+    "focus": 0,
+    "skills": {
+     "mining": {
+      "xp": 0
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {},
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": {
+     "actionId": "mine_copper",
+     "progress": 0
+    },
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "nb",
+       "seller": "Petra_V",
+       "itemId": "bone_shard",
+       "grade": 2,
+       "qty": 36,
+       "price": 3
+      },
+      {
+       "id": "n9",
+       "seller": "Linnet",
+       "itemId": "copper_rivet",
+       "grade": 1,
+       "qty": 38,
+       "price": 1
+      },
+      {
+       "id": "nm",
+       "seller": "Wenna",
+       "itemId": "copper_rivet",
+       "grade": 0,
+       "qty": 15,
+       "price": 1
+      },
+      {
+       "id": "ne",
+       "seller": "Rook77",
+       "itemId": "faint_essence",
+       "grade": 4,
+       "qty": 31,
+       "price": 7
+      },
+      {
+       "id": "nk",
+       "seller": "Sable",
+       "itemId": "faint_essence",
+       "grade": 1,
+       "qty": 6,
+       "price": 4
+      },
+      {
+       "id": "ng",
+       "seller": "Petra_V",
+       "itemId": "flax_fiber",
+       "grade": 0,
+       "qty": 28,
+       "price": 3
+      },
+      {
+       "id": "nh",
+       "seller": "Sable",
+       "itemId": "flax_fiber",
+       "grade": 1,
+       "qty": 20,
+       "price": 2
+      },
+      {
+       "id": "ni",
+       "seller": "Brisa",
+       "itemId": "flax_fiber",
+       "grade": 1,
+       "qty": 18,
+       "price": 3
+      },
+      {
+       "id": "n8",
+       "seller": "Calder",
+       "itemId": "grilled_minnows",
+       "grade": 0,
+       "qty": 6,
+       "price": 6
+      },
+      {
+       "id": "na",
+       "seller": "Fenwick",
+       "itemId": "linen_thread",
+       "grade": 1,
+       "qty": 19,
+       "price": 7
+      },
+      {
+       "id": "nj",
+       "seller": "Rook77",
+       "itemId": "minnow",
+       "grade": 1,
+       "qty": 25,
+       "price": 2
+      },
+      {
+       "id": "n5",
+       "seller": "Kestra",
+       "itemId": "mint_leaf",
+       "grade": 3,
+       "qty": 15,
+       "price": 4
+      },
+      {
+       "id": "nd",
+       "seller": "Gideon",
+       "itemId": "pine_plank",
+       "grade": 0,
+       "qty": 26,
+       "price": 6
+      },
+      {
+       "id": "nf",
+       "seller": "Halvard",
+       "itemId": "rough_leather",
+       "grade": 0,
+       "qty": 6,
+       "price": 4
+      },
+      {
+       "id": "n7",
+       "seller": "Brisa",
+       "itemId": "wild_grain",
+       "grade": 0,
+       "qty": 24,
+       "price": 1
+      },
+      {
+       "id": "n6",
+       "seller": "Tamsin",
+       "itemId": "wisplight_salve",
+       "grade": 2,
+       "qty": 33,
+       "price": 17
+      },
+      {
+       "id": "n4",
+       "seller": "Wrenna",
+       "itemId": "linen_cloth",
+       "grade": 1,
+       "qty": 5,
+       "price": 15
+      },
+      {
+       "id": "nc",
+       "seller": "Brisa",
+       "itemId": "linen_cloth",
+       "grade": 2,
+       "qty": 18,
+       "price": 19
+      },
+      {
+       "id": "nl",
+       "seller": "Oswin",
+       "itemId": "wolf_pelt",
+       "grade": 1,
+       "qty": 3,
+       "price": 8
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610000000,
+     "age": 0
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "ironskin_draught",
+       "rate": 32.6,
+       "counter": true
+      },
+      {
+       "itemId": "mint_leaf",
+       "rate": 2
+      },
+      {
+       "itemId": "mint_tonic",
+       "rate": 8.6
+      },
+      {
+       "itemId": "pine_plank",
+       "rate": 3.2
+      },
+      {
+       "itemId": "copper_rivet",
+       "rate": 0.7
+      },
+      {
+       "itemId": "clarity_draught",
+       "rate": 60.7
+      }
+     ],
+     "donated": {},
+     "earned": 0
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1720800,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1720800,
+       "hpLeft": 1720800,
+       "pop": 1195,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 26,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Sable",
+       "skill": "smithing",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 2578813842,
+       "basePf": 0.92,
+       "pf": 0.92,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Holt",
+       "skill": "weaving",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3426013151,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.76,
+       "food": 5,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": "tailoring",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3577177953,
+       "basePf": 1.31,
+       "pf": 1.31,
+       "attend": 0.77,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Quill",
+       "skill": "woodworking",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 1877493545,
+       "basePf": 1.09,
+       "pf": 1.09,
+       "attend": 0.88,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 2367598681,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.77,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Severin",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3420193896,
+       "basePf": 0.7,
+       "pf": 0.7,
+       "attend": 0.77,
+       "food": 3,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tamsin",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2292299475,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.96,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1790357998,
+       "basePf": 0.68,
+       "pf": 0.68,
+       "attend": 0.77,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 1296035920,
+       "basePf": 1.08,
+       "pf": 1.08,
+       "attend": 0.79,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wenna",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3990808150,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.81,
+       "food": 8,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ines",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1380642421,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.72,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brisa",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2566532368,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.92,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Oswin",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 1469922296,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.95,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brannoc",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 908054224,
+       "basePf": 0.74,
+       "pf": 0.74,
+       "attend": 0.88,
+       "food": 8,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 1986533828,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.94,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "jn",
+       "owner": "Holt",
+       "actionId": "weave_moon",
+       "qty": 6,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jo",
+       "owner": "Quill",
+       "actionId": "pine_buckler",
+       "qty": 11,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jp",
+       "owner": "Sable",
+       "actionId": "training_sword",
+       "qty": 13,
+       "done": 0,
+       "progress": 0,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 85,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     }
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1220,
+     "popHistory": [
+      1229,
+      1171,
+      1163,
+      1218
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lq",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "tick 30s",
+   "now": 1793610030000,
+   "result": {
+    "seconds": 30,
+    "events": {
+     "count": 13,
+     "byType": {
+      "complete": 10,
+      "levelup": 3
+     },
+     "head": [
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 2
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 3
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 4
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      }
+     ],
+     "tail": [
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 2
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 3
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 4
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      }
+     ]
+    }
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 150,
+    "tokens": 0,
+    "week": 1,
+    "hp": 70,
+    "focus": 60,
+    "skills": {
+     "mining": {
+      "xp": 320
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {
+     "mine_copper": 10
+    },
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "copper_ore": [
+      5,
+      5,
+      0,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": {
+     "actionId": "mine_copper",
+     "progress": 0
+    },
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "nb",
+       "seller": "Petra_V",
+       "itemId": "bone_shard",
+       "grade": 2,
+       "qty": 36,
+       "price": 3
+      },
+      {
+       "id": "n9",
+       "seller": "Linnet",
+       "itemId": "copper_rivet",
+       "grade": 1,
+       "qty": 38,
+       "price": 1
+      },
+      {
+       "id": "nm",
+       "seller": "Wenna",
+       "itemId": "copper_rivet",
+       "grade": 0,
+       "qty": 15,
+       "price": 1
+      },
+      {
+       "id": "ne",
+       "seller": "Rook77",
+       "itemId": "faint_essence",
+       "grade": 4,
+       "qty": 31,
+       "price": 7
+      },
+      {
+       "id": "nk",
+       "seller": "Sable",
+       "itemId": "faint_essence",
+       "grade": 1,
+       "qty": 6,
+       "price": 4
+      },
+      {
+       "id": "ng",
+       "seller": "Petra_V",
+       "itemId": "flax_fiber",
+       "grade": 0,
+       "qty": 28,
+       "price": 3
+      },
+      {
+       "id": "nh",
+       "seller": "Sable",
+       "itemId": "flax_fiber",
+       "grade": 1,
+       "qty": 20,
+       "price": 2
+      },
+      {
+       "id": "ni",
+       "seller": "Brisa",
+       "itemId": "flax_fiber",
+       "grade": 1,
+       "qty": 18,
+       "price": 3
+      },
+      {
+       "id": "n8",
+       "seller": "Calder",
+       "itemId": "grilled_minnows",
+       "grade": 0,
+       "qty": 6,
+       "price": 6
+      },
+      {
+       "id": "na",
+       "seller": "Fenwick",
+       "itemId": "linen_thread",
+       "grade": 1,
+       "qty": 19,
+       "price": 7
+      },
+      {
+       "id": "nj",
+       "seller": "Rook77",
+       "itemId": "minnow",
+       "grade": 1,
+       "qty": 25,
+       "price": 2
+      },
+      {
+       "id": "n5",
+       "seller": "Kestra",
+       "itemId": "mint_leaf",
+       "grade": 3,
+       "qty": 15,
+       "price": 4
+      },
+      {
+       "id": "nd",
+       "seller": "Gideon",
+       "itemId": "pine_plank",
+       "grade": 0,
+       "qty": 26,
+       "price": 6
+      },
+      {
+       "id": "nf",
+       "seller": "Halvard",
+       "itemId": "rough_leather",
+       "grade": 0,
+       "qty": 6,
+       "price": 4
+      },
+      {
+       "id": "n7",
+       "seller": "Brisa",
+       "itemId": "wild_grain",
+       "grade": 0,
+       "qty": 24,
+       "price": 1
+      },
+      {
+       "id": "n6",
+       "seller": "Tamsin",
+       "itemId": "wisplight_salve",
+       "grade": 2,
+       "qty": 33,
+       "price": 17
+      },
+      {
+       "id": "n4",
+       "seller": "Wrenna",
+       "itemId": "linen_cloth",
+       "grade": 1,
+       "qty": 5,
+       "price": 15
+      },
+      {
+       "id": "nc",
+       "seller": "Brisa",
+       "itemId": "linen_cloth",
+       "grade": 2,
+       "qty": 18,
+       "price": 19
+      },
+      {
+       "id": "nl",
+       "seller": "Oswin",
+       "itemId": "wolf_pelt",
+       "grade": 1,
+       "qty": 3,
+       "price": 8
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610000000,
+     "age": 30
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "ironskin_draught",
+       "rate": 32.6,
+       "counter": true
+      },
+      {
+       "itemId": "mint_leaf",
+       "rate": 2
+      },
+      {
+       "itemId": "mint_tonic",
+       "rate": 8.6
+      },
+      {
+       "itemId": "pine_plank",
+       "rate": 3.2
+      },
+      {
+       "itemId": "copper_rivet",
+       "rate": 0.7
+      },
+      {
+       "itemId": "clarity_draught",
+       "rate": 60.7
+      }
+     ],
+     "donated": {},
+     "earned": 0
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1720800,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1720800,
+       "hpLeft": 1720800,
+       "pop": 1195,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610026750,
+      "kind": "level",
+      "text": "Mining reached level 4."
+     },
+     {
+      "t": 1793610017750,
+      "kind": "level",
+      "text": "Mining reached level 3."
+     },
+     {
+      "t": 1793610008750,
+      "kind": "level",
+      "text": "Mining reached level 2."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 26,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Sable",
+       "skill": "smithing",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 2578813842,
+       "basePf": 0.92,
+       "pf": 0.92,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 1,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Holt",
+       "skill": "weaving",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3426013151,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.76,
+       "food": 5,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": "tailoring",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3577177953,
+       "basePf": 1.31,
+       "pf": 1.31,
+       "attend": 0.77,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Quill",
+       "skill": "woodworking",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 1877493545,
+       "basePf": 1.09,
+       "pf": 1.09,
+       "attend": 0.88,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 2367598681,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.77,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Severin",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3420193896,
+       "basePf": 0.7,
+       "pf": 0.7,
+       "attend": 0.77,
+       "food": 3,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tamsin",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2292299475,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.96,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1790357998,
+       "basePf": 0.68,
+       "pf": 0.68,
+       "attend": 0.77,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 1296035920,
+       "basePf": 1.08,
+       "pf": 1.08,
+       "attend": 0.79,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wenna",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3990808150,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.81,
+       "food": 8,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ines",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1380642421,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.72,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brisa",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2566532368,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.92,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Oswin",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 1469922296,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.95,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brannoc",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 908054224,
+       "basePf": 0.74,
+       "pf": 0.74,
+       "attend": 0.88,
+       "food": 8,
+       "potions": 3,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 1986533828,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.94,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "jn",
+       "owner": "Holt",
+       "actionId": "weave_moon",
+       "qty": 6,
+       "done": 2,
+       "progress": 0.34375,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jo",
+       "owner": "Quill",
+       "actionId": "pine_buckler",
+       "qty": 11,
+       "done": 4,
+       "progress": 0.6875,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 3,
+        "uncommon": 1,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jp",
+       "owner": "Sable",
+       "actionId": "training_sword",
+       "qty": 13,
+       "done": 4,
+       "progress": 0.6875,
+       "assisted": 0,
+       "postedAt": 1793610000000,
+       "rarities": {
+        "common": 2,
+        "uncommon": 1,
+        "rare": 1,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 55,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     },
+     "reqSimIn": 30,
+     "npcReqIn": 270
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1220,
+     "popHistory": [
+      1229,
+      1171,
+      1163,
+      1218
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lq",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "tick 120s (market refresh)",
+   "now": 1793610150000,
+   "result": {
+    "seconds": 120,
+    "events": {
+     "count": 52,
+     "byType": {
+      "complete": 40,
+      "levelup": 8,
+      "jobPosted": 4
+     },
+     "head": [
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 5
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 6
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 7
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "jobPosted",
+       "jobId": "jr",
+       "owner": "Linnet",
+       "actionId": "herbalist_cowl"
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "jobPosted",
+       "jobId": "js",
+       "owner": "Quill",
+       "actionId": "pine_staff"
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 8
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "jobPosted",
+       "jobId": "jt",
+       "owner": "Holt",
+       "actionId": "spin_linen"
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      }
+     ],
+     "tail": [
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 11
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 12
+      }
+     ]
+    }
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 150,
+    "tokens": 0,
+    "week": 1,
+    "hp": 70,
+    "focus": 100,
+    "skills": {
+     "mining": {
+      "xp": 1600
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {
+     "mine_copper": 50
+    },
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "copper_ore": [
+      11,
+      38,
+      1,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": {
+     "actionId": "mine_copper",
+     "progress": 0
+    },
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "nz",
+       "seller": "Nettlefoot",
+       "itemId": "bone_shard",
+       "grade": 0,
+       "qty": 24,
+       "price": 3
+      },
+      {
+       "id": "nv",
+       "seller": "Yara",
+       "itemId": "bread",
+       "grade": 0,
+       "qty": 24,
+       "price": 2
+      },
+      {
+       "id": "ny",
+       "seller": "Halvard",
+       "itemId": "copper_ore",
+       "grade": 3,
+       "qty": 31,
+       "price": 4
+      },
+      {
+       "id": "n12",
+       "seller": "Rook77",
+       "itemId": "faint_essence",
+       "grade": 0,
+       "qty": 11,
+       "price": 4
+      },
+      {
+       "id": "n13",
+       "seller": "Sable",
+       "itemId": "faint_essence",
+       "grade": 0,
+       "qty": 17,
+       "price": 3
+      },
+      {
+       "id": "nx",
+       "seller": "Linnet",
+       "itemId": "flax_fiber",
+       "grade": 1,
+       "qty": 34,
+       "price": 3
+      },
+      {
+       "id": "n14",
+       "seller": "Linnet",
+       "itemId": "linen_thread",
+       "grade": 3,
+       "qty": 18,
+       "price": 7
+      },
+      {
+       "id": "n15",
+       "seller": "Wrenna",
+       "itemId": "mint_leaf",
+       "grade": 1,
+       "qty": 11,
+       "price": 3
+      },
+      {
+       "id": "n10",
+       "seller": "Holt",
+       "itemId": "mint_tonic",
+       "grade": 0,
+       "qty": 10,
+       "price": 10
+      },
+      {
+       "id": "n11",
+       "seller": "Kestra",
+       "itemId": "herb_trout",
+       "grade": 2,
+       "qty": 8,
+       "price": 19
+      },
+      {
+       "id": "nw",
+       "seller": "Tobyn_Ash",
+       "itemId": "leather_strap",
+       "grade": 3,
+       "qty": 14,
+       "price": 8
+      },
+      {
+       "id": "nu",
+       "seller": "Oswin",
+       "itemId": "wood_varnish",
+       "grade": 1,
+       "qty": 7,
+       "price": 26
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610119750,
+     "age": 30
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "ironskin_draught",
+       "rate": 32.6,
+       "counter": true
+      },
+      {
+       "itemId": "mint_leaf",
+       "rate": 2
+      },
+      {
+       "itemId": "mint_tonic",
+       "rate": 8.6
+      },
+      {
+       "itemId": "pine_plank",
+       "rate": 3.2
+      },
+      {
+       "itemId": "copper_rivet",
+       "rate": 0.7
+      },
+      {
+       "itemId": "clarity_draught",
+       "rate": 60.7
+      }
+     ],
+     "donated": {},
+     "earned": 0
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1720800,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1720800,
+       "hpLeft": 1720800,
+       "pop": 1195,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610149750,
+      "kind": "level",
+      "text": "Mining reached level 12."
+     },
+     {
+      "t": 1793610128750,
+      "kind": "level",
+      "text": "Mining reached level 11."
+     },
+     {
+      "t": 1793610110750,
+      "kind": "level",
+      "text": "Mining reached level 10."
+     },
+     {
+      "t": 1793610092750,
+      "kind": "level",
+      "text": "Mining reached level 9."
+     },
+     {
+      "t": 1793610077750,
+      "kind": "level",
+      "text": "Mining reached level 8."
+     },
+     {
+      "t": 1793610062750,
+      "kind": "level",
+      "text": "Mining reached level 7."
+     },
+     {
+      "t": 1793610047750,
+      "kind": "level",
+      "text": "Mining reached level 6."
+     },
+     {
+      "t": 1793610038750,
+      "kind": "level",
+      "text": "Mining reached level 5."
+     },
+     {
+      "t": 1793610026750,
+      "kind": "level",
+      "text": "Mining reached level 4."
+     },
+     {
+      "t": 1793610017750,
+      "kind": "level",
+      "text": "Mining reached level 3."
+     },
+     {
+      "t": 1793610008750,
+      "kind": "level",
+      "text": "Mining reached level 2."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 42,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Sable",
+       "skill": "smithing",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 2578813842,
+       "basePf": 0.92,
+       "pf": 0.92,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 1,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Holt",
+       "skill": "weaving",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3426013151,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.76,
+       "food": 5,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": "tailoring",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3577177953,
+       "basePf": 1.31,
+       "pf": 1.31,
+       "attend": 0.77,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Quill",
+       "skill": "woodworking",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 1877493545,
+       "basePf": 1.09,
+       "pf": 1.09,
+       "attend": 0.88,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 2367598681,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.77,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Severin",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3420193896,
+       "basePf": 0.7,
+       "pf": 0.7,
+       "attend": 0.77,
+       "food": 3,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tamsin",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2292299475,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.96,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1790357998,
+       "basePf": 0.68,
+       "pf": 0.68,
+       "attend": 0.77,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 1296035920,
+       "basePf": 1.08,
+       "pf": 1.08,
+       "attend": 0.79,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wenna",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3990808150,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.81,
+       "food": 8,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ines",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1380642421,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.72,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brisa",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2566532368,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.92,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Oswin",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 1469922296,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.95,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brannoc",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 908054224,
+       "basePf": 0.74,
+       "pf": 0.74,
+       "attend": 0.88,
+       "food": 8,
+       "potions": 3,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 1986533828,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.94,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "jr",
+       "owner": "Linnet",
+       "actionId": "herbalist_cowl",
+       "qty": 19,
+       "done": 8,
+       "progress": 0.2812499999999959,
+       "assisted": 0,
+       "postedAt": 1793610070500,
+       "rarities": {
+        "common": 4,
+        "uncommon": 2,
+        "rare": 2,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "jt",
+       "owner": "Holt",
+       "actionId": "spin_linen",
+       "qty": 19,
+       "done": 13,
+       "progress": 0.9062500000000026,
+       "assisted": 0,
+       "postedAt": 1793610083250,
+       "rarities": {
+        "common": 0,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j16",
+       "owner": "Sable",
+       "actionId": "mithril_greaves",
+       "qty": 10,
+       "done": 1,
+       "progress": 0.5104166666666679,
+       "assisted": 0,
+       "postedAt": 1793610128250,
+       "rarities": {
+        "common": 1,
+        "uncommon": 0,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 44.5,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     },
+     "reqSimIn": 2,
+     "npcReqIn": 150
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1220,
+     "popHistory": [
+      1229,
+      1171,
+      1163,
+      1218
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lq",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "tick 600s",
+   "now": 1793610750000,
+   "result": {
+    "seconds": 600,
+    "events": {
+     "count": 233,
+     "byType": {
+      "complete": 200,
+      "levelup": 13,
+      "jobPosted": 20
+     },
+     "head": [
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 2,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 13
+      },
+      {
+       "type": "jobPosted",
+       "jobId": "j17",
+       "owner": "Holt",
+       "actionId": "spin_linen"
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 2,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 14
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 2,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 0,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      }
+     ],
+     "tail": [
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 2,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 2,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 2,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 2,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 2,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "levelup",
+       "skill": "mining",
+       "level": 25
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 2,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      },
+      {
+       "type": "complete",
+       "actionId": "mine_copper",
+       "kind": "gather",
+       "items": [
+        {
+         "itemId": "copper_ore",
+         "grade": 1,
+         "qty": 1
+        }
+       ],
+       "xp": 32
+      }
+     ]
+    }
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 150,
+    "tokens": 0,
+    "week": 1,
+    "hp": 70,
+    "focus": 100,
+    "skills": {
+     "mining": {
+      "xp": 8000
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {
+     "mine_copper": 250
+    },
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "copper_ore": [
+      23,
+      157,
+      70,
+      0,
+      0
+     ],
+     "rough_gem": [
+      0,
+      0,
+      1,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": {
+     "actionId": "mine_copper",
+     "progress": 0
+    },
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "n3n",
+       "seller": "Ines",
+       "itemId": "copper_bar",
+       "grade": 1,
+       "qty": 5,
+       "price": 7
+      },
+      {
+       "id": "n3p",
+       "seller": "Gideon",
+       "itemId": "copper_bar",
+       "grade": 2,
+       "qty": 7,
+       "price": 7
+      },
+      {
+       "id": "n3z",
+       "seller": "Quill",
+       "itemId": "copper_bar",
+       "grade": 3,
+       "qty": 8,
+       "price": 8
+      },
+      {
+       "id": "n3u",
+       "seller": "Brannoc",
+       "itemId": "pine_log",
+       "grade": 1,
+       "qty": 30,
+       "price": 2
+      },
+      {
+       "id": "n3m",
+       "seller": "Yara",
+       "itemId": "pine_plank",
+       "grade": 1,
+       "qty": 27,
+       "price": 5
+      },
+      {
+       "id": "n3q",
+       "seller": "Petra_V",
+       "itemId": "scrap_hide",
+       "grade": 1,
+       "qty": 30,
+       "price": 3
+      },
+      {
+       "id": "n3y",
+       "seller": "Ottilie",
+       "itemId": "scrap_hide",
+       "grade": 2,
+       "qty": 22,
+       "price": 2
+      },
+      {
+       "id": "n3r",
+       "seller": "Halvard",
+       "itemId": "tin_ore",
+       "grade": 2,
+       "qty": 12,
+       "price": 3
+      },
+      {
+       "id": "n3x",
+       "seller": "Tobyn_Ash",
+       "itemId": "trout",
+       "grade": 2,
+       "qty": 18,
+       "price": 11
+      },
+      {
+       "id": "n3l",
+       "seller": "Brannoc",
+       "itemId": "herb_trout",
+       "grade": 0,
+       "qty": 5,
+       "price": 14
+      },
+      {
+       "id": "n3v",
+       "seller": "Barlow",
+       "itemId": "leather_strap",
+       "grade": 0,
+       "qty": 20,
+       "price": 6
+      },
+      {
+       "id": "n3t",
+       "seller": "Ilsabet",
+       "itemId": "linen_cloth",
+       "grade": 1,
+       "qty": 9,
+       "price": 11
+      },
+      {
+       "id": "n3s",
+       "seller": "Sable",
+       "itemId": "wolf_pelt",
+       "grade": 1,
+       "qty": 9,
+       "price": 11
+      },
+      {
+       "id": "n3o",
+       "seller": "Quill",
+       "itemId": "frostward_tonic",
+       "grade": 0,
+       "qty": 7,
+       "price": 96
+      },
+      {
+       "id": "n3w",
+       "seller": "Oswin",
+       "itemId": "salmon_pie",
+       "grade": 1,
+       "qty": 6,
+       "price": 49
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610719750,
+     "age": 30
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "ironskin_draught",
+       "rate": 32.6,
+       "counter": true
+      },
+      {
+       "itemId": "mint_leaf",
+       "rate": 2
+      },
+      {
+       "itemId": "mint_tonic",
+       "rate": 8.6
+      },
+      {
+       "itemId": "pine_plank",
+       "rate": 3.2
+      },
+      {
+       "itemId": "copper_rivet",
+       "rate": 0.7
+      },
+      {
+       "itemId": "clarity_draught",
+       "rate": 60.7
+      }
+     ],
+     "donated": {},
+     "earned": 0
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1720800,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1720800,
+       "hpLeft": 1720800,
+       "pop": 1195,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610737750,
+      "kind": "level",
+      "text": "Mining reached level 25."
+     },
+     {
+      "t": 1793610659750,
+      "kind": "level",
+      "text": "Mining reached level 24."
+     },
+     {
+      "t": 1793610590750,
+      "kind": "level",
+      "text": "Mining reached level 23."
+     },
+     {
+      "t": 1793610527750,
+      "kind": "level",
+      "text": "Mining reached level 22."
+     },
+     {
+      "t": 1793610470750,
+      "kind": "level",
+      "text": "Mining reached level 21."
+     },
+     {
+      "t": 1793610419750,
+      "kind": "level",
+      "text": "Mining reached level 20."
+     },
+     {
+      "t": 1793610374750,
+      "kind": "level",
+      "text": "Mining reached level 19."
+     },
+     {
+      "t": 1793610332750,
+      "kind": "level",
+      "text": "Mining reached level 18."
+     },
+     {
+      "t": 1793610293750,
+      "kind": "level",
+      "text": "Mining reached level 17."
+     },
+     {
+      "t": 1793610257750,
+      "kind": "level",
+      "text": "Mining reached level 16."
+     },
+     {
+      "t": 1793610227750,
+      "kind": "level",
+      "text": "Mining reached level 15."
+     },
+     {
+      "t": 1793610197750,
+      "kind": "level",
+      "text": "Mining reached level 14."
+     },
+     {
+      "t": 1793610173750,
+      "kind": "level",
+      "text": "Mining reached level 13."
+     },
+     {
+      "t": 1793610149750,
+      "kind": "level",
+      "text": "Mining reached level 12."
+     },
+     {
+      "t": 1793610128750,
+      "kind": "level",
+      "text": "Mining reached level 11."
+     },
+     {
+      "t": 1793610110750,
+      "kind": "level",
+      "text": "Mining reached level 10."
+     },
+     {
+      "t": 1793610092750,
+      "kind": "level",
+      "text": "Mining reached level 9."
+     },
+     {
+      "t": 1793610077750,
+      "kind": "level",
+      "text": "Mining reached level 8."
+     },
+     {
+      "t": 1793610062750,
+      "kind": "level",
+      "text": "Mining reached level 7."
+     },
+     {
+      "t": 1793610047750,
+      "kind": "level",
+      "text": "Mining reached level 6."
+     },
+     {
+      "t": 1793610038750,
+      "kind": "level",
+      "text": "Mining reached level 5."
+     },
+     {
+      "t": 1793610026750,
+      "kind": "level",
+      "text": "Mining reached level 4."
+     },
+     {
+      "t": 1793610017750,
+      "kind": "level",
+      "text": "Mining reached level 3."
+     },
+     {
+      "t": 1793610008750,
+      "kind": "level",
+      "text": "Mining reached level 2."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 143,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Sable",
+       "skill": "smithing",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 2578813842,
+       "basePf": 0.92,
+       "pf": 0.92,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 1,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Holt",
+       "skill": "weaving",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3426013151,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.76,
+       "food": 5,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": "tailoring",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3577177953,
+       "basePf": 1.31,
+       "pf": 1.31,
+       "attend": 0.77,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Quill",
+       "skill": "woodworking",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 1877493545,
+       "basePf": 1.09,
+       "pf": 1.09,
+       "attend": 0.88,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 2367598681,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.77,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Severin",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3420193896,
+       "basePf": 0.7,
+       "pf": 0.7,
+       "attend": 0.77,
+       "food": 3,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tamsin",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2292299475,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.96,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1790357998,
+       "basePf": 0.68,
+       "pf": 0.68,
+       "attend": 0.77,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 1296035920,
+       "basePf": 1.08,
+       "pf": 1.08,
+       "attend": 0.79,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wenna",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3990808150,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.81,
+       "food": 8,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ines",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1380642421,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.72,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brisa",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2566532368,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.92,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Oswin",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 1469922296,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.95,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brannoc",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 908054224,
+       "basePf": 0.74,
+       "pf": 0.74,
+       "attend": 0.88,
+       "food": 8,
+       "potions": 3,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 1986533828,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.94,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "j3i",
+       "owner": "Sable",
+       "actionId": "bronze_hatchet",
+       "qty": 20,
+       "done": 18,
+       "progress": 0.4375,
+       "assisted": 0,
+       "postedAt": 1793610602500,
+       "rarities": {
+        "common": 17,
+        "uncommon": 1,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j3j",
+       "owner": "Quill",
+       "actionId": "pine_buckler",
+       "qty": 18,
+       "done": 17,
+       "progress": 0.3828125,
+       "assisted": 0,
+       "postedAt": 1793610638750,
+       "rarities": {
+        "common": 13,
+        "uncommon": 3,
+        "rare": 1,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j3k",
+       "owner": "Linnet",
+       "actionId": "padded_tunic",
+       "qty": 11,
+       "done": 10,
+       "progress": 0.3125,
+       "assisted": 0,
+       "postedAt": 1793610684000,
+       "rarities": {
+        "common": 7,
+        "uncommon": 2,
+        "rare": 1,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 13.25,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     },
+     "reqSimIn": 14,
+     "npcReqIn": 418
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1220,
+     "popHistory": [
+      1229,
+      1171,
+      1163,
+      1218
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lq",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "estimates",
+   "now": 1793610750000,
+   "result": {
+    "est": 3,
+    "prog": {
+     "level": 25,
+     "xp": 8000,
+     "cur": 7842,
+     "next": 8740,
+     "pct": 0.1759465478841871
+    },
+    "time": 3,
+    "info": {
+     "kind": "action",
+     "actionId": "mine_copper",
+     "skill": "mining",
+     "station": "Copper hill",
+     "label": "Copper vein",
+     "pct": 0,
+     "secLeft": 3
+    },
+    "locked": {
+     "ok": true,
+     "reason": ""
+    }
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 150,
+    "tokens": 0,
+    "week": 1,
+    "hp": 70,
+    "focus": 100,
+    "skills": {
+     "mining": {
+      "xp": 8000
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {
+     "mine_copper": 250
+    },
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "copper_ore": [
+      23,
+      157,
+      70,
+      0,
+      0
+     ],
+     "rough_gem": [
+      0,
+      0,
+      1,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": {
+     "actionId": "mine_copper",
+     "progress": 0
+    },
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "n3n",
+       "seller": "Ines",
+       "itemId": "copper_bar",
+       "grade": 1,
+       "qty": 5,
+       "price": 7
+      },
+      {
+       "id": "n3p",
+       "seller": "Gideon",
+       "itemId": "copper_bar",
+       "grade": 2,
+       "qty": 7,
+       "price": 7
+      },
+      {
+       "id": "n3z",
+       "seller": "Quill",
+       "itemId": "copper_bar",
+       "grade": 3,
+       "qty": 8,
+       "price": 8
+      },
+      {
+       "id": "n3u",
+       "seller": "Brannoc",
+       "itemId": "pine_log",
+       "grade": 1,
+       "qty": 30,
+       "price": 2
+      },
+      {
+       "id": "n3m",
+       "seller": "Yara",
+       "itemId": "pine_plank",
+       "grade": 1,
+       "qty": 27,
+       "price": 5
+      },
+      {
+       "id": "n3q",
+       "seller": "Petra_V",
+       "itemId": "scrap_hide",
+       "grade": 1,
+       "qty": 30,
+       "price": 3
+      },
+      {
+       "id": "n3y",
+       "seller": "Ottilie",
+       "itemId": "scrap_hide",
+       "grade": 2,
+       "qty": 22,
+       "price": 2
+      },
+      {
+       "id": "n3r",
+       "seller": "Halvard",
+       "itemId": "tin_ore",
+       "grade": 2,
+       "qty": 12,
+       "price": 3
+      },
+      {
+       "id": "n3x",
+       "seller": "Tobyn_Ash",
+       "itemId": "trout",
+       "grade": 2,
+       "qty": 18,
+       "price": 11
+      },
+      {
+       "id": "n3l",
+       "seller": "Brannoc",
+       "itemId": "herb_trout",
+       "grade": 0,
+       "qty": 5,
+       "price": 14
+      },
+      {
+       "id": "n3v",
+       "seller": "Barlow",
+       "itemId": "leather_strap",
+       "grade": 0,
+       "qty": 20,
+       "price": 6
+      },
+      {
+       "id": "n3t",
+       "seller": "Ilsabet",
+       "itemId": "linen_cloth",
+       "grade": 1,
+       "qty": 9,
+       "price": 11
+      },
+      {
+       "id": "n3s",
+       "seller": "Sable",
+       "itemId": "wolf_pelt",
+       "grade": 1,
+       "qty": 9,
+       "price": 11
+      },
+      {
+       "id": "n3o",
+       "seller": "Quill",
+       "itemId": "frostward_tonic",
+       "grade": 0,
+       "qty": 7,
+       "price": 96
+      },
+      {
+       "id": "n3w",
+       "seller": "Oswin",
+       "itemId": "salmon_pie",
+       "grade": 1,
+       "qty": 6,
+       "price": 49
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610719750,
+     "age": 30
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "ironskin_draught",
+       "rate": 32.6,
+       "counter": true
+      },
+      {
+       "itemId": "mint_leaf",
+       "rate": 2
+      },
+      {
+       "itemId": "mint_tonic",
+       "rate": 8.6
+      },
+      {
+       "itemId": "pine_plank",
+       "rate": 3.2
+      },
+      {
+       "itemId": "copper_rivet",
+       "rate": 0.7
+      },
+      {
+       "itemId": "clarity_draught",
+       "rate": 60.7
+      }
+     ],
+     "donated": {},
+     "earned": 0
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1720800,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1720800,
+       "hpLeft": 1720800,
+       "pop": 1195,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610737750,
+      "kind": "level",
+      "text": "Mining reached level 25."
+     },
+     {
+      "t": 1793610659750,
+      "kind": "level",
+      "text": "Mining reached level 24."
+     },
+     {
+      "t": 1793610590750,
+      "kind": "level",
+      "text": "Mining reached level 23."
+     },
+     {
+      "t": 1793610527750,
+      "kind": "level",
+      "text": "Mining reached level 22."
+     },
+     {
+      "t": 1793610470750,
+      "kind": "level",
+      "text": "Mining reached level 21."
+     },
+     {
+      "t": 1793610419750,
+      "kind": "level",
+      "text": "Mining reached level 20."
+     },
+     {
+      "t": 1793610374750,
+      "kind": "level",
+      "text": "Mining reached level 19."
+     },
+     {
+      "t": 1793610332750,
+      "kind": "level",
+      "text": "Mining reached level 18."
+     },
+     {
+      "t": 1793610293750,
+      "kind": "level",
+      "text": "Mining reached level 17."
+     },
+     {
+      "t": 1793610257750,
+      "kind": "level",
+      "text": "Mining reached level 16."
+     },
+     {
+      "t": 1793610227750,
+      "kind": "level",
+      "text": "Mining reached level 15."
+     },
+     {
+      "t": 1793610197750,
+      "kind": "level",
+      "text": "Mining reached level 14."
+     },
+     {
+      "t": 1793610173750,
+      "kind": "level",
+      "text": "Mining reached level 13."
+     },
+     {
+      "t": 1793610149750,
+      "kind": "level",
+      "text": "Mining reached level 12."
+     },
+     {
+      "t": 1793610128750,
+      "kind": "level",
+      "text": "Mining reached level 11."
+     },
+     {
+      "t": 1793610110750,
+      "kind": "level",
+      "text": "Mining reached level 10."
+     },
+     {
+      "t": 1793610092750,
+      "kind": "level",
+      "text": "Mining reached level 9."
+     },
+     {
+      "t": 1793610077750,
+      "kind": "level",
+      "text": "Mining reached level 8."
+     },
+     {
+      "t": 1793610062750,
+      "kind": "level",
+      "text": "Mining reached level 7."
+     },
+     {
+      "t": 1793610047750,
+      "kind": "level",
+      "text": "Mining reached level 6."
+     },
+     {
+      "t": 1793610038750,
+      "kind": "level",
+      "text": "Mining reached level 5."
+     },
+     {
+      "t": 1793610026750,
+      "kind": "level",
+      "text": "Mining reached level 4."
+     },
+     {
+      "t": 1793610017750,
+      "kind": "level",
+      "text": "Mining reached level 3."
+     },
+     {
+      "t": 1793610008750,
+      "kind": "level",
+      "text": "Mining reached level 2."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 143,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Sable",
+       "skill": "smithing",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 2578813842,
+       "basePf": 0.92,
+       "pf": 0.92,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 1,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Holt",
+       "skill": "weaving",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3426013151,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.76,
+       "food": 5,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": "tailoring",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3577177953,
+       "basePf": 1.31,
+       "pf": 1.31,
+       "attend": 0.77,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Quill",
+       "skill": "woodworking",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 1877493545,
+       "basePf": 1.09,
+       "pf": 1.09,
+       "attend": 0.88,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 2367598681,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.77,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Severin",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3420193896,
+       "basePf": 0.7,
+       "pf": 0.7,
+       "attend": 0.77,
+       "food": 3,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tamsin",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2292299475,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.96,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1790357998,
+       "basePf": 0.68,
+       "pf": 0.68,
+       "attend": 0.77,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 1296035920,
+       "basePf": 1.08,
+       "pf": 1.08,
+       "attend": 0.79,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wenna",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3990808150,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.81,
+       "food": 8,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ines",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1380642421,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.72,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brisa",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2566532368,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.92,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Oswin",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 1469922296,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.95,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brannoc",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 908054224,
+       "basePf": 0.74,
+       "pf": 0.74,
+       "attend": 0.88,
+       "food": 8,
+       "potions": 3,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 1986533828,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.94,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "j3i",
+       "owner": "Sable",
+       "actionId": "bronze_hatchet",
+       "qty": 20,
+       "done": 18,
+       "progress": 0.4375,
+       "assisted": 0,
+       "postedAt": 1793610602500,
+       "rarities": {
+        "common": 17,
+        "uncommon": 1,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j3j",
+       "owner": "Quill",
+       "actionId": "pine_buckler",
+       "qty": 18,
+       "done": 17,
+       "progress": 0.3828125,
+       "assisted": 0,
+       "postedAt": 1793610638750,
+       "rarities": {
+        "common": 13,
+        "uncommon": 3,
+        "rare": 1,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j3k",
+       "owner": "Linnet",
+       "actionId": "padded_tunic",
+       "qty": 11,
+       "done": 10,
+       "progress": 0.3125,
+       "assisted": 0,
+       "postedAt": 1793610684000,
+       "rarities": {
+        "common": 7,
+        "uncommon": 2,
+        "rare": 1,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 13.25,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     },
+     "reqSimIn": 14,
+     "npcReqIn": 418
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1220,
+     "popHistory": [
+      1229,
+      1171,
+      1163,
+      1218
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lq",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "switch to pick_mint",
+   "now": 1793610750000,
+   "result": {
+    "ok": true,
+    "reason": "",
+    "loadoutId": null
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 150,
+    "tokens": 0,
+    "week": 1,
+    "hp": 70,
+    "focus": 100,
+    "skills": {
+     "mining": {
+      "xp": 8000
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 0
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {
+     "mine_copper": 250
+    },
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "copper_ore": [
+      23,
+      157,
+      70,
+      0,
+      0
+     ],
+     "rough_gem": [
+      0,
+      0,
+      1,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": {
+     "actionId": "pick_mint",
+     "progress": 0
+    },
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "n3n",
+       "seller": "Ines",
+       "itemId": "copper_bar",
+       "grade": 1,
+       "qty": 5,
+       "price": 7
+      },
+      {
+       "id": "n3p",
+       "seller": "Gideon",
+       "itemId": "copper_bar",
+       "grade": 2,
+       "qty": 7,
+       "price": 7
+      },
+      {
+       "id": "n3z",
+       "seller": "Quill",
+       "itemId": "copper_bar",
+       "grade": 3,
+       "qty": 8,
+       "price": 8
+      },
+      {
+       "id": "n3u",
+       "seller": "Brannoc",
+       "itemId": "pine_log",
+       "grade": 1,
+       "qty": 30,
+       "price": 2
+      },
+      {
+       "id": "n3m",
+       "seller": "Yara",
+       "itemId": "pine_plank",
+       "grade": 1,
+       "qty": 27,
+       "price": 5
+      },
+      {
+       "id": "n3q",
+       "seller": "Petra_V",
+       "itemId": "scrap_hide",
+       "grade": 1,
+       "qty": 30,
+       "price": 3
+      },
+      {
+       "id": "n3y",
+       "seller": "Ottilie",
+       "itemId": "scrap_hide",
+       "grade": 2,
+       "qty": 22,
+       "price": 2
+      },
+      {
+       "id": "n3r",
+       "seller": "Halvard",
+       "itemId": "tin_ore",
+       "grade": 2,
+       "qty": 12,
+       "price": 3
+      },
+      {
+       "id": "n3x",
+       "seller": "Tobyn_Ash",
+       "itemId": "trout",
+       "grade": 2,
+       "qty": 18,
+       "price": 11
+      },
+      {
+       "id": "n3l",
+       "seller": "Brannoc",
+       "itemId": "herb_trout",
+       "grade": 0,
+       "qty": 5,
+       "price": 14
+      },
+      {
+       "id": "n3v",
+       "seller": "Barlow",
+       "itemId": "leather_strap",
+       "grade": 0,
+       "qty": 20,
+       "price": 6
+      },
+      {
+       "id": "n3t",
+       "seller": "Ilsabet",
+       "itemId": "linen_cloth",
+       "grade": 1,
+       "qty": 9,
+       "price": 11
+      },
+      {
+       "id": "n3s",
+       "seller": "Sable",
+       "itemId": "wolf_pelt",
+       "grade": 1,
+       "qty": 9,
+       "price": 11
+      },
+      {
+       "id": "n3o",
+       "seller": "Quill",
+       "itemId": "frostward_tonic",
+       "grade": 0,
+       "qty": 7,
+       "price": 96
+      },
+      {
+       "id": "n3w",
+       "seller": "Oswin",
+       "itemId": "salmon_pie",
+       "grade": 1,
+       "qty": 6,
+       "price": 49
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610719750,
+     "age": 30
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "ironskin_draught",
+       "rate": 32.6,
+       "counter": true
+      },
+      {
+       "itemId": "mint_leaf",
+       "rate": 2
+      },
+      {
+       "itemId": "mint_tonic",
+       "rate": 8.6
+      },
+      {
+       "itemId": "pine_plank",
+       "rate": 3.2
+      },
+      {
+       "itemId": "copper_rivet",
+       "rate": 0.7
+      },
+      {
+       "itemId": "clarity_draught",
+       "rate": 60.7
+      }
+     ],
+     "donated": {},
+     "earned": 0
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1720800,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1720800,
+       "hpLeft": 1720800,
+       "pop": 1195,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793610737750,
+      "kind": "level",
+      "text": "Mining reached level 25."
+     },
+     {
+      "t": 1793610659750,
+      "kind": "level",
+      "text": "Mining reached level 24."
+     },
+     {
+      "t": 1793610590750,
+      "kind": "level",
+      "text": "Mining reached level 23."
+     },
+     {
+      "t": 1793610527750,
+      "kind": "level",
+      "text": "Mining reached level 22."
+     },
+     {
+      "t": 1793610470750,
+      "kind": "level",
+      "text": "Mining reached level 21."
+     },
+     {
+      "t": 1793610419750,
+      "kind": "level",
+      "text": "Mining reached level 20."
+     },
+     {
+      "t": 1793610374750,
+      "kind": "level",
+      "text": "Mining reached level 19."
+     },
+     {
+      "t": 1793610332750,
+      "kind": "level",
+      "text": "Mining reached level 18."
+     },
+     {
+      "t": 1793610293750,
+      "kind": "level",
+      "text": "Mining reached level 17."
+     },
+     {
+      "t": 1793610257750,
+      "kind": "level",
+      "text": "Mining reached level 16."
+     },
+     {
+      "t": 1793610227750,
+      "kind": "level",
+      "text": "Mining reached level 15."
+     },
+     {
+      "t": 1793610197750,
+      "kind": "level",
+      "text": "Mining reached level 14."
+     },
+     {
+      "t": 1793610173750,
+      "kind": "level",
+      "text": "Mining reached level 13."
+     },
+     {
+      "t": 1793610149750,
+      "kind": "level",
+      "text": "Mining reached level 12."
+     },
+     {
+      "t": 1793610128750,
+      "kind": "level",
+      "text": "Mining reached level 11."
+     },
+     {
+      "t": 1793610110750,
+      "kind": "level",
+      "text": "Mining reached level 10."
+     },
+     {
+      "t": 1793610092750,
+      "kind": "level",
+      "text": "Mining reached level 9."
+     },
+     {
+      "t": 1793610077750,
+      "kind": "level",
+      "text": "Mining reached level 8."
+     },
+     {
+      "t": 1793610062750,
+      "kind": "level",
+      "text": "Mining reached level 7."
+     },
+     {
+      "t": 1793610047750,
+      "kind": "level",
+      "text": "Mining reached level 6."
+     },
+     {
+      "t": 1793610038750,
+      "kind": "level",
+      "text": "Mining reached level 5."
+     },
+     {
+      "t": 1793610026750,
+      "kind": "level",
+      "text": "Mining reached level 4."
+     },
+     {
+      "t": 1793610017750,
+      "kind": "level",
+      "text": "Mining reached level 3."
+     },
+     {
+      "t": 1793610008750,
+      "kind": "level",
+      "text": "Mining reached level 2."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 143,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Sable",
+       "skill": "smithing",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 2578813842,
+       "basePf": 0.92,
+       "pf": 0.92,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 1,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Holt",
+       "skill": "weaving",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3426013151,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.76,
+       "food": 5,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": "tailoring",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3577177953,
+       "basePf": 1.31,
+       "pf": 1.31,
+       "attend": 0.77,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Quill",
+       "skill": "woodworking",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 1877493545,
+       "basePf": 1.09,
+       "pf": 1.09,
+       "attend": 0.88,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 2367598681,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.77,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Severin",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3420193896,
+       "basePf": 0.7,
+       "pf": 0.7,
+       "attend": 0.77,
+       "food": 3,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tamsin",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2292299475,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.96,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1790357998,
+       "basePf": 0.68,
+       "pf": 0.68,
+       "attend": 0.77,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 1296035920,
+       "basePf": 1.08,
+       "pf": 1.08,
+       "attend": 0.79,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wenna",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3990808150,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.81,
+       "food": 8,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ines",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1380642421,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.72,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brisa",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2566532368,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.92,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Oswin",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 1469922296,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.95,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brannoc",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 908054224,
+       "basePf": 0.74,
+       "pf": 0.74,
+       "attend": 0.88,
+       "food": 8,
+       "potions": 3,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 1986533828,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.94,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "j3i",
+       "owner": "Sable",
+       "actionId": "bronze_hatchet",
+       "qty": 20,
+       "done": 18,
+       "progress": 0.4375,
+       "assisted": 0,
+       "postedAt": 1793610602500,
+       "rarities": {
+        "common": 17,
+        "uncommon": 1,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j3j",
+       "owner": "Quill",
+       "actionId": "pine_buckler",
+       "qty": 18,
+       "done": 17,
+       "progress": 0.3828125,
+       "assisted": 0,
+       "postedAt": 1793610638750,
+       "rarities": {
+        "common": 13,
+        "uncommon": 3,
+        "rare": 1,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j3k",
+       "owner": "Linnet",
+       "actionId": "padded_tunic",
+       "qty": 11,
+       "done": 10,
+       "progress": 0.3125,
+       "assisted": 0,
+       "postedAt": 1793610684000,
+       "rarities": {
+        "common": 7,
+        "uncommon": 2,
+        "rare": 1,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 13.25,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     },
+     "reqSimIn": 14,
+     "npcReqIn": 418
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1220,
+     "popHistory": [
+      1229,
+      1171,
+      1163,
+      1218
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lq",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "tick 300s hidden",
+   "now": 1793611050000,
+   "result": {
+    "count": 129,
+    "byType": {
+     "complete": 100,
+     "jobPosted": 13,
+     "levelup": 16
+    },
+    "head": [
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "jobPosted",
+      "jobId": "j40",
+      "owner": "Quill",
+      "actionId": "pine_buckler"
+     },
+     {
+      "type": "jobPosted",
+      "jobId": "j41",
+      "owner": "Holt",
+      "actionId": "spin_linen"
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "levelup",
+      "skill": "herbalism",
+      "level": 2
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 0,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "jobPosted",
+      "jobId": "j42",
+      "owner": "Sable",
+      "actionId": "training_sword"
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 0,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "levelup",
+      "skill": "herbalism",
+      "level": 3
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 0,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "levelup",
+      "skill": "herbalism",
+      "level": 4
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 0,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "levelup",
+      "skill": "herbalism",
+      "level": 5
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 0,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "levelup",
+      "skill": "herbalism",
+      "level": 6
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     }
+    ],
+    "tail": [
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 0,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 2,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 2,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "levelup",
+      "skill": "herbalism",
+      "level": 17
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 0,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     },
+     {
+      "type": "complete",
+      "actionId": "pick_mint",
+      "kind": "gather",
+      "items": [
+       {
+        "itemId": "mint_leaf",
+        "grade": 1,
+        "qty": 1
+       }
+      ],
+      "xp": 32
+     }
+    ]
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 150,
+    "tokens": 0,
+    "week": 1,
+    "hp": 70,
+    "focus": 0,
+    "skills": {
+     "mining": {
+      "xp": 8000
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 3200
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {
+     "mine_copper": 250,
+     "pick_mint": 100
+    },
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "copper_ore": [
+      23,
+      157,
+      70,
+      0,
+      0
+     ],
+     "rough_gem": [
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "mint_leaf": [
+      18,
+      72,
+      10,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": {
+     "actionId": "pick_mint",
+     "progress": 0
+    },
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "n4q",
+       "seller": "Oswin",
+       "itemId": "bronze_bar",
+       "grade": 1,
+       "qty": 31,
+       "price": 6
+      },
+      {
+       "id": "n4u",
+       "seller": "Tobyn_Ash",
+       "itemId": "copper_rivet",
+       "grade": 1,
+       "qty": 31,
+       "price": 1
+      },
+      {
+       "id": "n4x",
+       "seller": "Nettlefoot",
+       "itemId": "copper_rivet",
+       "grade": 0,
+       "qty": 7,
+       "price": 1
+      },
+      {
+       "id": "n4v",
+       "seller": "Kestra",
+       "itemId": "mint_leaf",
+       "grade": 1,
+       "qty": 33,
+       "price": 3
+      },
+      {
+       "id": "n4w",
+       "seller": "Calder",
+       "itemId": "mint_leaf",
+       "grade": 0,
+       "qty": 34,
+       "price": 4
+      },
+      {
+       "id": "n4y",
+       "seller": "Corvin",
+       "itemId": "mint_tonic",
+       "grade": 2,
+       "qty": 8,
+       "price": 15
+      },
+      {
+       "id": "n50",
+       "seller": "Gideon",
+       "itemId": "rough_gem",
+       "grade": 2,
+       "qty": 22,
+       "price": 8
+      },
+      {
+       "id": "n4s",
+       "seller": "Petra_V",
+       "itemId": "rough_leather",
+       "grade": 1,
+       "qty": 15,
+       "price": 7
+      },
+      {
+       "id": "n4t",
+       "seller": "Wenna",
+       "itemId": "wild_grain",
+       "grade": 0,
+       "qty": 28,
+       "price": 1
+      },
+      {
+       "id": "n51",
+       "seller": "Tobyn_Ash",
+       "itemId": "wild_grain",
+       "grade": 2,
+       "qty": 38,
+       "price": 1
+      },
+      {
+       "id": "n4r",
+       "seller": "Petra_V",
+       "itemId": "herb_trout",
+       "grade": 1,
+       "qty": 18,
+       "price": 13
+      },
+      {
+       "id": "n4z",
+       "seller": "Kestra",
+       "itemId": "oak_plank",
+       "grade": 3,
+       "qty": 5,
+       "price": 19
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610959750,
+     "age": 90
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "ironskin_draught",
+       "rate": 32.6,
+       "counter": true
+      },
+      {
+       "itemId": "mint_leaf",
+       "rate": 2
+      },
+      {
+       "itemId": "mint_tonic",
+       "rate": 8.6
+      },
+      {
+       "itemId": "pine_plank",
+       "rate": 3.2
+      },
+      {
+       "itemId": "copper_rivet",
+       "rate": 0.7
+      },
+      {
+       "itemId": "clarity_draught",
+       "rate": 60.7
+      }
+     ],
+     "donated": {},
+     "earned": 0
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1720800,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1720800,
+       "hpLeft": 1720800,
+       "pop": 1195,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793611043750,
+      "kind": "level",
+      "text": "Herbalism reached level 17."
+     },
+     {
+      "t": 1793611007750,
+      "kind": "level",
+      "text": "Herbalism reached level 16."
+     },
+     {
+      "t": 1793610977750,
+      "kind": "level",
+      "text": "Herbalism reached level 15."
+     },
+     {
+      "t": 1793610947750,
+      "kind": "level",
+      "text": "Herbalism reached level 14."
+     },
+     {
+      "t": 1793610923750,
+      "kind": "level",
+      "text": "Herbalism reached level 13."
+     },
+     {
+      "t": 1793610899750,
+      "kind": "level",
+      "text": "Herbalism reached level 12."
+     },
+     {
+      "t": 1793610878750,
+      "kind": "level",
+      "text": "Herbalism reached level 11."
+     },
+     {
+      "t": 1793610860750,
+      "kind": "level",
+      "text": "Herbalism reached level 10."
+     },
+     {
+      "t": 1793610842750,
+      "kind": "level",
+      "text": "Herbalism reached level 9."
+     },
+     {
+      "t": 1793610827750,
+      "kind": "level",
+      "text": "Herbalism reached level 8."
+     },
+     {
+      "t": 1793610812750,
+      "kind": "level",
+      "text": "Herbalism reached level 7."
+     },
+     {
+      "t": 1793610797750,
+      "kind": "level",
+      "text": "Herbalism reached level 6."
+     },
+     {
+      "t": 1793610788750,
+      "kind": "level",
+      "text": "Herbalism reached level 5."
+     },
+     {
+      "t": 1793610776750,
+      "kind": "level",
+      "text": "Herbalism reached level 4."
+     },
+     {
+      "t": 1793610767750,
+      "kind": "level",
+      "text": "Herbalism reached level 3."
+     },
+     {
+      "t": 1793610758750,
+      "kind": "level",
+      "text": "Herbalism reached level 2."
+     },
+     {
+      "t": 1793610737750,
+      "kind": "level",
+      "text": "Mining reached level 25."
+     },
+     {
+      "t": 1793610659750,
+      "kind": "level",
+      "text": "Mining reached level 24."
+     },
+     {
+      "t": 1793610590750,
+      "kind": "level",
+      "text": "Mining reached level 23."
+     },
+     {
+      "t": 1793610527750,
+      "kind": "level",
+      "text": "Mining reached level 22."
+     },
+     {
+      "t": 1793610470750,
+      "kind": "level",
+      "text": "Mining reached level 21."
+     },
+     {
+      "t": 1793610419750,
+      "kind": "level",
+      "text": "Mining reached level 20."
+     },
+     {
+      "t": 1793610374750,
+      "kind": "level",
+      "text": "Mining reached level 19."
+     },
+     {
+      "t": 1793610332750,
+      "kind": "level",
+      "text": "Mining reached level 18."
+     },
+     {
+      "t": 1793610293750,
+      "kind": "level",
+      "text": "Mining reached level 17."
+     },
+     {
+      "t": 1793610257750,
+      "kind": "level",
+      "text": "Mining reached level 16."
+     },
+     {
+      "t": 1793610227750,
+      "kind": "level",
+      "text": "Mining reached level 15."
+     },
+     {
+      "t": 1793610197750,
+      "kind": "level",
+      "text": "Mining reached level 14."
+     },
+     {
+      "t": 1793610173750,
+      "kind": "level",
+      "text": "Mining reached level 13."
+     },
+     {
+      "t": 1793610149750,
+      "kind": "level",
+      "text": "Mining reached level 12."
+     },
+     {
+      "t": 1793610128750,
+      "kind": "level",
+      "text": "Mining reached level 11."
+     },
+     {
+      "t": 1793610110750,
+      "kind": "level",
+      "text": "Mining reached level 10."
+     },
+     {
+      "t": 1793610092750,
+      "kind": "level",
+      "text": "Mining reached level 9."
+     },
+     {
+      "t": 1793610077750,
+      "kind": "level",
+      "text": "Mining reached level 8."
+     },
+     {
+      "t": 1793610062750,
+      "kind": "level",
+      "text": "Mining reached level 7."
+     },
+     {
+      "t": 1793610047750,
+      "kind": "level",
+      "text": "Mining reached level 6."
+     },
+     {
+      "t": 1793610038750,
+      "kind": "level",
+      "text": "Mining reached level 5."
+     },
+     {
+      "t": 1793610026750,
+      "kind": "level",
+      "text": "Mining reached level 4."
+     },
+     {
+      "t": 1793610017750,
+      "kind": "level",
+      "text": "Mining reached level 3."
+     },
+     {
+      "t": 1793610008750,
+      "kind": "level",
+      "text": "Mining reached level 2."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 185,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Sable",
+       "skill": "smithing",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 2578813842,
+       "basePf": 0.92,
+       "pf": 0.92,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 1,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Holt",
+       "skill": "weaving",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3426013151,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.76,
+       "food": 5,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": "tailoring",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3577177953,
+       "basePf": 1.31,
+       "pf": 1.31,
+       "attend": 0.77,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Quill",
+       "skill": "woodworking",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 1877493545,
+       "basePf": 1.09,
+       "pf": 1.09,
+       "attend": 0.88,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 2367598681,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.77,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Severin",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3420193896,
+       "basePf": 0.7,
+       "pf": 0.7,
+       "attend": 0.77,
+       "food": 3,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tamsin",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2292299475,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.96,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1790357998,
+       "basePf": 0.68,
+       "pf": 0.68,
+       "attend": 0.77,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 1296035920,
+       "basePf": 1.08,
+       "pf": 1.08,
+       "attend": 0.79,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wenna",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3990808150,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.81,
+       "food": 8,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ines",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1380642421,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.72,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brisa",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2566532368,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.92,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Oswin",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 1469922296,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.95,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brannoc",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 908054224,
+       "basePf": 0.74,
+       "pf": 0.74,
+       "attend": 0.88,
+       "food": 8,
+       "potions": 3,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 1986533828,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.94,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "j53",
+       "owner": "Quill",
+       "actionId": "pine_buckler",
+       "qty": 16,
+       "done": 7,
+       "progress": 0.578125,
+       "assisted": 0,
+       "postedAt": 1793611001500,
+       "rarities": {
+        "common": 5,
+        "uncommon": 1,
+        "rare": 1,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j54",
+       "owner": "Sable",
+       "actionId": "training_sword",
+       "qty": 12,
+       "done": 5,
+       "progress": 0.8984375,
+       "assisted": 0,
+       "postedAt": 1793611012250,
+       "rarities": {
+        "common": 4,
+        "uncommon": 1,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j55",
+       "owner": "Linnet",
+       "actionId": "padded_tunic",
+       "qty": 8,
+       "done": 5,
+       "progress": 0.1171875,
+       "assisted": 0,
+       "postedAt": 1793611017250,
+       "rarities": {
+        "common": 3,
+        "uncommon": 2,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 45.5,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     },
+     "reqSimIn": 20,
+     "npcReqIn": 118
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1220,
+     "popHistory": [
+      1229,
+      1171,
+      1163,
+      1218
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lq",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  },
+  {
+   "label": "stop",
+   "now": 1793611050000,
+   "result": {
+    "ok": true
+   },
+   "state": {
+    "v": 4,
+    "createdAt": 1793610000000,
+    "lastSeen": 1793610000000,
+    "gold": 150,
+    "tokens": 0,
+    "week": 1,
+    "hp": 70,
+    "focus": 0,
+    "skills": {
+     "mining": {
+      "xp": 8000
+     },
+     "woodcutting": {
+      "xp": 0
+     },
+     "herbalism": {
+      "xp": 3200
+     },
+     "fishing": {
+      "xp": 0
+     },
+     "smelting": {
+      "xp": 0
+     },
+     "carpentry": {
+      "xp": 0
+     },
+     "tanning": {
+      "xp": 0
+     },
+     "weaving": {
+      "xp": 0
+     },
+     "smithing": {
+      "xp": 0
+     },
+     "woodworking": {
+      "xp": 0
+     },
+     "leatherworking": {
+      "xp": 0
+     },
+     "tailoring": {
+      "xp": 0
+     },
+     "jewelcrafting": {
+      "xp": 0
+     },
+     "alchemy": {
+      "xp": 0
+     },
+     "cooking": {
+      "xp": 0
+     },
+     "guardian": {
+      "xp": 0
+     },
+     "mender": {
+      "xp": 0
+     },
+     "striker": {
+      "xp": 0
+     }
+    },
+    "mastery": {
+     "mine_copper": 250,
+     "pick_mint": 100
+    },
+    "pity": {},
+    "inv": {
+     "bread": [
+      0,
+      10,
+      0,
+      0,
+      0
+     ],
+     "copper_ore": [
+      23,
+      157,
+      70,
+      0,
+      0
+     ],
+     "rough_gem": [
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "mint_leaf": [
+      18,
+      72,
+      10,
+      0,
+      0
+     ]
+    },
+    "gear": [
+     {
+      "uid": "g2",
+      "itemId": "training_sword",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     },
+     {
+      "uid": "g3",
+      "itemId": "padded_tunic",
+      "rarity": "common",
+      "quality": 50,
+      "affixes": [],
+      "dur": 100,
+      "maxDur": 100
+     }
+    ],
+    "equipped": {
+     "weapon": "g2",
+     "offhand": null,
+     "head": null,
+     "chest": "g3",
+     "legs": null,
+     "ring": null
+    },
+    "active": null,
+    "settings": {
+     "matPriority": "best",
+     "useCatalyst": false,
+     "useCore": false
+    },
+    "market": {
+     "listings": [
+      {
+       "id": "n4q",
+       "seller": "Oswin",
+       "itemId": "bronze_bar",
+       "grade": 1,
+       "qty": 31,
+       "price": 6
+      },
+      {
+       "id": "n4u",
+       "seller": "Tobyn_Ash",
+       "itemId": "copper_rivet",
+       "grade": 1,
+       "qty": 31,
+       "price": 1
+      },
+      {
+       "id": "n4x",
+       "seller": "Nettlefoot",
+       "itemId": "copper_rivet",
+       "grade": 0,
+       "qty": 7,
+       "price": 1
+      },
+      {
+       "id": "n4v",
+       "seller": "Kestra",
+       "itemId": "mint_leaf",
+       "grade": 1,
+       "qty": 33,
+       "price": 3
+      },
+      {
+       "id": "n4w",
+       "seller": "Calder",
+       "itemId": "mint_leaf",
+       "grade": 0,
+       "qty": 34,
+       "price": 4
+      },
+      {
+       "id": "n4y",
+       "seller": "Corvin",
+       "itemId": "mint_tonic",
+       "grade": 2,
+       "qty": 8,
+       "price": 15
+      },
+      {
+       "id": "n50",
+       "seller": "Gideon",
+       "itemId": "rough_gem",
+       "grade": 2,
+       "qty": 22,
+       "price": 8
+      },
+      {
+       "id": "n4s",
+       "seller": "Petra_V",
+       "itemId": "rough_leather",
+       "grade": 1,
+       "qty": 15,
+       "price": 7
+      },
+      {
+       "id": "n4t",
+       "seller": "Wenna",
+       "itemId": "wild_grain",
+       "grade": 0,
+       "qty": 28,
+       "price": 1
+      },
+      {
+       "id": "n51",
+       "seller": "Tobyn_Ash",
+       "itemId": "wild_grain",
+       "grade": 2,
+       "qty": 38,
+       "price": 1
+      },
+      {
+       "id": "n4r",
+       "seller": "Petra_V",
+       "itemId": "herb_trout",
+       "grade": 1,
+       "qty": 18,
+       "price": 13
+      },
+      {
+       "id": "n4z",
+       "seller": "Kestra",
+       "itemId": "oak_plank",
+       "grade": 3,
+       "qty": 5,
+       "price": 19
+      }
+     ],
+     "mine": [],
+     "refreshedAt": 1793610959750,
+     "age": 90
+    },
+    "supply": {
+     "week": 1,
+     "requests": [
+      {
+       "itemId": "frostward_tonic",
+       "rate": 115.2,
+       "counter": true
+      },
+      {
+       "itemId": "ironskin_draught",
+       "rate": 32.6,
+       "counter": true
+      },
+      {
+       "itemId": "mint_leaf",
+       "rate": 2
+      },
+      {
+       "itemId": "mint_tonic",
+       "rate": 8.6
+      },
+      {
+       "itemId": "pine_plank",
+       "rate": 3.2
+      },
+      {
+       "itemId": "copper_rivet",
+       "rate": 0.7
+      },
+      {
+       "itemId": "clarity_draught",
+       "rate": 60.7
+      }
+     ],
+     "donated": {},
+     "earned": 0
+    },
+    "raid": {
+     "ladder": 0,
+     "bossHp": 1720800,
+     "rules": {
+      "eatAt": 0.5,
+      "stance": "balanced",
+      "tactic": "focus",
+      "tokens": 0
+     },
+     "last": null,
+     "season": 1,
+     "bosses": {
+      "ashen_wyrm": {
+       "bossId": "ashen_wyrm",
+       "index": 0,
+       "maxHp": 1720800,
+       "hpLeft": 1720800,
+       "pop": 1195,
+       "unlockedWeek": 1,
+       "revealedWeek": 1,
+       "killedWeek": null,
+       "weekends": 0,
+       "myPoints": 0,
+       "totalPoints": 0,
+       "tokens": 0,
+       "joinedWeekends": 0,
+       "checkpointsPaid": []
+      }
+     },
+     "plan": {
+      "role": null,
+      "loadoutId": null
+     },
+     "pouch": {},
+     "resolvedWeek": 0,
+     "recaps": [],
+     "corePity": 0,
+     "coresWon": 0,
+     "farm": {
+      "day": "",
+      "runs": 0
+     },
+     "warned": {
+      "week": 1,
+      "levels": []
+     },
+     "current": null
+    },
+    "log": [
+     {
+      "t": 1793611043750,
+      "kind": "level",
+      "text": "Herbalism reached level 17."
+     },
+     {
+      "t": 1793611007750,
+      "kind": "level",
+      "text": "Herbalism reached level 16."
+     },
+     {
+      "t": 1793610977750,
+      "kind": "level",
+      "text": "Herbalism reached level 15."
+     },
+     {
+      "t": 1793610947750,
+      "kind": "level",
+      "text": "Herbalism reached level 14."
+     },
+     {
+      "t": 1793610923750,
+      "kind": "level",
+      "text": "Herbalism reached level 13."
+     },
+     {
+      "t": 1793610899750,
+      "kind": "level",
+      "text": "Herbalism reached level 12."
+     },
+     {
+      "t": 1793610878750,
+      "kind": "level",
+      "text": "Herbalism reached level 11."
+     },
+     {
+      "t": 1793610860750,
+      "kind": "level",
+      "text": "Herbalism reached level 10."
+     },
+     {
+      "t": 1793610842750,
+      "kind": "level",
+      "text": "Herbalism reached level 9."
+     },
+     {
+      "t": 1793610827750,
+      "kind": "level",
+      "text": "Herbalism reached level 8."
+     },
+     {
+      "t": 1793610812750,
+      "kind": "level",
+      "text": "Herbalism reached level 7."
+     },
+     {
+      "t": 1793610797750,
+      "kind": "level",
+      "text": "Herbalism reached level 6."
+     },
+     {
+      "t": 1793610788750,
+      "kind": "level",
+      "text": "Herbalism reached level 5."
+     },
+     {
+      "t": 1793610776750,
+      "kind": "level",
+      "text": "Herbalism reached level 4."
+     },
+     {
+      "t": 1793610767750,
+      "kind": "level",
+      "text": "Herbalism reached level 3."
+     },
+     {
+      "t": 1793610758750,
+      "kind": "level",
+      "text": "Herbalism reached level 2."
+     },
+     {
+      "t": 1793610737750,
+      "kind": "level",
+      "text": "Mining reached level 25."
+     },
+     {
+      "t": 1793610659750,
+      "kind": "level",
+      "text": "Mining reached level 24."
+     },
+     {
+      "t": 1793610590750,
+      "kind": "level",
+      "text": "Mining reached level 23."
+     },
+     {
+      "t": 1793610527750,
+      "kind": "level",
+      "text": "Mining reached level 22."
+     },
+     {
+      "t": 1793610470750,
+      "kind": "level",
+      "text": "Mining reached level 21."
+     },
+     {
+      "t": 1793610419750,
+      "kind": "level",
+      "text": "Mining reached level 20."
+     },
+     {
+      "t": 1793610374750,
+      "kind": "level",
+      "text": "Mining reached level 19."
+     },
+     {
+      "t": 1793610332750,
+      "kind": "level",
+      "text": "Mining reached level 18."
+     },
+     {
+      "t": 1793610293750,
+      "kind": "level",
+      "text": "Mining reached level 17."
+     },
+     {
+      "t": 1793610257750,
+      "kind": "level",
+      "text": "Mining reached level 16."
+     },
+     {
+      "t": 1793610227750,
+      "kind": "level",
+      "text": "Mining reached level 15."
+     },
+     {
+      "t": 1793610197750,
+      "kind": "level",
+      "text": "Mining reached level 14."
+     },
+     {
+      "t": 1793610173750,
+      "kind": "level",
+      "text": "Mining reached level 13."
+     },
+     {
+      "t": 1793610149750,
+      "kind": "level",
+      "text": "Mining reached level 12."
+     },
+     {
+      "t": 1793610128750,
+      "kind": "level",
+      "text": "Mining reached level 11."
+     },
+     {
+      "t": 1793610110750,
+      "kind": "level",
+      "text": "Mining reached level 10."
+     },
+     {
+      "t": 1793610092750,
+      "kind": "level",
+      "text": "Mining reached level 9."
+     },
+     {
+      "t": 1793610077750,
+      "kind": "level",
+      "text": "Mining reached level 8."
+     },
+     {
+      "t": 1793610062750,
+      "kind": "level",
+      "text": "Mining reached level 7."
+     },
+     {
+      "t": 1793610047750,
+      "kind": "level",
+      "text": "Mining reached level 6."
+     },
+     {
+      "t": 1793610038750,
+      "kind": "level",
+      "text": "Mining reached level 5."
+     },
+     {
+      "t": 1793610026750,
+      "kind": "level",
+      "text": "Mining reached level 4."
+     },
+     {
+      "t": 1793610017750,
+      "kind": "level",
+      "text": "Mining reached level 3."
+     },
+     {
+      "t": 1793610008750,
+      "kind": "level",
+      "text": "Mining reached level 2."
+     },
+     {
+      "t": 1793610000000,
+      "kind": "info",
+      "text": "Welcome to Guildwright. Pick a skill and start gathering."
+     }
+    ],
+    "seq": 185,
+    "crew": {
+     "name": "Copperbell crew",
+     "members": [
+      {
+       "name": "Sable",
+       "skill": "smithing",
+       "id": "c1",
+       "rank": "leader",
+       "role": "guardian",
+       "seed": 2578813842,
+       "basePf": 0.92,
+       "pf": 0.92,
+       "attend": 0.75,
+       "food": 6,
+       "potions": 1,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Holt",
+       "skill": "weaving",
+       "id": "c2",
+       "rank": "officer",
+       "role": "mender",
+       "seed": 3426013151,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.76,
+       "food": 5,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Linnet",
+       "skill": "tailoring",
+       "id": "c3",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3577177953,
+       "basePf": 1.31,
+       "pf": 1.31,
+       "attend": 0.77,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Quill",
+       "skill": "woodworking",
+       "id": "c4",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 1877493545,
+       "basePf": 1.09,
+       "pf": 1.09,
+       "attend": 0.88,
+       "food": 3,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Marrow",
+       "skill": null,
+       "id": "c5",
+       "rank": "member",
+       "role": "mender",
+       "seed": 2367598681,
+       "basePf": 1.3,
+       "pf": 1.3,
+       "attend": 0.77,
+       "food": 4,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Severin",
+       "skill": null,
+       "id": "c6",
+       "rank": "member",
+       "role": "striker",
+       "seed": 3420193896,
+       "basePf": 0.7,
+       "pf": 0.7,
+       "attend": 0.77,
+       "food": 3,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Tamsin",
+       "skill": null,
+       "id": "c7",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 2292299475,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.96,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Dunmore",
+       "skill": null,
+       "id": "c8",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1790357998,
+       "basePf": 0.68,
+       "pf": 0.68,
+       "attend": 0.77,
+       "food": 6,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Fenwick",
+       "skill": null,
+       "id": "c9",
+       "rank": "member",
+       "role": "striker",
+       "seed": 1296035920,
+       "basePf": 1.08,
+       "pf": 1.08,
+       "attend": 0.79,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Wenna",
+       "skill": null,
+       "id": "c10",
+       "rank": "member",
+       "role": "guardian",
+       "seed": 3990808150,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.81,
+       "food": 8,
+       "potions": 1,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Ines",
+       "skill": null,
+       "id": "c11",
+       "rank": "member",
+       "role": "mender",
+       "seed": 1380642421,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.72,
+       "food": 10,
+       "potions": 3,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brisa",
+       "skill": null,
+       "id": "c12",
+       "rank": "member",
+       "role": "striker",
+       "seed": 2566532368,
+       "basePf": 0.98,
+       "pf": 0.98,
+       "attend": 0.92,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Oswin",
+       "skill": null,
+       "id": "c13",
+       "rank": "recruit",
+       "role": "guardian",
+       "seed": 1469922296,
+       "basePf": 1.04,
+       "pf": 1.04,
+       "attend": 0.95,
+       "food": 8,
+       "potions": 4,
+       "lockedWeek": 0
+      },
+      {
+       "name": "Brannoc",
+       "skill": null,
+       "id": "c14",
+       "rank": "recruit",
+       "role": "mender",
+       "seed": 908054224,
+       "basePf": 0.74,
+       "pf": 0.74,
+       "attend": 0.88,
+       "food": 8,
+       "potions": 3,
+       "lockedWeek": 1
+      },
+      {
+       "name": "Ottilie",
+       "skill": null,
+       "id": "c15",
+       "rank": "recruit",
+       "role": "striker",
+       "seed": 1986533828,
+       "basePf": 1.22,
+       "pf": 1.22,
+       "attend": 0.94,
+       "food": 7,
+       "potions": 2,
+       "lockedWeek": 0
+      }
+     ],
+     "jobs": [
+      {
+       "id": "j53",
+       "owner": "Quill",
+       "actionId": "pine_buckler",
+       "qty": 16,
+       "done": 7,
+       "progress": 0.578125,
+       "assisted": 0,
+       "postedAt": 1793611001500,
+       "rarities": {
+        "common": 5,
+        "uncommon": 1,
+        "rare": 1,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j54",
+       "owner": "Sable",
+       "actionId": "training_sword",
+       "qty": 12,
+       "done": 5,
+       "progress": 0.8984375,
+       "assisted": 0,
+       "postedAt": 1793611012250,
+       "rarities": {
+        "common": 4,
+        "uncommon": 1,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      },
+      {
+       "id": "j55",
+       "owner": "Linnet",
+       "actionId": "padded_tunic",
+       "qty": 8,
+       "done": 5,
+       "progress": 0.1171875,
+       "assisted": 0,
+       "postedAt": 1793611017250,
+       "rarities": {
+        "common": 3,
+        "uncommon": 2,
+        "rare": 0,
+        "epic": 0,
+        "legendary": 0,
+        "mythic": 0
+       }
+      }
+     ],
+     "nextPostIn": 45.5,
+     "playerRank": "officer",
+     "viewAsMember": false,
+     "vault": {
+      "inv": {},
+      "gear": []
+     },
+     "treasury": {
+      "coin": 120,
+      "escrow": 0
+     },
+     "feed": [
+      {
+       "t": 1793610000000,
+       "kind": "payout",
+       "who": "Raid",
+       "text": "Last weekend's raid payout: 120 coin to the treasury."
+      }
+     ],
+     "requisitions": [],
+     "withdrawRequests": [],
+     "seenReqIds": [],
+     "withdrawn": {
+      "day": "",
+      "units": 0
+     },
+     "reqSimIn": 20,
+     "npcReqIn": 118
+    },
+    "clock": {
+     "offsetMs": 0,
+     "epoch": 1793577600000
+    },
+    "server": {
+     "name": "Emberfall",
+     "pop": 1220,
+     "popHistory": [
+      1229,
+      1171,
+      1163,
+      1218
+     ],
+     "weekBuff": null,
+     "pendingBuff": null
+    },
+    "loadouts": [
+     {
+      "id": "Lq",
+      "name": "Starter kit",
+      "slots": {
+       "weapon": "g2",
+       "offhand": null,
+       "head": null,
+       "chest": "g3",
+       "legs": null,
+       "ring": null
+      },
+      "goal": null,
+      "boundTo": null,
+      "createdAt": 1793610000000
+     }
+    ],
+    "economy": {
+     "raidCoin": 0,
+     "reqPaid": 0,
+     "weeks": []
+    }
+   }
+  }
+ ]
+}
