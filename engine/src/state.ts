@@ -12,7 +12,7 @@ import { SCHEMA, V3_BOSS_HP } from './v4-helpers';
 import { mondayOf, addDays } from './clock';
 import { curRecord } from './server';
 import { normRules } from './raid-rules';
-import { ensureV4 } from './crew-economy';
+import { ensureV5 } from './crew-economy';
 
 // ---------------------------------------------------------------- state lifecycle
 E.newState = function () {
@@ -42,7 +42,7 @@ E.newState = function () {
   const b = E.currentBoss(s); s.raid.bossHp = b ? Math.max(1, num(b.hp, 1)) : 0;
   E.refreshMarket(s);
   makeCrew(s);
-  ensureV4(s);
+  ensureV5(s);
   curRecord(s).revealedWeek = s.week;
   if (SLOTS.some((sl) => s.equipped[sl])) E.saveLoadout(s, { name: 'Starter kit', fromEquipped: true });
   E.log(s, 'info', 'Welcome to Guildwright. Pick a skill and start gathering.');
@@ -98,8 +98,8 @@ export function migrate(raw) {
   // v5: raid tokens removed. Hoarded tokens on v4 saves are discarded; stale rec.tokens
   // on per-boss records is left as dead data (nothing reads it after the raid-payouts rewrite).
   delete out.tokens;
-  ensureV4(out);
-  // v5: coin → gold on the crew treasury and the economy ledger. ensureV4 above already
+  ensureV5(out);
+  // v5: coin → gold on the crew treasury and the economy ledger. ensureV5 above already
   // normalised out.crew.treasury.gold to 0 if the raw save only had .coin; fold the legacy
   // value in and drop it. Same for state.economy.raidCoin (incl. per-week entries).
   if (out.crew && out.crew.treasury && 'coin' in out.crew.treasury) {

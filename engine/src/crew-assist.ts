@@ -7,7 +7,7 @@ import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, ran
 import { addXp } from './skills';
 import { rarityOdds } from './actions';
 import { schedule } from './clock';
-import { ensureCrewV4 } from './crew-economy';
+import { ensureCrewV5 } from './crew-economy';
 
 // ---------------------------------------------------------------- crew assist (v2, SPEC 4.1)
 export const STATIONS = {
@@ -37,7 +37,7 @@ export function makeCrew(state) {
   const n = randInt(4, 5);
   for (let i = 0; i < n && i < names.length; i++) members.push({ name: names[i], skill: skills.length ? skills[i % skills.length] : null });
   state.crew = { name: 'Copperbell crew', members, jobs: [], nextPostIn: randInt(60, 90) };
-  ensureCrewV4(state);
+  ensureCrewV5(state);
   const k = randInt(3, 4);
   for (let i = 0; i < k; i++) postJob(state);
 }
@@ -189,6 +189,6 @@ export function migrateCrew(out, rc) {
       nextPostIn: clamp(num(rc.nextPostIn, 60), 0, 600)
     };
     ['playerRank', 'viewAsMember', 'vault', 'treasury', 'requisitions', 'withdrawRequests', 'feed', 'withdrawn', 'schedule', 'seenReqIds', 'reqSimIn', 'npcReqIn'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
-    ensureCrewV4(out);
+    ensureCrewV5(out);
   } else makeCrew(out);
 }

@@ -128,4 +128,78 @@ describe('v4 → v5 migration', () => {
     expect(E.migrate({})).toBeNull();
     expect(E.migrate({ skills: null })).toBeNull();
   });
+
+  it('initialises an empty crew.treasury.log on v4 loads', async () => {
+    const { E } = await freshEngine();
+    const base = E.newState();
+    // Simulate a v4 save: strip the v5-only log so we're really testing the default path.
+    const crew = Object.assign({}, base.crew, {
+      treasury: { gold: 300, escrow: 0 },
+    });
+    const raw = v4SaveFrom(base, { crew });
+    const out = E.migrate(raw);
+    expect(Array.isArray(out.crew.treasury.log)).toBe(true);
+    expect(out.crew.treasury.log).toEqual([]);
+  });
+});
+
+describe('treasury log', () => {
+  it('fresh state has an empty log and writes a payout entry after a raid resolves', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    expect(Array.isArray(s.crew.treasury.log)).toBe(true);
+    expect(s.crew.treasury.log.length).toBe(0);
+
+    const before = s.crew.treasury.gold;
+    const r = E.runRaid(s);
+    expect(r.ok).toBe(true);
+    // Raid payout increased the gold → there must be a 'payout' entry recording it.
+    const payout = s.crew.treasury.log.find((e: any) => e.kind === 'payout');
+    expect(payout).toBeDefined();
+    expect(payout.delta).toBeGreaterThan(0);
+    expect(s.crew.treasury.gold - before).toBe(payout.delta);
+    expect(payout.week).toBe(s.week);
+    expect(payout.who).toBe('Raid');
+  });
+
+  it('writes a fill entry when a requisition is paid out to a submitter', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    // Find an item that's stackable and available as a craft/refine recipe output, so we
+    // can grant ourselves some to fill a requisition.
+    const anyItemId = Object.keys(s.inv)[0];
+    expect(anyItemId).toBeTruthy();
+    // Post a requisition for it as leader (treasury has starting gold).
+    const r = E.postRequisition(s, { itemId: anyItemId, qty: 2, rewardPer: 10, minGrade: 0, note: 'test' });
+    expect(r.ok).toBe(true);
+    const openReq = s.crew.requisitions.find((x: any) => x.status === 'open');
+    expect(openReq).toBeDefined();
+    const logBefore = s.crew.treasury.log.length;
+    const fill = E.fillRequisition(s, openReq.id, 1);
+    expect(fill.ok).toBe(true);
+    expect(fill.paid).toBeGreaterThan(0);
+    // One new 'fill' entry, negative delta, who = 'You'.
+    expect(s.crew.treasury.log.length).toBe(logBefore + 1);
+    const entry = s.crew.treasury.log[0];
+    expect(entry.kind).toBe('fill');
+    expect(entry.delta).toBe(-fill.paid);
+    expect(entry.who).toBe('You');
+  });
+
+  it('caps the log at 80 entries (oldest drops)', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    // Fake 100 payouts directly via the helper (through a tiny indirection — call logTreasury
+    // via a resolved raid? Too heavy. Just push via the exported helper.)
+    // The helper isn't exported on E; we test the cap via back-to-back raids instead would
+    // take forever. Simpler: synthesise entries directly.
+    for (let i = 0; i < 100; i++) {
+      s.crew.treasury.log.unshift({ t: i, week: 1, kind: 'payout', who: 'Test', delta: 1, reason: 'x' });
+    }
+    // The helper enforces the cap only on insert; this test confirms that the helper's
+    // next write trims the log back down to the cap.
+    const resolve = E.runRaid(s);
+    expect(resolve.ok).toBe(true);
+    expect(s.crew.treasury.log.length).toBeLessThanOrEqual(80);
+  });
 });

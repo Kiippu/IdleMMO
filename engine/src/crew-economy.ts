@@ -6,7 +6,7 @@ import { ctx } from './context';
 import { E, SLOTS, D, arr, num, cfg, grades, item, allActions, bosses, rand, clamp, randInt, pick, lcFirst, itemName, isStackable, nextId } from './core';
 import { addItem } from './inventory';
 import { findGear, clampHp } from './gear';
-import { SCHEMA, FEED_CAP, mulberry, clone, rankDefs, rankDef, invCount, invAdd, invTake, BEST, WORST } from './v4-helpers';
+import { SCHEMA, FEED_CAP, TREASURY_LOG_CAP, mulberry, clone, rankDefs, rankDef, invCount, invAdd, invTake, BEST, WORST } from './v4-helpers';
 import { mondayOf, addDays, dayKey, nowOf, ensureClock, schedule } from './clock';
 import { ensureRecord, curRecord } from './server';
 import { cleanSlots } from './loadouts';
@@ -20,6 +20,18 @@ export function feedPush(state, kind, who, text) {
   if (!Array.isArray(cr.feed)) cr.feed = [];
   const e = { t: ctx.now(), kind, who: who || 'You', text };
   cr.feed.unshift(e); if (cr.feed.length > FEED_CAP) cr.feed.length = FEED_CAP;
+  return e;
+}
+// Treasury audit log: every entry is a change in total treasury (gold + escrow). Escrow-only
+// rebalances (post / cancel requisitions) don't land here because the total is unchanged;
+// the live requisition list already tells members which gold is reserved. delta = 0 entries
+// are silently dropped so the log stays signal-only.
+export function logTreasury(state, kind, delta, who, reason) {
+  const cr = state.crew; if (!cr || !cr.treasury) return null;
+  if (!delta) return null;
+  if (!Array.isArray(cr.treasury.log)) cr.treasury.log = [];
+  const e = { t: ctx.now(), week: num(state.week, 1), kind, who: who || 'You', delta, reason };
+  cr.treasury.log.unshift(e); if (cr.treasury.log.length > TREASURY_LOG_CAP) cr.treasury.log.length = TREASURY_LOG_CAP;
   return e;
 }
 export function econ(state, key, v) {
@@ -174,6 +186,7 @@ export function submitToReq(state, r, who, grades) { // grades: [{grade, qty}] a
   grades.forEach((g) => invAdd(cr.vault.inv, r.itemId, g.grade, g.qty));
   r.submissions.push({ who, qty, grade: grades[0] ? grades[0].grade : 1, paid: pay, t: ctx.now() });
   if (pay > 0) econ(state, 'reqPaid', pay);
+  logTreasury(state, 'fill', -pay, who, `Filled ${qty} ${itemName(r.itemId)}`);
   feedPush(state, 'payout', who, `${who} filled ${qty} ${itemName(r.itemId)}${pay ? `, +${pay}g` : ''}`);
   if (r.filled >= r.qty) { r.status = 'filled'; if (r.escrow > 0) { cr.treasury.escrow -= r.escrow; cr.treasury.gold += r.escrow; r.escrow = 0; } feedPush(state, 'requisition', 'Crew', `The ${itemName(r.itemId)} requisition is filled.`); }
   return pay;
@@ -281,7 +294,7 @@ export function crewLocksStep(state) { // crewmates lock in as the week goes on
   cr.members.forEach((m, i) => { if (num(m.lockedWeek, 0) !== state.week && ((i * 0.6180339) % 1) < frac) m.lockedWeek = state.week; });
 }
 export const CREW_ROLES = ['guardian', 'mender', 'striker'];
-export function ensureCrewV4(state) {
+export function ensureCrewV5(state) {
   const cr = state.crew; if (!cr) return;
   const used = new Set(arr(cr.members).map((m) => m.name));
   // deterministic fill: the same save always grows the same roster, even if it is migrated twice before saving
@@ -307,11 +320,12 @@ export function ensureCrewV4(state) {
   Object.keys(cr.vault.inv).forEach((id) => { if (!item(id) || !Array.isArray(cr.vault.inv[id])) delete cr.vault.inv[id]; });
   cr.vault.gear = arr(cr.vault.gear).filter((g) => g && g.uid && item(g.itemId));
   if (!cr.treasury || typeof cr.treasury !== 'object') {
-    cr.treasury = { gold: num(cfg().crewStartTreasury, 120), escrow: 0 };
+    cr.treasury = { gold: num(cfg().crewStartTreasury, 120), escrow: 0, log: [] };
     if (!Array.isArray(cr.feed)) cr.feed = [];
     feedPush(state, 'payout', 'Raid', `Last weekend's raid payout: ${cr.treasury.gold}g to the treasury.`);
   }
   cr.treasury.gold = Math.max(0, num(cr.treasury.gold, 0)); cr.treasury.escrow = Math.max(0, num(cr.treasury.escrow, 0));
+  cr.treasury.log = arr(cr.treasury.log).slice(0, TREASURY_LOG_CAP);
   cr.requisitions = arr(cr.requisitions).filter((r) => r && r.id && item(r.itemId));
   cr.withdrawRequests = arr(cr.withdrawRequests).filter((r) => r && r.id);
   cr.feed = arr(cr.feed).filter((f) => f && f.text).slice(0, FEED_CAP);
@@ -319,7 +333,7 @@ export function ensureCrewV4(state) {
   if (!cr.withdrawn || typeof cr.withdrawn !== 'object') cr.withdrawn = { day: '', units: 0 };
   if (cr.schedule && typeof cr.schedule !== 'object') cr.schedule = null;
 }
-export function ensureV4(state) {
+export function ensureV5(state) {
   ensureClock(state);
   const base = num(cfg().serverPop, 1200);
   if (!state.server || typeof state.server !== 'object') state.server = {};
@@ -349,7 +363,7 @@ export function ensureV4(state) {
   state.loadouts = state.loadouts.filter((l) => l && l.id).map((l) => ({ id: String(l.id), name: String(l.name || 'Loadout'), slots: cleanSlots(state, l.slots), goal: l.goal || null, boundTo: l.boundTo || null, createdAt: num(l.createdAt, ctx.now()) }));
   if (!state.economy || typeof state.economy !== 'object') state.economy = { raidGold: 0, reqPaid: 0, weeks: [] };
   state.economy.weeks = arr(state.economy.weeks);
-  ensureCrewV4(state);
+  ensureCrewV5(state);
   state.v = SCHEMA;
 }
 

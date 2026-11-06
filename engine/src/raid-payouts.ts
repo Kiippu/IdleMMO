@@ -10,7 +10,7 @@ import { nowOf, weekStartOf, windowFor } from './clock';
 import { ensureRecord, curRecord } from './server';
 import { autoLock, tierFor } from './raid-rules';
 import { simulateFight, fightCtx } from './raid-sim';
-import { feedPush, econ } from './crew-economy';
+import { feedPush, econ, logTreasury } from './crew-economy';
 
 // ================================================================ v4: payouts + resolution
 export function pickLootItem(state, b, kind) {
@@ -125,6 +125,7 @@ export function resolveRaid(state, opts, events) {
   if (state.crew && state.crew.treasury) {
     state.crew.treasury.gold += crewGold;
     feedPush(state, 'payout', 'Raid', `Raid payout: ${crewGold}g to the treasury (${sim.attendCount} turned out).`);
+    logTreasury(state, 'payout', +crewGold, 'Raid', `Raid payout (${sim.attendCount} turned out)`);
     econ(state, 'raidGold', crewGold);
   }
   // kill: lottery, ladder, buff
