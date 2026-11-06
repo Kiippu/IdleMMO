@@ -6,7 +6,6 @@ import { E, SLOTS, CHECKS, arr, num, cfg, item, bosses, rand, clamp, randInt, lc
 import { addXp } from './skills';
 import { findGear, autoEat } from './gear';
 import { drainDurability } from './actions';
-import { generateSupply } from './supply';
 import { ROLE_CHECK, OFF_ROLE, ROLE_MIX, invCount } from './v4-helpers';
 import { mondayOf, addDays, dayKey, nowOf, ensureClock, weekNum, weekStartOf, windowFor } from './clock';
 import { curRecord, bossReq } from './server';
@@ -26,7 +25,7 @@ export function weekRollover(state, events) {
   const rec = curRecord(state); const wasHidden = rec.revealedWeek == null; rec.revealedWeek = rec.revealedWeek == null ? state.week : rec.revealedWeek;
   state.raid.lock = null; state.raid.warned = { week: state.week, levels: [] };
   crewWeekly(state, events);
-  generateSupply(state); E.refreshMarket(state);
+  E.refreshMarket(state);
   const boss = E.currentBoss(state);
   events.push({ type: 'weekStart', week: state.week, revealed: wasHidden ? boss.id : null });
   E.log(state, 'info', `Week ${state.week} begins. ${wasHidden ? `New boss revealed: ${boss.name}, weak to ${boss.weakTo}.` : `${boss.name} returns at ${Math.ceil(rec.hpLeft / rec.maxHp * 100)}% HP.`}${sv.weekBuff ? ' Server buff: ' + sv.weekBuff.label + '.' : ''}`);

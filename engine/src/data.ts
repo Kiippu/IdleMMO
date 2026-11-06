@@ -489,8 +489,6 @@ export const DATA: any = {
     maxLevel: 99,
     marketTax: 0.05,
     pityThreshold: 40,
-    supplyRateMult: 0.6,
-    supplyDiminish: [{ upTo: 50, mult: 1 }, { upTo: 200, mult: 0.5 }, { upTo: Infinity, mult: 0.2 }],
     baseHp: 60,
     hpPerCombatLevel: 4,
     // v4 weekend raids

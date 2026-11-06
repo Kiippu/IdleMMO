@@ -7,7 +7,7 @@ import { cap1 } from './crew-economy';
 
 // ================================================================ v4: helpers
 export const DAY_MS = 86400000, WEEK_MS = 7 * DAY_MS;
-export const SCHEMA = 4;
+export const SCHEMA = 5;
 export const V3_BOSS_HP = [400000, 650000, 900000, 1200000, 1600000, 2200000];
 export const CHECK_LABEL = { mitigation: 'Mitigation', healing: 'Healing', damage: 'Damage', food: 'Food', consumables: 'Consumables' };
 export const ROLE_CHECK = { guardian: 'mitigation', mender: 'healing', striker: 'damage' };

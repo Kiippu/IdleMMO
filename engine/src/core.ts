@@ -7,8 +7,7 @@ import { ctx } from './context';
 // ---------------------------------------------------------------- data access
 export const CFG_DEFAULTS = {
   saveKey: 'guildwright-proto-v1', startingGold: 150, xpMult: 4, offlineCapSec: 43200, maxLevel: 99,
-  marketTax: 0.05, pityThreshold: 40, supplyRateMult: 0.6,
-  supplyDiminish: [{ upTo: 50, mult: 1 }, { upTo: 200, mult: 0.5 }, { upTo: Infinity, mult: 0.2 }],
+  marketTax: 0.05, pityThreshold: 40,
   baseHp: 60, hpPerCombatLevel: 4
 };
 export const RARITY_DEFAULTS = [
@@ -59,7 +58,6 @@ export function cfg() {
   const src = D().config;
   if (cfgCache.src !== src || !cfgCache.val) {
     const c = Object.assign({}, CFG_DEFAULTS, src || {});
-    if (!Array.isArray(c.supplyDiminish) || !c.supplyDiminish.length) c.supplyDiminish = CFG_DEFAULTS.supplyDiminish;
     cfgCache = { src, val: c };
   }
   return cfgCache.val;
