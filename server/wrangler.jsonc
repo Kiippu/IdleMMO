@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "guildwright",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-06",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "../client/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "guildwright",
+      "database_id": "local",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "GUILD", "class_name": "Guild" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Guild"] }],
+  "triggers": {
+    // Cron expressions are in UTC. Saturday 22:00 UTC: weekly raid resolution stub.
+    "crons": ["0 22 * * 6"]
+  }
+}

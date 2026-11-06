@@ -1,0 +1,107 @@
+/* Design tokens copied from the legacy index.html :root block. */
+:root {
+  --plaster: #e2e5dc;
+  --grain: rgba(40, 52, 70, .07);
+  --paper: #f6f7f2;
+  --sunk: #ebede5;
+  --ink: #1b2030;
+  --ink-2: #545b6b;
+  --ink-3: #5d6474;
+  --rule: #c6cabe;
+  --rule-2: #d9dcd2;
+  --woad: #2a479e;
+  --woad-soft: #dfe5f5;
+  --on-woad: #ffffff;
+  --brass: #8a5e0a;
+  --brass-fill: #e0ae3c;
+  --hp: #c0392f;
+  --focus: #17807c;
+  --ok: #2b7640;
+  --warn: #975a00;
+  --bad: #b3261e;
+  --scrim: rgba(20, 24, 34, .52);
+  --shadow: rgba(27, 32, 48, .16);
+
+  --r-common: #646a74;
+  --r-uncommon: #287d3c;
+  --r-rare: #1f5fc4;
+  --r-epic: #8336bd;
+  --r-legendary: #ad5a00;
+  --r-mythic: #c21a4b;
+
+  --f-display: "Pixelify Sans", "Silkscreen", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-label: "Silkscreen", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --t-xs: 11px; --t-sm: 13px; --t-md: 15px; --t-lg: 18px; --t-xl: 24px; --t-xxl: 32px;
+  --gut-l: max(16px, env(safe-area-inset-left, 0px));
+  --gut-r: max(16px, env(safe-area-inset-right, 0px));
+  --col: 460px;
+  --tabbar-h: 60px;
+  --px: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px),
+        calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --plaster: #10141c; --grain: rgba(180, 200, 255, .045); --paper: #191f2a; --sunk: #141922;
+    --ink: #ebe7da; --ink-2: #a3a8b4; --ink-3: #8a90a0; --rule: #2e3645; --rule-2: #232a36;
+    --woad: #91a7ff; --woad-soft: #222c47; --on-woad: #0c1121; --brass: #eabf58; --brass-fill: #e0ae3c;
+    --hp: #ff6a5d; --focus: #4dd0c7; --ok: #6ccf87; --warn: #f0b458; --bad: #ff7a70;
+    --scrim: rgba(3, 5, 10, .66); --shadow: rgba(0, 0, 0, .45);
+    --r-common: #a8aeb8; --r-uncommon: #69cf7a; --r-rare: #69a7ff; --r-epic: #c58bff; --r-legendary: #ffb547; --r-mythic: #ff668e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --plaster: #10141c; --grain: rgba(180, 200, 255, .045); --paper: #191f2a; --sunk: #141922;
+  --ink: #ebe7da; --ink-2: #a3a8b4; --ink-3: #8a90a0; --rule: #2e3645; --rule-2: #232a36;
+  --woad: #91a7ff; --woad-soft: #222c47; --on-woad: #0c1121; --brass: #eabf58; --brass-fill: #e0ae3c;
+  --hp: #ff6a5d; --focus: #4dd0c7; --ok: #6ccf87; --warn: #f0b458; --bad: #ff7a70;
+  --scrim: rgba(3, 5, 10, .66); --shadow: rgba(0, 0, 0, .45);
+  --r-common: #a8aeb8; --r-uncommon: #69cf7a; --r-rare: #69a7ff; --r-epic: #c58bff; --r-legendary: #ffb547; --r-mythic: #ff668e;
+  color-scheme: dark;
+}
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background-color: var(--plaster);
+  background-image: radial-gradient(var(--grain) 1px, transparent 1.2px);
+  background-size: 8px 8px;
+  color: var(--ink);
+  font: 400 var(--t-md)/1.45 var(--f-body);
+  overflow-x: hidden;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--woad); outline-offset: 2px; }
+
+.shell {
+  max-width: var(--col);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 0 var(--gut-r) calc(var(--tabbar-h) + 16px) var(--gut-l);
+}
+.topbar { padding-block: 12px; border-bottom: 1px solid var(--rule); }
+.brand { font: 700 var(--t-lg)/1 var(--f-display); color: var(--woad); }
+.panel {
+  margin-top: 16px; padding: 16px;
+  background: var(--paper); border: 1px solid var(--rule);
+}
+.panel h1 { font: 600 var(--t-xl)/1.2 var(--f-display); margin: 0 0 4px; }
+.panel p { margin: 0; color: var(--ink-2); }
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: var(--paper); border-top: 1px solid var(--rule);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.tabbar .row {
+  max-width: var(--col); margin: 0 auto; height: var(--tabbar-h);
+  display: grid; grid-template-columns: repeat(5, 1fr);
+}
+.tabbar button {
+  border: 0; background: none; color: var(--ink-2);
+  font: 400 var(--t-xs)/1.2 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
+}
+.tabbar button[aria-current="page"] { color: var(--woad); background: var(--woad-soft); }
