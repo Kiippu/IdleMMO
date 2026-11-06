@@ -2874,7 +2874,7 @@
    }
   },
   {
-   "label": "offline refine runs dry",
+   "label": "offline refine 1h",
    "now": 1793664000000,
    "result": {
     "seconds": 3600,

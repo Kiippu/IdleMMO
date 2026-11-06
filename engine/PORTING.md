@@ -143,13 +143,6 @@ Harness and timing
 - `flags.quiet = true` during offline catch-up suppresses per-event log lines
   (only the one summary line is kept). `logq` reads this at call time.
 
-Label rename shim (do not remove)
-- `test/parity.test.ts` contains a `LABEL_RENAMES` map with one entry:
-  `offline / "offline refine 1h" → "offline refine runs dry"`. The step DATA
-  still matches — only the human label in `engine/scenarios/index.mjs` was
-  edited after the fixture was recorded. We can't touch either side of that
-  pair, so the shim stays until the fixtures are re-recorded.
-
 Typing notes (for anyone who tightens `tsconfig.json` later)
 - `core.ts` `num(x, d?)` returns `any` on purpose. The legacy code uses
   `num(x)` without a default to mean "defined and numeric or NaN"; tightening
