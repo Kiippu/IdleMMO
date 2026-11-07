@@ -8,7 +8,11 @@ import { ctx } from './context';
 export const CFG_DEFAULTS = {
   saveKey: 'guildwright-proto-v1', startingGold: 150, xpMult: 4, offlineCapSec: 43200, maxLevel: 99,
   marketTax: 0.05, pityThreshold: 40,
-  baseHp: 60, hpPerCombatLevel: 4
+  baseHp: 60, hpPerCombatLevel: 4,
+  // Phase 1 real-speed tuning: prototype durations were ~10x faster than the design doc's
+  // anchor ("an hour of level-40 work earns about 1,000 gold"). Every action's `sec` is
+  // multiplied by this factor at actionTimeWith. One knob — change here to retune.
+  speedFactor: 10
 };
 export const RARITY_DEFAULTS = [
   { id: 'common', name: 'Common', baseChance: 0.70, affixSlots: 0, statMult: 1.00, durability: 100, valueMult: 1 },

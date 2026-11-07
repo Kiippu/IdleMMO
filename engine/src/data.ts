@@ -489,6 +489,7 @@ export const DATA: any = {
     maxLevel: 99,
     marketTax: 0.05,
     pityThreshold: 40,
+    speedFactor: 10,              // real-speed tuning (design: ~1000g/hr at level 40)
     baseHp: 60,
     hpPerCombatLevel: 4,
     // v4 weekend raids
