@@ -13,6 +13,12 @@ export interface Derived {
   activeTime: number | null;
   /** uid -> human-readable gear name (player bag + crew vault). */
   gearNames: Record<string, string>;
+  /** E.playerStats(state) — {atk, def, heal, maxHp, speed, elements, ...}. */
+  playerStats: any;
+  /** E.bossIntel(state) — current-week boss + hpLeft/maxHp, or null. */
+  bossIntel: any;
+  /** E.raidStatus(state) — phase, window, secToStart, secLeft, etc. */
+  raidStatus: any;
 }
 
 export interface OfflineSummary {
@@ -36,6 +42,11 @@ export type Req =
   | { id: string; type: 'resume' }
   | { id: string; type: 'equip'; uid: string }
   | { id: string; type: 'unequip'; slot: string }
+  | { id: string; type: 'saveLoadout'; name?: string; fromEquipped?: boolean }
+  | { id: string; type: 'deleteLoadout'; loadoutId: string }
+  | { id: string; type: 'equipLoadout'; loadoutId: string }
+  | { id: string; type: 'setRaidRules'; rules: { eatAt?: number; stance?: string; tactic?: string } }
+  | { id: string; type: 'runRaid' }
   | { id: string; type: 'export' }
   | { id: string; type: 'import'; code: string }
   | { id: string; type: 'reset' };

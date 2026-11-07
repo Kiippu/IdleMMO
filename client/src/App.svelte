@@ -4,6 +4,7 @@
   import { registerServiceWorker } from './pwa';
   import Workshop from './tabs/Workshop.svelte';
   import Stores from './tabs/Stores.svelte';
+  import WarRoom from './tabs/WarRoom.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
 
   const tabs = ['Workshop', 'Stores', 'Market', 'War Room', 'Crew'] as const;
@@ -79,6 +80,8 @@
         <Workshop />
       {:else if active === 'Stores'}
         <Stores />
+      {:else if active === 'War Room'}
+        <WarRoom />
       {:else}
         <h1>{active}</h1>
         <p>Placeholder screen. This tab lands in a later slice.</p>

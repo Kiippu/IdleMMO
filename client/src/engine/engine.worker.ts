@@ -31,7 +31,14 @@ function derive(): Derived {
   for (const g of playerGear) gearNames[g.uid] = E.gearName(g);
   const vaultGear = state && state.crew && state.crew.vault && state.crew.vault.gear;
   if (Array.isArray(vaultGear)) for (const g of vaultGear) gearNames[g.uid] = E.gearName(g);
-  return { skillLevels, activeTime, gearNames };
+  return {
+    skillLevels,
+    activeTime,
+    gearNames,
+    playerStats: state ? E.playerStats(state) : null,
+    bossIntel: state ? E.bossIntel(state) : null,
+    raidStatus: state ? E.raidStatus(state) : null,
+  };
 }
 
 function startTicking() {
@@ -95,6 +102,27 @@ async function handle(req: Req): Promise<unknown> {
       E.unequip(state, req.slot);
       E.save(state);
       return undefined;
+    case 'saveLoadout':
+      E.saveLoadout(state, { name: req.name, fromEquipped: !!req.fromEquipped });
+      E.save(state);
+      return undefined;
+    case 'deleteLoadout':
+      E.deleteLoadout(state, req.loadoutId);
+      E.save(state);
+      return undefined;
+    case 'equipLoadout':
+      E.equipLoadout(state, req.loadoutId);
+      E.save(state);
+      return undefined;
+    case 'setRaidRules':
+      E.setRaidRules(state, req.rules);
+      E.save(state);
+      return undefined;
+    case 'runRaid': {
+      const res = E.runRaid(state);
+      E.save(state);
+      return res;
+    }
     case 'pause':
       stopTicking();
       E.save(state);

@@ -63,6 +63,12 @@ export const engineClient = {
   resume: () => rpc<OfflineSummary | null>({ id: nextId(), type: 'resume' }),
   equip: (uid: string) => rpc<void>({ id: nextId(), type: 'equip', uid }),
   unequip: (slot: string) => rpc<void>({ id: nextId(), type: 'unequip', slot }),
+  saveLoadout: (name?: string) => rpc<void>({ id: nextId(), type: 'saveLoadout', name, fromEquipped: true }),
+  deleteLoadout: (loadoutId: string) => rpc<void>({ id: nextId(), type: 'deleteLoadout', loadoutId }),
+  equipLoadout: (loadoutId: string) => rpc<void>({ id: nextId(), type: 'equipLoadout', loadoutId }),
+  setRaidRules: (rules: { eatAt?: number; stance?: string; tactic?: string }) =>
+    rpc<void>({ id: nextId(), type: 'setRaidRules', rules }),
+  runRaid: () => rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'runRaid' }),
   export: () => rpc<string>({ id: nextId(), type: 'export' }),
   import: (code: string) => rpc<void>({ id: nextId(), type: 'import', code }),
   reset: () => rpc<void>({ id: nextId(), type: 'reset' }),
