@@ -54,6 +54,7 @@ export function simulateFight(state, ctx) {
     });
   }
   const crew = ctx.crew; const crewDown = crew.map(() => 0);
+  const vaultBuffs = ctx.vaultBuffs || { damage: 0, healing: 0, mitigation: 0 };
   let crewFood = crew.reduce((a, m) => a + m.food, 0) + num(ctx.vaultFood, 0), crewFoodAcc = 0, foodOutWave = null, foodOutFrame = null, crewFoodShort = 0;
   const crewPotions = crew.reduce((a, m) => a + m.potions, 0) + num(ctx.vaultPotions, 0);
   const playerRoleForAura = role && role !== 'supply' ? [role] : [];
@@ -111,7 +112,8 @@ export function simulateFight(state, ctx) {
     waveAuraMin = Math.min(waveAuraMin, myTier); waveDownMax = Math.max(waveDownMax, downNow + (down > 0 ? 1 : 0)); if (myTier < startTier) { waveWeakFrames++; waveLossSum += num((cfg().auraStrength || [])[startTier], 0) - num((cfg().auraStrength || [])[myTier], 0); }
     const auraList = npc.concat(myAuraType ? [{ guild: crewName, type: myAuraType, tier: myTier, mine: true }] : []);
     const aura = auraTotals(auraList);
-    CHECKS.forEach((ck) => { crewOut[ck] *= 1 + aura[ck]; crewTot[ck] += crewOut[ck]; });
+    // Crew auras + vault-potion buffs (crew-wide, flat-per-check) multiply crew output on each check.
+    CHECKS.forEach((ck) => { crewOut[ck] *= 1 + aura[ck] + num(vaultBuffs[ck], 0); crewTot[ck] += crewOut[ck]; });
     // player
     const out = { damage: 0, healing: 0, mitigation: 0 };
     let taken = 0, crit = false;
@@ -207,15 +209,47 @@ export function simulateFight(state, ctx) {
     hpBefore, hpAfter: bossHp, killed: bossHp <= 0, killedAt, cpHit, weekPoints, weekTotal, endHp: hp, maxHp, attendCount, crewCount: crew.length,
     crewFoodStart: crew.reduce((a, m) => a + m.food, 0) + num(ctx.vaultFood, 0), crewFoodLeft: crewFood, foodOutWave, foodOutFrame, crewFoodShort, crewPotions, auraWeakenedWave, maxCrewDown,
     auras: npc.concat(myAuraType ? [{ guild: crewName, type: myAuraType, tier: startTier, mine: true }] : []), myAuraType, startTier,
-    totals: { damage: pDmg, healing: pHeal, mitigation: pMit }, crewTot, powers: pw, role, fair };
+    totals: { damage: pDmg, healing: pHeal, mitigation: pMit }, crewTot, powers: pw, role, fair,
+    vaultBuffs: Object.assign({}, vaultBuffs), vaultConsumed: ctx.vaultConsumed || {} };
 }
+// Maps a buff potion's stat tag to the crew phase check it boosts.
+const BUFF_STAT_TO_CHECK: any = { atk: 'damage', def: 'mitigation', heal: 'healing' };
+// Cap on the summed buff percentage per check from vault potions. Soft diminishing-returns
+// via truncation: overflow potions beyond this cap are still consumed but waste.
+const VAULT_BUFF_CAP = 0.5;
+
 export function fightCtx(state, lock, rng, joined) {
   const rec = curRecord(state);
+  const boss = E.currentBoss(state);
   const vault = (state.crew && state.crew.vault && state.crew.vault.inv) || {};
-  let vf = 0, vp = 0; Object.keys(vault).forEach((id) => { const it = item(id); if (!it) return; if (it.kind === 'food') vf += invCount(vault, id); if (it.kind === 'potion') vp += invCount(vault, id); });
-  return { boss: E.currentBoss(state), rec: Object.assign({}, rec, { checkpointsPaid: rec.checkpointsPaid.slice() }), rng, joined: joined !== false, role: lock ? lock.role : 'supply',
+  let vaultFood = 0, vaultPotions = 0;
+  const vaultBuffs: any = { damage: 0, healing: 0, mitigation: 0 };
+  const vaultConsumed: any = {};
+  Object.keys(vault).forEach((id) => {
+    const it = item(id); if (!it) return;
+    const total = invCount(vault, id); if (!total) return;
+    if (it.kind === 'food') {
+      vaultFood += total;
+      vaultConsumed[id] = total;
+    } else if (it.kind === 'potion') {
+      let consume = 0;
+      if (num(it.heal, 0) > 0) { vaultPotions += total; consume = total; }
+      if (it.buff && it.buff.stat && num(it.buff.pct, 0) > 0) {
+        const check = BUFF_STAT_TO_CHECK[it.buff.stat];
+        if (check) vaultBuffs[check] += total * num(it.buff.pct, 0);
+        // Weakness potion: items that counter this boss grant an extra mitigation bump.
+        if (it.counters && (it.counters === (boss && boss.id) || arr(it.counters).includes(boss && boss.id))) {
+          vaultBuffs.mitigation += total * num(it.buff.pct, 0) * 0.5;
+        }
+        consume = total;
+      }
+      if (consume) vaultConsumed[id] = consume;
+    }
+  });
+  CHECKS.forEach((ck) => { vaultBuffs[ck] = Math.min(VAULT_BUFF_CAP, vaultBuffs[ck]); });
+  return { boss, rec: Object.assign({}, rec, { checkpointsPaid: rec.checkpointsPaid.slice() }), rng, joined: joined !== false, role: lock ? lock.role : 'supply',
     slots: lock ? lock.slots : state.equipped, rules: lock ? lock.rules : normRules(state, state.raid.rules), pouch: clone(state.raid.pouch || {}),
-    crew: crewAttending(state, rng), npcAuras: npcAuras(state, rng), vaultFood: vf, vaultPotions: vp, startHp: statsFor(state, lock ? lock.slots : state.equipped).maxHp };
+    crew: crewAttending(state, rng), npcAuras: npcAuras(state, rng), vaultFood, vaultPotions, vaultBuffs, vaultConsumed, startHp: statsFor(state, lock ? lock.slots : state.equipped).maxHp };
 }
 export let projCache = { key: '', val: null };
 E.projectRaid = function (state) {

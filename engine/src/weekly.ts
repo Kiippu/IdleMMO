@@ -6,7 +6,6 @@ import { E, SLOTS, CHECKS, arr, num, cfg, item, bosses, rand, clamp, randInt, lc
 import { addXp } from './skills';
 import { findGear, autoEat } from './gear';
 import { drainDurability } from './actions';
-import { generateSupply } from './supply';
 import { ROLE_CHECK, OFF_ROLE, ROLE_MIX, invCount } from './v4-helpers';
 import { mondayOf, addDays, dayKey, nowOf, ensureClock, weekNum, weekStartOf, windowFor } from './clock';
 import { curRecord, bossReq } from './server';
@@ -26,7 +25,7 @@ export function weekRollover(state, events) {
   const rec = curRecord(state); const wasHidden = rec.revealedWeek == null; rec.revealedWeek = rec.revealedWeek == null ? state.week : rec.revealedWeek;
   state.raid.lock = null; state.raid.warned = { week: state.week, levels: [] };
   crewWeekly(state, events);
-  generateSupply(state); E.refreshMarket(state);
+  E.refreshMarket(state);
   const boss = E.currentBoss(state);
   events.push({ type: 'weekStart', week: state.week, revealed: wasHidden ? boss.id : null });
   E.log(state, 'info', `Week ${state.week} begins. ${wasHidden ? `New boss revealed: ${boss.name}, weak to ${boss.weakTo}.` : `${boss.name} returns at ${Math.ceil(rec.hpLeft / rec.maxHp * 100)}% HP.`}${sv.weekBuff ? ' Server buff: ' + sv.weekBuff.label + '.' : ''}`);
@@ -56,25 +55,9 @@ export function processClock(state, events) {
     }
   }
 }
-E.devSetClock = function (state, to) {
-  ensureClock(state); const events = []; const now = nowOf(state);
-  let target = null;
-  if (to === 'raid') { const w = windowFor(state, now); target = now < w.start ? w.start + 60000 : (now < w.end ? now : windowFor(state, addDays(mondayOf(now), 7)).start + 60000); }
-  else if (to === 'nextWeek') target = addDays(mondayOf(now), 7) + 60000;
-  else if (to === 'friday') { const f = new Date(addDays(mondayOf(now), 4)); f.setHours(12, 0, 0, 0); target = f.getTime() > now ? f.getTime() : addDays(f.getTime(), 7); }
-  else if (to === 'reset') {
-    const wkBefore = weekNum(state, now); state.clock.offsetMs = 0;
-    const wkAfter = weekNum(state, nowOf(state)); state.clock.epoch = addDays(state.clock.epoch, -7 * (wkBefore - wkAfter));
-    return { ok: true, reason: '', events };
-  } else return { ok: false, reason: 'Unknown clock target.', events };
-  state.clock.offsetMs = num(state.clock.offsetMs, 0) + (target - now);
-  processClock(state, events);
-  return { ok: true, reason: '', events };
-};
 E.startRaidNow = function (state) {
   if (!E.currentBoss(state)) return { ok: false, reason: 'No raid boss is scheduled in this build.' };
   const events = [];
-  if (raidDoneThisWeek(state)) { E.devSetClock(state, 'nextWeek').events.forEach((e) => events.push(e)); processClock(state, events); }
   if (raidDoneThisWeek(state)) return { ok: false, reason: 'This week\'s raid already ran.', events };
   state.active = null;
   const r = resolveRaid(state, { startedAt: nowOf(state), instant: true }, events);
@@ -169,7 +152,6 @@ E.raidPreview = function (state) {
   if (pp.units === 0) advice.push('Pack your raid pouch: the fight only uses food and potions in the pouch.');
   const weakMatch = num(ps.elements[boss.weakTo], 0) > 0;
   if (boss.weakTo && rec.revealedWeek != null) advice.push(weakMatch ? `Your ${boss.weakTo} damage exploits ${boss.name}'s weakness.` : `${boss.name} is weak to ${boss.weakTo}.`);
-  if (state.tokens > 0 && !num(state.raid.rules.tokens, 0)) advice.push(`You have ${state.tokens} raid tokens. Commit some for extra core tickets.`);
   return { boss, bossHp: rec.hpLeft, bossHpPct: rec.hpLeft / rec.maxHp, playerPower: ps.power, expectedShare: proj.weekShare, foodCount: pp.food + fp.food, potionCount: pp.potions + fp.potion, weakMatch, advice, tier: proj.tier };
 };
 export function foodAndPotions(state) {

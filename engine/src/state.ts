@@ -8,24 +8,23 @@ import { addItem } from './inventory';
 import { makeGear, clampHp } from './gear';
 import { isGearCraft } from './actions';
 import { makeCrew, migrateCrew } from './crew-assist';
-import { generateSupply } from './supply';
 import { SCHEMA, V3_BOSS_HP } from './v4-helpers';
 import { mondayOf, addDays } from './clock';
 import { curRecord } from './server';
 import { normRules } from './raid-rules';
-import { ensureV4 } from './crew-economy';
+import { ensureV5 } from './crew-economy';
 
 // ---------------------------------------------------------------- state lifecycle
 E.newState = function () {
   const c = cfg(); const now = ctx.now();
   const s = {
-    v: SCHEMA, createdAt: now, lastSeen: now, gold: num(c.startingGold, 150), tokens: 0, week: 1, hp: 1, focus: 0,
+    v: SCHEMA, createdAt: now, lastSeen: now, gold: num(c.startingGold, 150), week: 1, hp: 1, focus: 0,
+    spec: { skillId: null, lastSwitchAt: null },
     skills: {}, mastery: {}, pity: {}, inv: {}, gear: [],
     equipped: { weapon: null, offhand: null, head: null, chest: null, legs: null, ring: null },
     active: null, settings: { matPriority: 'best', useCatalyst: false, useCore: false },
     market: { listings: [], mine: [], refreshedAt: now, age: 0 },
-    supply: { week: 1, requests: [], donated: {}, earned: 0 },
-    raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus', tokens: 0 }, last: null },
+    raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, last: null },
     log: [], seq: 1
   };
   skillDefs().forEach((d) => { s.skills[d.id] = { xp: 0 }; });
@@ -43,9 +42,8 @@ E.newState = function () {
   s.hp = E.playerStats(s).maxHp;
   const b = E.currentBoss(s); s.raid.bossHp = b ? Math.max(1, num(b.hp, 1)) : 0;
   E.refreshMarket(s);
-  generateSupply(s);
   makeCrew(s);
-  ensureV4(s);
+  ensureV5(s);
   curRecord(s).revealedWeek = s.week;
   if (SLOTS.some((sl) => s.equipped[sl])) E.saveLoadout(s, { name: 'Starter kit', fromEquipped: true });
   E.log(s, 'info', 'Welcome to Guildwright. Pick a skill and start gathering.');
@@ -53,13 +51,22 @@ E.newState = function () {
 };
 export function migrate(raw) {
   if (!raw || typeof raw !== 'object' || typeof raw.skills !== 'object' || !raw.skills) return null;
-  if (raw.v != null && raw.v !== 1 && raw.v !== SCHEMA) return null;
-  const legacy = raw.v !== SCHEMA;
+  // Accepted: v5 (current), v4, v1, and null (implicit v3 from the prototype).
+  if (raw.v != null && raw.v !== 1 && raw.v !== 4 && raw.v !== SCHEMA) return null;
+  // v3 and earlier predate clock/server/economy/loadouts and the v4 raid shape.
+  const legacyV3 = raw.v == null || raw.v === 1;
   const s = E.newState(); const fresh = s;
   const out = Object.assign({}, fresh, raw, { v: SCHEMA });
-  ['gold', 'tokens', 'week', 'hp', 'focus', 'createdAt', 'lastSeen', 'seq'].forEach((k) => { out[k] = num(raw[k], fresh[k]); });
-  out.week = Math.max(1, Math.floor(out.week)); out.tokens = Math.max(0, Math.floor(out.tokens)); out.focus = clamp(out.focus, 0, 100);
+  ['gold', 'week', 'hp', 'focus', 'createdAt', 'lastSeen', 'seq'].forEach((k) => { out[k] = num(raw[k], fresh[k]); });
+  out.week = Math.max(1, Math.floor(out.week)); out.focus = clamp(out.focus, 0, 100);
   out.skills = {}; skillDefs().forEach((d) => { out.skills[d.id] = { xp: Math.max(0, num(raw.skills[d.id] && raw.skills[d.id].xp, 0)) }; });
+  // v5+ spec field: carry over if present and well-formed; v1/v3/v4 saves get the default.
+  const rawSpec = (raw.spec && typeof raw.spec === 'object') ? raw.spec : {};
+  const specSkillOk = typeof rawSpec.skillId === 'string' && skillDefs().some((d) => d.id === rawSpec.skillId);
+  out.spec = {
+    skillId: specSkillOk ? rawSpec.skillId : null,
+    lastSwitchAt: (isFinite(rawSpec.lastSwitchAt) && rawSpec.lastSwitchAt > 0) ? Math.floor(rawSpec.lastSwitchAt) : null,
+  };
   out.mastery = raw.mastery && typeof raw.mastery === 'object' ? raw.mastery : {};
   out.pity = raw.pity && typeof raw.pity === 'object' ? raw.pity : {};
   out.inv = {};
@@ -84,7 +91,7 @@ export function migrate(raw) {
   out.market = { listings: arr(rm.listings).filter((l) => l && item(l.itemId)), mine: arr(rm.mine).filter((l) => l && item(l.itemId)), refreshedAt: num(rm.refreshedAt, ctx.now()), age: num(rm.age, 0) };
   if (!out.market.listings.length) out.market.listings = fresh.market.listings;
   const rr = raw.raid || {};
-  if (legacy) {
+  if (legacyV3) {
     // v3 save: weeks advanced per raid; anchor the calendar so this real week is the save's week
     out.clock = { epoch: addDays(mondayOf(ctx.now()), -7 * (out.week - 1)), offsetMs: 0 };
     out.server = null; out.economy = null; out.loadouts = [];
@@ -94,11 +101,29 @@ export function migrate(raw) {
     out.raid = Object.assign({}, rr, { rules: normRules(out, rr.rules) });
   }
   out.log = arr(raw.log).filter((l) => l && l.text).slice(0, LOG_CAP);
-  out.supply = raw.supply && raw.supply.week === out.week && Array.isArray(raw.supply.requests)
-    ? { week: out.week, requests: raw.supply.requests.filter((r) => r && item(r.itemId)), donated: raw.supply.donated || {}, earned: num(raw.supply.earned, 0) } : null;
-  if (!out.supply) generateSupply(out);
-  ensureV4(out);
-  if (legacy) {
+  // v5: supply board removed. Any carried-over state.supply from v1/v3/v4 is dropped.
+  delete out.supply;
+  // v5: raid tokens removed. Hoarded tokens on v4 saves are discarded; stale rec.tokens
+  // on per-boss records is left as dead data (nothing reads it after the raid-payouts rewrite).
+  delete out.tokens;
+  ensureV5(out);
+  // v5: coin → gold on the crew treasury and the economy ledger. ensureV5 above already
+  // normalised out.crew.treasury.gold to 0 if the raw save only had .coin; fold the legacy
+  // value in and drop it. Same for state.economy.raidCoin (incl. per-week entries).
+  if (out.crew && out.crew.treasury && 'coin' in out.crew.treasury) {
+    out.crew.treasury.gold = num(out.crew.treasury.gold, 0) + num(out.crew.treasury.coin, 0);
+    delete out.crew.treasury.coin;
+  }
+  if (out.economy) {
+    if ('raidCoin' in out.economy) {
+      out.economy.raidGold = num(out.economy.raidGold, 0) + num(out.economy.raidCoin, 0);
+      delete out.economy.raidCoin;
+    }
+    arr(out.economy.weeks).forEach((w) => {
+      if (w && 'raidCoin' in w) { w.raidGold = num(w.raidGold, 0) + num(w.raidCoin, 0); delete w.raidCoin; }
+    });
+  }
+  if (legacyV3) {
     const rec = curRecord(out); const v3max = num(V3_BOSS_HP[out.raid.ladder], 0);
     const pctLeft = v3max > 0 && isFinite(rr.bossHp) && rr.bossHp > 0 ? clamp(rr.bossHp / v3max, 0.05, 1) : 1;
     rec.hpLeft = Math.round(rec.maxHp * pctLeft); rec.revealedWeek = out.week; rec.weekends = pctLeft < 1 ? 1 : 0;

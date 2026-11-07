@@ -209,8 +209,8 @@ const R = (id, skill, name, level, sec, xp, inputs, outputs) =>
   actions.push({ id, skill, kind: 'refine', name, level, sec, xp, inputs, outputs });
 const C = (id, skill, name, level, sec, xp, inputs, outputs?) =>
   actions.push({ id, skill, kind: 'craft', name, level, sec, xp, inputs, outputs: outputs || { [id]: 1 } });
-const F = (id, skill, name, level, sec, xp, zone, enemy, coins, drops) =>
-  actions.push({ id, skill, kind: 'combat', name, level, sec, xp, zone, enemy, coins, drops });
+const F = (id, skill, name, level, sec, xp, zone, enemy, gold, drops) =>
+  actions.push({ id, skill, kind: 'combat', name, level, sec, xp, zone, enemy, gold, drops });
 const b = (item, chance, qty?) => ({ item, chance, qty: qty || 1 });
 const d = (item, chance, min, max) => ({ item, chance, qty: [min, max] });
 
@@ -489,8 +489,7 @@ export const DATA: any = {
     maxLevel: 99,
     marketTax: 0.05,
     pityThreshold: 40,
-    supplyRateMult: 0.6,
-    supplyDiminish: [{ upTo: 50, mult: 1 }, { upTo: 200, mult: 0.5 }, { upTo: Infinity, mult: 0.2 }],
+    speedFactor: 10,              // real-speed tuning (design: ~1000g/hr at level 40)
     baseHp: 60,
     hpPerCombatLevel: 4,
     // v4 weekend raids
@@ -507,8 +506,8 @@ export const DATA: any = {
     faintFrames: 3,               // 30 min at camp
     reviveDurability: 2,
     pouchCap: 60,
-    crewCoinPerAttendee: 10,      // x boss tier
-    crewCoinCap: 180,             // x boss tier
+    crewGoldPerAttendee: 10,      // x boss tier
+    crewGoldCap: 180,             // x boss tier
     weekBuffs: [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }, { kind: 'tax', value: 0.02, label: 'Market tax 2%' }],
     farmRunsPerDay: 3,
     farmLootMult: 0.35,

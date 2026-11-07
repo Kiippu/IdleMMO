@@ -7,7 +7,7 @@ import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, ran
 import { addXp } from './skills';
 import { rarityOdds } from './actions';
 import { schedule } from './clock';
-import { ensureCrewV4 } from './crew-economy';
+import { ensureCrewV5 } from './crew-economy';
 
 // ---------------------------------------------------------------- crew assist (v2, SPEC 4.1)
 export const STATIONS = {
@@ -30,16 +30,23 @@ export const jobOutput = (act) => Object.keys((act && act.outputs) || {}).find((
 export const ownerRate = (act) => 1 / Math.max(0.5, num(act.sec, 3) * 1.6);
 export const playerRate = (state, act) => 1 / Math.max(0.25, E.actionTime(state, act.id));
 export const skillName = (id) => { const d = skillDefs().find((x) => x.id === id); return d ? d.name : id; };
+// Authored stand-in roster: four NPCs with heterogeneous refine/craft specs so the market
+// and requisition flow has real pressure in solo play. Design doc's "Crew: Up to 10" is the
+// hard cap; phase 1 ships four — Stage E stand-ins. Later phases can grow the roster up to
+// the cap or back to procedural fill.
+export const CREW_NPCS = [
+  { id: 'c_merrick', name: 'Merrick', skill: 'smelting' },   // ore → bars
+  { id: 'c_aldis',   name: 'Aldis',   skill: 'carpentry' },  // logs → planks
+  { id: 'c_branka',  name: 'Branka',  skill: 'smithing' },   // bars → gear
+  { id: 'c_osric',   name: 'Osric',   skill: 'tailoring' },  // cloth → gear
+];
+
 export function makeCrew(state) {
-  const names = shuffle(arr(D().npcNames).length ? D().npcNames : ['Wren', 'Ossian', 'Mira', 'Tobin', 'Kestrel', 'Ada']);
-  const skills = shuffle(skillDefs().filter((s) => (s.tier === 'refining' || s.tier === 'crafting') && jobActions(s.id).length).map((s) => s.id));
-  const members = [];
-  const n = randInt(4, 5);
-  for (let i = 0; i < n && i < names.length; i++) members.push({ name: names[i], skill: skills.length ? skills[i % skills.length] : null });
+  const members = CREW_NPCS.map((n) => ({ id: n.id, name: n.name, skill: n.skill }));
   state.crew = { name: 'Copperbell crew', members, jobs: [], nextPostIn: randInt(60, 90) };
-  ensureCrewV4(state);
-  const k = randInt(3, 4);
-  for (let i = 0; i < k; i++) postJob(state);
+  ensureCrewV5(state);
+  // Seed one job per authored member so the Workshop isn't empty on day one.
+  for (let i = 0; i < members.length && i < CREW_MAX_JOBS; i++) postJob(state);
 }
 // posts one job; ~half within the player's level, ~30% just above it (up to +10)
 export function postJob(state, forcedActionId?) {
@@ -189,6 +196,6 @@ export function migrateCrew(out, rc) {
       nextPostIn: clamp(num(rc.nextPostIn, 60), 0, 600)
     };
     ['playerRank', 'viewAsMember', 'vault', 'treasury', 'requisitions', 'withdrawRequests', 'feed', 'withdrawn', 'schedule', 'seenReqIds', 'reqSimIn', 'npcReqIn'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
-    ensureCrewV4(out);
+    ensureCrewV5(out);
   } else makeCrew(out);
 }

@@ -16,7 +16,7 @@ export function ensureRecord(state, idx, week) {
   if (!R[b.id]) {
     const pop = Math.round(avgPop(state)); const hp = bossMaxHp(state, b, pop);
     R[b.id] = { bossId: b.id, index: idx, maxHp: hp, hpLeft: hp, pop, unlockedWeek: num(week, state.week), revealedWeek: null, killedWeek: null,
-      weekends: 0, myPoints: 0, totalPoints: 0, tokens: 0, joinedWeekends: 0, checkpointsPaid: [] };
+      weekends: 0, myPoints: 0, totalPoints: 0, joinedWeekends: 0, checkpointsPaid: [] };
   }
   return R[b.id];
 }

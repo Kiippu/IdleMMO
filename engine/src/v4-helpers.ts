@@ -7,7 +7,7 @@ import { cap1 } from './crew-economy';
 
 // ================================================================ v4: helpers
 export const DAY_MS = 86400000, WEEK_MS = 7 * DAY_MS;
-export const SCHEMA = 4;
+export const SCHEMA = 5;
 export const V3_BOSS_HP = [400000, 650000, 900000, 1200000, 1600000, 2200000];
 export const CHECK_LABEL = { mitigation: 'Mitigation', healing: 'Healing', damage: 'Damage', food: 'Food', consumables: 'Consumables' };
 export const ROLE_CHECK = { guardian: 'mitigation', mender: 'healing', striker: 'damage' };
@@ -17,6 +17,7 @@ export const TIER_NAME = { none: 'No tier', bronze: 'Bronze', silver: 'Silver', 
 export const OFF_ROLE = 0.3, ROLE_MIX = (1 + 2 * OFF_ROLE) / 3; // avg output per stat of a player at "fair" power
 export const HP_K = 30; // expected server damage per participant-weekend, in units of the boss requirement
 export const FEED_CAP = 80;
+export const TREASURY_LOG_CAP = 80;
 export function mulberry(seed) { let a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 export const clone = (x) => JSON.parse(JSON.stringify(x));
 export const roleDefs = () => (arr(D().raidRoles).length ? D().raidRoles : RAID_ROLE_IDS.map((id) => ({ id, name: cap1(id), check: ROLE_CHECK[id] || null, takesHits: id !== 'supply' })));

@@ -10,7 +10,6 @@ import './crew-assist';
 import './tick';
 import './offline';
 import './market';
-import './supply';
 import './v4-helpers';
 import './clock';
 import './server';
@@ -22,7 +21,6 @@ import './raid-payouts';
 import './weekly';
 import './crew-economy';
 import './state';
-import './selftest';
 
 export type { EngineContext, SaveStorage } from './context';
 export { mulberry32, memoryStorage, ctx } from './context';

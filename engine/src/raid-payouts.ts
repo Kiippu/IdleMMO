@@ -5,12 +5,12 @@
 import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, itemName, nextId } from './core';
 import { addItem } from './inventory';
 import { findGear } from './gear';
-import { CHECK_LABEL, TIER_NAME, ROLE_MIX, mulberry, clone, roleDef } from './v4-helpers';
+import { CHECK_LABEL, TIER_NAME, ROLE_MIX, mulberry, clone, roleDef, invTake, WORST } from './v4-helpers';
 import { nowOf, weekStartOf, windowFor } from './clock';
 import { ensureRecord, curRecord } from './server';
 import { autoLock, tierFor } from './raid-rules';
 import { simulateFight, fightCtx } from './raid-sim';
-import { feedPush, econ } from './crew-economy';
+import { feedPush, econ, logTreasury } from './crew-economy';
 
 // ================================================================ v4: payouts + resolution
 export function pickLootItem(state, b, kind) {
@@ -49,10 +49,10 @@ export function gapDraft(state, gap) {
   const itemId = gapItem(state, gap.check); const it = item(itemId) || { name: itemId };
   const qty = clamp(Math.ceil(num(gap.shortUnits, 20)), 10, 40);
   const rewardPer = Math.max(1, Math.round(E.itemValue(itemId, 1) * 0.4));
-  const coin = Math.floor(num(state.crew && state.crew.treasury && state.crew.treasury.coin, 0));
+  const gold = Math.floor(num(state.crew && state.crew.treasury && state.crew.treasury.gold, 0));
   const escrow = qty * rewardPer;
   return { itemId, qty, rewardPer, minGrade: 1, note: `${gap.text}. Saturday raid needs ${qty} ${it.name}.`,
-    escrow, freeCoin: coin, affordable: escrow <= coin, maxRewardPer: Math.floor(coin / qty) };
+    escrow, freeGold: gold, affordable: escrow <= gold, maxRewardPer: Math.floor(gold / qty) };
 }
 export function buildDebrief(state, sim) {
   const gaps = []; const fine = [];
@@ -98,11 +98,9 @@ export function resolveRaid(state, opts, events) {
     SLOTS.forEach((s) => { const g = findGear(state, lock.slots[s]); if (g && g.dur > 0) { g.dur = Math.max(0, Math.round((g.dur - wear) * 100) / 100); if (g.dur <= 0) E.log(state, 'warn', `Your ${E.gearName(g)} broke in the raid.`); } });
     const mx = E.playerStats(state).maxHp; state.hp = Math.max(1, Math.round(sim.endHp > 0 ? Math.min(mx, sim.endHp) : mx * 0.3));
   }
-  const tokens = joined ? clamp(num(lock.rules.tokens, 0), 0, num(state.tokens, 0)) : 0;
-  state.tokens = Math.max(0, num(state.tokens, 0) - tokens);
   const hpBefore = rec.hpLeft;
   rec.hpLeft = Math.max(0, Math.round(sim.hpAfter)); rec.weekends++;
-  if (joined) { rec.joinedWeekends++; rec.tokens += tokens; }
+  if (joined) { rec.joinedWeekends++; }
   rec.myPoints += joined ? sim.weekPoints : 0; rec.totalPoints += sim.weekTotal;
   const weekShare = joined ? sim.weekPoints / Math.max(1e-9, sim.weekTotal) : 0;
   const share = rec.myPoints / Math.max(1e-9, rec.totalPoints);
@@ -121,17 +119,37 @@ export function resolveRaid(state, opts, events) {
     sim.cpHit.forEach((at) => { const ci = []; grant(state, ci, boss.bossMat, 2, 1); grant(state, ci, boss.floorItem || 'coal', 1, randInt(3, 6)); grant(state, ci, pickLootItem(state, boss, 'buff'), 1, 1); chests.push({ at, items: ci }); });
   }
   sim.cpHit.forEach((at) => { if (!rec.checkpointsPaid.includes(at)) rec.checkpointsPaid.push(at); });
-  // crew treasury coin by turnout (never by contribution)
+  // Crew vault stock submitted via town contracts is consumed during the raid; the fight
+  // simulation applied food/heal survival and buff-potion check bonuses (see raid-sim.fightCtx).
+  // Decrement the vault here and log each item move so members can audit what the raid cost.
+  if (state.crew && state.crew.vault && state.crew.vault.inv && sim.vaultConsumed) {
+    Object.keys(sim.vaultConsumed).forEach((id) => {
+      const qty = num(sim.vaultConsumed[id], 0); if (!(qty > 0)) return;
+      const taken = invTake(state.crew.vault.inv, id, qty, WORST, 0);
+      const totalTaken = taken.reduce((a, t) => a + t.qty, 0);
+      if (totalTaken > 0) logTreasury(state, 'vault', 0, 'Raid', `${totalTaken} ${itemName(id)} used in raid`, { itemId: id, qty: -totalTaken });
+    });
+  }
+  // Crew treasury gold by turnout AND contribution (never by boss HP).
+  // avgContribution = crew's filled share of expected-per-attendee work, clamped 0..1.
+  // crewHave aggregates the crew's actual check fill across waves; crewNeed is the fair-share
+  // expectation accumulated from attendance. Ratio = "did the crew pull their weight?" If
+  // they over-performed it stays capped at 1 so the cap still binds; the formula collapses to
+  // the old turnout-only shape when every attendee filled 100% of their fair share.
+  const crewHave = sim.waves.reduce((a: number, w: any) => a + num(w.crewHave, 0), 0);
+  const crewNeed = sim.waves.reduce((a: number, w: any) => a + num(w.crewNeed, 0), 0);
+  const avgContribution = crewNeed > 0 ? clamp(crewHave / crewNeed, 0, 1) : 0;
   const btier = num(rec.index, 0) + 1;
-  const crewCoin = Math.min(num(c.crewCoinCap, 180) * btier, num(c.crewCoinPerAttendee, 10) * btier * sim.attendCount);
+  const crewGold = Math.min(num(c.crewGoldCap, 180) * btier, Math.round(num(c.crewGoldPerAttendee, 10) * btier * sim.attendCount * avgContribution));
   if (state.crew && state.crew.treasury) {
-    state.crew.treasury.coin += crewCoin;
-    feedPush(state, 'payout', 'Raid', `Raid payout: ${crewCoin} coin to the treasury (${sim.attendCount} turned out).`);
-    econ(state, 'raidCoin', crewCoin);
+    state.crew.treasury.gold += crewGold;
+    feedPush(state, 'payout', 'Raid', `Raid payout: ${crewGold}g to the treasury (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution).`);
+    logTreasury(state, 'payout', +crewGold, 'Raid', `Raid payout (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution)`);
+    econ(state, 'raidGold', crewGold);
   }
   // kill: lottery, ladder, buff
   const held = rec.joinedWeekends > 0 ? coreOddsFor(state, rec, boss, cumTier) : null;
-  let cores = { drawn: false, tickets: held ? held.tickets : 0, breakdown: held ? held.breakdown : { floor: 0, tier: 0, tokens: 0 }, tier, tokens: rec.tokens, won: 0, coreItemId: boss.coreItem || null, chance: 0, pityBefore: num(state.raid.corePity, 0), pityAfter: num(state.raid.corePity, 0) };
+  let cores = { drawn: false, tickets: held ? held.tickets : 0, breakdown: held ? held.breakdown : { floor: 0, tier: 0 }, tier, won: 0, coreItemId: boss.coreItem || null, chance: 0, pityBefore: num(state.raid.corePity, 0), pityAfter: num(state.raid.corePity, 0) };
   let weekBuff = null;
   const won = sim.killed;
   if (won) {
@@ -173,7 +191,7 @@ export function resolveRaid(state, opts, events) {
     checks: sim.waves.map((w) => ({ wave: w.wave, phase: w.phase, phaseName: w.phaseName, check: w.check, label: w.label, result: w.result, overtime: w.overtime,
       yourShare: w.yourShare, yourText: w.yourText, your: Math.round(w.your), total: Math.round(w.total), need: Math.round(w.need), crewHave: Math.round(w.crewHave), crewNeed: Math.round(w.crewNeed), helped: w.your > 0,
       auraTier: w.auraTier, auraTierMin: w.auraTierMin, auraWeakened: w.auraWeakened, auraLoss: w.auraLoss, auraWeakFrames: w.auraWeakFrames, fainted: w.fainted })),
-    payout: { floor: { items: floorItems, tickets: joined ? num((c.tierTickets || {}).floor, 1) : 0 }, tier: { tier, items: tierItems, tickets: joined ? num((c.tierTickets || {})[tier], 0) : 0 }, chests, crewCoin, coin: 0, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
+    payout: { floor: { items: floorItems, tickets: joined ? num((c.tierTickets || {}).floor, 1) : 0 }, tier: { tier, items: tierItems, tickets: joined ? num((c.tierTickets || {})[tier], 0) : 0 }, chests, crewGold, gold: 0, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
     cores, weekBuff, auras: sim.auras.map((a) => ({ guild: a.guild, type: a.type, tier: a.tier, strength: num((cfg().auraStrength || [])[a.tier], 0), mine: a.mine })), auraWeakenedWave: sim.auraWeakenedWave,
     moments, bestMoment: best ? { frame: best.frame, t: best.t, at: startedAt + best.frame * frameMs, kind: best.kind, text: best.text, value: best.value } : null,
     windowStart: win.start, windowEnd: win.end, frameMs, instant: !!opts.instant,
@@ -189,7 +207,7 @@ export function resolveRaid(state, opts, events) {
   if (!lb.some((r) => r.you)) { const mine = boards.damage.totals.findIndex((r) => r.mine); const r = boards.damage.totals[mine]; if (r) lb[7] = { name: r.guild, guild: r.guild, role: 'striker', value: r.value, rank: mine + 1, you: true }; }
   const eatenAll = Object.assign({}, sim.eaten); Object.keys(sim.potionsUsed).forEach((k) => { eatenAll[k] = (eatenAll[k] || 0) + sim.potionsUsed[k]; });
   const result = { won, bossHpBefore: Math.round(hpBefore), bossHpAfter: rec.hpLeft, damage: Math.round(sim.totals.damage), healing: Math.round(sim.totals.healing), mitigated: Math.round(sim.totals.mitigation),
-    sharePct: weekShare, eaten: eatenAll, loot: recap.payout.items, gold: 0, tokensEarned: 0, leaderboard: lb, faints: sim.faints, tokensCommitted: tokens,
+    sharePct: weekShare, eaten: eatenAll, loot: recap.payout.items, gold: 0, leaderboard: lb, faints: sim.faints,
     checksPassed: sim.waves.filter((w) => w.result !== 'unfinished').map((w) => w.result === 'passed'), bossId: boss.id, bossName: boss.name, week: state.week, rules: joined ? Object.assign({}, lock.rules) : null, recapId: recap.id, tier };
   state.raid.last = clone(result);
   if (joined) E.log(state, 'raid', won ? `${boss.name} defeated! ${recap.tierLabel} (${(share * 100).toFixed(3)}% share). ${cores.won ? 'You won a core!' : `${cores.tickets} core tickets, no core this time.`}`
@@ -200,8 +218,10 @@ export function resolveRaid(state, opts, events) {
 }
 export function coreOddsFor(state, rec, boss, cumTier) {
   const tk = cfg().tierTickets || { floor: 1, bronze: 2, silver: 4, gold: 8 };
-  const breakdown = { floor: rec.joinedWeekends > 0 ? num(tk.floor, 1) : 0, tier: num(tk[cumTier], 0), tokens: num(rec.tokens, 0) };
-  const tickets = breakdown.floor + breakdown.tier + breakdown.tokens;
+  // v5 formula: turnout floor (if you joined this boss once) + contribution tier (from fight share).
+  // Stage C enriches the tier basis to also account for pouch submissions via contracts.
+  const breakdown = { floor: rec.joinedWeekends > 0 ? num(tk.floor, 1) : 0, tier: num(tk[cumTier], 0) };
+  const tickets = breakdown.floor + breakdown.tier;
   const pity = num(state.raid.corePity, 0); const pityMax = num(cfg().corePityMax, 3);
   const parts = Math.round(num(state.server.pop, 1200) * num(cfg().serverTurnout, 0.85));
   const serverTickets = parts * (num(tk.floor, 1) + 2.6 + 0.8);
