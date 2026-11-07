@@ -9,7 +9,7 @@ import { createEngine, mulberry32, DATA } from '@guildwright/engine';
 import { createIdbStorage } from '../save/idbStorage';
 import { importLegacyLocalStorage } from '../save/v4Import';
 import { exportSave, importSave } from '../save/exportImport';
-import type { Req, FromWorker, OfflineSummary, EngineEvent } from './protocol';
+import type { Req, FromWorker, OfflineSummary, EngineEvent, Derived } from './protocol';
 
 const SAVE_KEY = 'guildwright-proto-v1';
 const TICK_SEC = 1;
@@ -21,12 +21,20 @@ let storage: ReturnType<typeof createIdbStorage>;
 
 function post(msg: FromWorker) { self.postMessage(msg); }
 
+function derive(): Derived {
+  const skillLevels: Record<string, number> = {};
+  const skills = state && state.skills;
+  if (skills) for (const id of Object.keys(skills)) skillLevels[id] = E.skillLevel(state, id);
+  const activeTime = state && state.active ? (E.actionTime(state, state.active.actionId) as number) : null;
+  return { skillLevels, activeTime };
+}
+
 function startTicking() {
   if (tickTimer != null) return;
   tickTimer = setInterval(() => {
     const events = E.tick(state, TICK_SEC, { visible: true }) as EngineEvent[];
     E.save(state);
-    post({ type: 'tick', snapshot: state, events });
+    post({ type: 'tick', snapshot: state, derived: derive(), events });
   }, TICK_SEC * 1000);
 }
 
@@ -110,7 +118,7 @@ self.addEventListener('message', async (ev: MessageEvent<Req>) => {
   const req = ev.data;
   try {
     const result = await handle(req);
-    post({ id: req.id, ok: true, snapshot: state, events: [], result });
+    post({ id: req.id, ok: true, snapshot: state, derived: derive(), events: [], result });
   } catch (err: any) {
     post({ id: req.id, ok: false, error: String(err?.message ?? err) });
   }

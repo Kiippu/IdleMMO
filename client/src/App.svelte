@@ -1,6 +1,7 @@
 <script lang="ts">
   import { engine } from './engine/store.svelte';
   import { initEngineClient, engineClient } from './engine/client';
+  import Workshop from './tabs/Workshop.svelte';
 
   const tabs = ['Workshop', 'Stores', 'Market', 'War Room', 'Crew'] as const;
   type Tab = (typeof tabs)[number];
@@ -80,8 +81,12 @@
           <button type="button" onclick={dismissOffline}>Dismiss</button>
         </div>
       {/if}
-      <h1>{active}</h1>
-      <p>Placeholder screen. No tab UI yet; the engine is running in the worker.</p>
+      {#if active === 'Workshop'}
+        <Workshop />
+      {:else}
+        <h1>{active}</h1>
+        <p>Placeholder screen. This tab lands in a later slice.</p>
+      {/if}
     {/if}
   </main>
 </div>

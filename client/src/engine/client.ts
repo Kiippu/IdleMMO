@@ -27,6 +27,7 @@ function onMessage(ev: MessageEvent<FromWorker>) {
   if (!('id' in msg)) {
     if (msg.type === 'tick') {
       engine.snapshot = msg.snapshot;
+      engine.derived = msg.derived;
       engine.lastEvents = msg.events;
     }
     return;
@@ -36,6 +37,7 @@ function onMessage(ev: MessageEvent<FromWorker>) {
   pending.delete(msg.id);
   if (msg.ok) {
     engine.snapshot = msg.snapshot;
+    engine.derived = msg.derived;
     engine.lastEvents = msg.events;
     p.resolve(msg.result);
   } else {
