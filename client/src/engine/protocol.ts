@@ -19,6 +19,8 @@ export interface Derived {
   bossIntel: any;
   /** E.raidStatus(state) — phase, window, secToStart, secLeft, etc. */
   raidStatus: any;
+  /** E.marketTax(state) — current sell-side tax (0..1). */
+  marketTax: number;
 }
 
 export interface OfflineSummary {
@@ -47,6 +49,9 @@ export type Req =
   | { id: string; type: 'equipLoadout'; loadoutId: string }
   | { id: string; type: 'setRaidRules'; rules: { eatAt?: number; stance?: string; tactic?: string } }
   | { id: string; type: 'runRaid' }
+  | { id: string; type: 'buyListing'; listingId: string; qty: number }
+  | { id: string; type: 'listItem'; itemId: string; grade: number; qty: number; price: number }
+  | { id: string; type: 'cancelListing'; listingId: string }
   | { id: string; type: 'export' }
   | { id: string; type: 'import'; code: string }
   | { id: string; type: 'reset' };

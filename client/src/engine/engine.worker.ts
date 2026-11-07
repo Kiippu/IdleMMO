@@ -38,6 +38,7 @@ function derive(): Derived {
     playerStats: state ? E.playerStats(state) : null,
     bossIntel: state ? E.bossIntel(state) : null,
     raidStatus: state ? E.raidStatus(state) : null,
+    marketTax: state ? (E.marketTax(state) as number) : 0.05,
   };
 }
 
@@ -123,6 +124,20 @@ async function handle(req: Req): Promise<unknown> {
       E.save(state);
       return res;
     }
+    case 'buyListing': {
+      const res = E.buy(state, req.listingId, req.qty);
+      E.save(state);
+      return res;
+    }
+    case 'listItem': {
+      const res = E.list(state, req.itemId, req.grade, req.qty, req.price);
+      E.save(state);
+      return res;
+    }
+    case 'cancelListing':
+      E.cancelListing(state, req.listingId);
+      E.save(state);
+      return undefined;
     case 'pause':
       stopTicking();
       E.save(state);

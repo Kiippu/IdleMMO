@@ -69,6 +69,12 @@ export const engineClient = {
   setRaidRules: (rules: { eatAt?: number; stance?: string; tactic?: string }) =>
     rpc<void>({ id: nextId(), type: 'setRaidRules', rules }),
   runRaid: () => rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'runRaid' }),
+  buyListing: (listingId: string, qty: number) =>
+    rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'buyListing', listingId, qty }),
+  listItem: (itemId: string, grade: number, qty: number, price: number) =>
+    rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'listItem', itemId, grade, qty, price }),
+  cancelListing: (listingId: string) =>
+    rpc<void>({ id: nextId(), type: 'cancelListing', listingId }),
   export: () => rpc<string>({ id: nextId(), type: 'export' }),
   import: (code: string) => rpc<void>({ id: nextId(), type: 'import', code }),
   reset: () => rpc<void>({ id: nextId(), type: 'reset' }),
