@@ -300,8 +300,10 @@ export function ensureCrewV5(state) {
   const cr = state.crew; if (!cr) return;
   const used = new Set(arr(cr.members).map((m) => m.name));
   // deterministic fill: the same save always grows the same roster, even if it is migrated twice before saving
+  // Phase 1: backfill only up to the authored-roster size (4). Old saves with a bigger
+  // procedural roster are kept as-is — nothing prunes existing members.
   const pool = shuffleWith((arr(D().npcNames).length ? D().npcNames : ['Wren', 'Ossian', 'Mira', 'Tobin', 'Kestrel', 'Ada']).filter((n) => !used.has(n)), mulberry(seedOf(Array.from(used).join('|'))));
-  while (cr.members.length < 15 && pool.length) cr.members.push({ name: pool.shift(), skill: null });
+  while (cr.members.length < 4 && pool.length) cr.members.push({ name: pool.shift(), skill: null });
   cr.members.forEach((m, i) => {
     if (!m.id) m.id = 'c' + (i + 1);
     if (!rankDefs().some((r) => r.id === m.rank)) m.rank = i === 0 ? 'leader' : i === 1 ? 'officer' : i >= cr.members.length - 3 ? 'recruit' : 'member';
