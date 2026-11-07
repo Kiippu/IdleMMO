@@ -83,8 +83,32 @@ button { font: inherit; color: inherit; cursor: pointer; }
   margin: 0 auto;
   padding: 0 var(--gut-r) calc(var(--tabbar-h) + 16px) var(--gut-l);
 }
-.topbar { padding-block: 12px; border-bottom: 1px solid var(--rule); }
+.topbar {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding-block: 12px; border-bottom: 1px solid var(--rule);
+}
 .brand { font: 700 var(--t-lg)/1 var(--f-display); color: var(--woad); }
+.gold { font: 600 var(--t-md)/1 var(--f-display); color: var(--brass); }
+.top-right { display: flex; align-items: baseline; gap: 12px; }
+.save-btn {
+  padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
+  font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.save-btn:hover { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
+
+.update {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 12px -8px 0; padding: 10px 12px;
+  background: var(--sunk); border: 1px solid var(--woad);
+}
+.update p { margin: 0; color: var(--ink); }
+.update button {
+  padding: 6px 10px; border: 1px solid var(--woad); background: var(--paper);
+  font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--woad);
+}
+.bad { color: var(--bad); }
 .panel {
   margin-top: 16px; padding: 16px;
   background: var(--paper); border: 1px solid var(--rule);

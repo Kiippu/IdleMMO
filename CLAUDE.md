@@ -74,38 +74,89 @@ Art and UI
 6. Launch (move to Workers Paid, payments, quality pass).
 Also: remove dev-only tools before players see them (devSetClock / Raid "next week" button, crew "Testing" panel).
 
-## Current state (2026-11-07) — phase 1 complete on `rebuild/phase-1`
-Branch cut from phase-0 merge (`a22a399` on main). Engine: `npm run test -w @guildwright/engine` is green —
-**40/40** (migration + single-slot + crew roster + spec switch + speed factor + 5 legacy-selftest seeds).
-`npm run typecheck -w @guildwright/engine` is clean. Phase 1 gate per roadmap ("new rule tests pass; v4 saves
-still load") is met.
+## Current state (2026-11-07) — phase 2 feature-complete on `rebuild/phase-2`
+Phase 1 is merged to `main` (`445cb69`); `rebuild/phase-2` is cut from there and pushed, 12 commits on top.
+Engine: 40/40 tests still green (`npm run test -w @guildwright/engine`); engine typecheck clean.
+Client: `npm run typecheck -w @guildwright/client` clean; `npm run test -w @guildwright/client` is 11/11
+(save-layer round-trip + IDB facade coalescing). Prod build chunks to main 195 KB (67 KB gz) + worker 155 KB
++ css 7 KB.
 
-Design decisions confirmed in session 2026-11-07 against the game design doc (claude.ai artifact
-c3d56c6e-...): currency = gold only (no premium, no raid tokens); town contracts = existing requisition
-system; crew vault items consumed in raids as hybrid pool (food + heal potions → crew food survival; buff
-potions → crew check multiplier capped at +50%; weakness potions → extra mitigation); treasury payout =
-`min(cap × bossTier, perAttendee × bossTier × attendCount × avgContribution)` where avgContribution =
-crewHave / crewNeed clamped 0..1; crew roster = 4 authored NPCs (Merrick/Aldis/Branka/Osric) with
-smelting/carpentry/smithing/tailoring specs; speed factor = 10x (anchored to the design doc's "1000g/hr
-at level 40" combat target).
+**Phase 2 gate per roadmap** (`installs on Android and iOS; v4 saves import; phone width, light and dark`):
+- v4 saves import — shipped in slice A (silent localStorage → IDB migration on first boot; engine `migrate()`
+  handles v4 → v5).
+- Phone width — everything clamped to `max-width: 460px`; Playwright smoke-tests in that column.
+- Installable — manifest + SW active, SW state verified as `activated` in Playwright with the full shell
+  precached on second load.
+- **Not device-verified** — iOS and Android installs; dark-mode visual pass. Components use design tokens
+  that honour `prefers-color-scheme: dark` and `[data-theme]`, but no dark-mode snapshot was taken.
 
-Phase 1 commits (11 on `rebuild/phase-1`, bottom-up):
-- `ab376a9` phase-0 parity harness removed (fixtures + scenarios + record-fixtures + parity.test; 16→5 tests)
-- `33f0448` schema v4 → v5 + supply board dropped (`state.supply`, `supply.ts`, generateSupply, cfg)
-- `a1d16a5` raid tokens dropped (`state.tokens`, `raid.rules.tokens`, `rec.tokens`); core odds = floor+tier
-- `68e4c26` coin → gold end-to-end (schema + API + config + migration folds)
-- `c5a9aa8` treasury audit log (`state.crew.treasury.log`, cap 80) + `ensureV4 → ensureV5` rename
-- `f8d1358` crew vault consumption in raids + payout by turnout × contribution
-- `2437f49` D1: single-slot invariant test (engine was already correct by construction)
-- `a8b5632` G: remove `E.devSetClock` and the "already raided this week" auto-advance
-- `6c9b8a7` D2: specialization switch (3000g cost, 7-day cooldown, old-skill XP clamped to level 70)
-- `320bf54` E: NPC crewmate stand-ins — four authored members, roster cap 10
-- `444c0c8` F: real-speed tuning via `cfg.speedFactor` (default 10x; one knob to retune)
+Phase 2 architectural decisions confirmed in session 2026-11-07 (all captured before any code moved):
+- **Save adapter:** sync `SaveStorage` facade over IndexedDB with 500 ms debounced flush. Engine stays
+  synchronous; async-rewrite rejected as too invasive.
+- **Export format:** `GW5|<base64url(gzip(json))>` via `CompressionStream` — no dependency.
+- **v4 import:** silent one-shot on first boot (fallback from empty IDB → legacy localStorage key).
+- **Worker RPC:** hand-rolled tagged-union over `postMessage` with correlation ids; no Comlink.
+- **Snapshot cost:** `postMessage` clones the whole state object every tick (~tens of KB); diff-patches
+  deferred until a profile shows a problem.
+- **Hidden-tab behaviour:** worker stops ticking on `visibilitychange:hidden`, runs `E.applyOffline(state,
+  now)` on resume so catch-up never blocks the UI.
+- **SW update UX:** install does NOT call `self.skipWaiting()`; the client shows a "Restart" toast and only
+  activates on user click.
+- **Engine package type boundary:** `engine/src/public.d.ts` + conditional `exports` map so the client's
+  strict tsconfig sees a strict-safe surface. The implementation source stays `noImplicitAny` per
+  PORTING.md; without this, client svelte-check walks into the loose source and rejects legal engine code.
+- **Per-snapshot `derived` bundle:** the worker precomputes `{skillLevels, activeTime, gearNames,
+  playerStats, bossIntel, raidStatus, marketTax, crewMembers, crewJobs}` on every outbound message so the
+  main thread never needs to call engine methods. Keeps `DATA` the only engine import on main.
+- **First tab built:** Workshop (highest-leverage exercise of the stack: worker RPC, autosave, action
+  start/stop, progress bar).
+- **Scene strip scope for phase 2:** a 160×64 Canvas 2D with placeholder hero that bobs when
+  `state.active` is set. LPC hero layers driven by equipped gear + per-action animation variety are
+  **phase 3** once the art pack lands.
 
-Next: phase 2 (Solo PWA — Svelte rebuild of the five tabs, IndexedDB saves v5 with v4 import, save export
-code, catch-up worker, collect reveal, 160x64 scene strip + LPC hero, installable). Start by merging phase 1
-to main (not done yet — branch still unpushed as of this edit), then cut `rebuild/phase-2`.
+Phase 2 commits (12 on `rebuild/phase-2`, bottom-up):
+- `62f312b` A: client save layer + engine type boundary (sync IDB facade with debounced flush, GW5|…
+  gzipped base64url export/import, one-shot v4-from-localStorage importer, engine `public.d.ts` + conditional
+  exports map).
+- `44761e2` A2: vitest on the client + 11 save-layer tests (GW5 round-trip across byte lengths that hit
+  every base64url padding mode; facade coalescing, forced flush, in-flight-flush safety).
+- `ba85114` B: engine Web Worker (`engine.worker.ts`), tagged-union protocol, Svelte 5 `$state` snapshot
+  store, main-thread RPC client. Verbs for this slice: `init / start / stop / pause / resume / export /
+  import / reset`.
+- `5e0e721` C: boot flow + first-tab selection. Loading splash until `engine.ready`; seeds the active tab
+  from `E.defaultTab(state)` exactly once (raid window → War Room); wires `visibilitychange / pagehide /
+  beforeunload` to pause/resume the worker.
+- `134365c` D: Workshop tab + per-snapshot `derived` view. Active-action card with progress bar; skills
+  grouped by tier (Gather/Refine/Craft/Fight); locked actions render with level requirement.
+- `8e0ec9a` E: PWA shell — `manifest.webmanifest`, `public/sw.js` (plain JS, no plugin), SVG icons incl.
+  maskable, `src/pwa.ts` registration + waiting-SW handshake, "A new version is ready. [Restart]" toast.
+- `d85dc9d` F: 160×64 `SceneStrip.svelte` (pixel-art placeholder hero, bob on active) at the top of
+  Workshop; proper `CollectReveal.svelte` sheet replacing the one-line banner (per-bucket breakdown
+  with human-readable item/skill names).
+- `d8d5cb3` G: Stores tab (Mine + Crew sub-tabs). Equipped slots, bag gear, materials with per-grade
+  hint; vault views. Adds `equip` / `unequip` verbs; Derived gains `gearNames`.
+- `c945395` H: War Room tab (Loadout / Hunt / Raid). Loadout save/equip/delete; boss intel HP bar;
+  stance + tactic pickers; eatAt slider 30%–80%; `runRaid` button. Derived gains `playerStats`,
+  `bossIntel`, `raidStatus`.
+- `95d4315` I: Market tab (Buy / Sell). Buyer-listing board with Buy button + qty prompt; My listings
+  with cancel; list-new-item form with grade picker (shows `have N` per grade) + live after-tax preview.
+  Derived gains `marketTax`.
+- `5c68851` J: Crew tab (Roster / Jobs / Treasury). Roster shows You + the four phase-1 NPCs with rank
+  + skill spec. Jobs lists open jobs with Assist button + ETA. Treasury shows crew gold + the audit
+  ledger. Derived gains `crewMembers`, `crewJobs`.
+- `79c0ecd` K: Save menu overlay (export / import / reset). Modal sheet with copyable GW5 code, paste
+  target for import (reloads on success), danger-coloured Reset button (double confirm). Dismisses on
+  scrim click, ✕ button, or Esc.
 
-Not reverified on this Windows checkout: `wrangler dev` + `/api/health` + `--test-scheduled` (workerd crashed
+**Playable surface today**: boot → scene strip + Workshop → pick a gather action → watch skill level ticks
+up and materials stack; swap gear via Stores; save a loadout and run a raid in War Room; buy/sell on the
+Market; assist a crewmate's job; export a 12 KB GW5 code that round-trips. Autosave to IndexedDB; survives
+reload.
+
+Not verified on this Windows checkout: `wrangler dev` + `/api/health` + `--test-scheduled` (workerd crashed
 in Linux VM during phase 0). Pick up when a server change lands.
 `.npmrc` still sets `legacy-peer-deps=true` to dodge an npm 10.9 vitest install crash.
+
+Next: merge `rebuild/phase-2` → `main` via PR, then phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
+art pack (DawnBringer 32 remap), LPC hero layer composite driven by equipped slots in SceneStrip (the
+placeholder goes away), per-action animation variety, `art/CREDITS.md` + in-game credits screen.
