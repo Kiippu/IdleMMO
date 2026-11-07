@@ -2,6 +2,7 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
+  import SceneStrip from '../scene/SceneStrip.svelte';
 
   type Skill = { id: string; name: string; tier: string; blurb: string };
   type Action = { id: string; skill: string; kind: string; name: string; level?: number; sec?: number; xp?: number };
@@ -49,6 +50,8 @@
     catch (err) { console.error('stop failed', err); }
   }
 </script>
+
+<SceneStrip />
 
 {#if active && activeAction}
   <section class="active-card">

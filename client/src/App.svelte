@@ -3,6 +3,7 @@
   import { initEngineClient, engineClient } from './engine/client';
   import { registerServiceWorker } from './pwa';
   import Workshop from './tabs/Workshop.svelte';
+  import CollectReveal from './overlays/CollectReveal.svelte';
 
   const tabs = ['Workshop', 'Stores', 'Market', 'War Room', 'Crew'] as const;
   type Tab = (typeof tabs)[number];
@@ -47,19 +48,6 @@
     };
   });
 
-  function dismissOffline() { engine.offline = null; }
-
-  function offlineHeadline(o: NonNullable<typeof engine.offline>): string {
-    const items = Object.values(o.items).reduce((a, b) => a + b, 0);
-    const xp = Object.values(o.xp).reduce((a, b) => a + b, 0);
-    const bits: string[] = [];
-    if (items) bits.push(`${items} items`);
-    if (xp) bits.push(`${Math.round(xp)} XP`);
-    if (o.gold) bits.push(`${o.gold}g`);
-    if (o.kills) bits.push(`${o.kills} kills`);
-    if (o.weeks) bits.push(`${o.weeks} ${o.weeks === 1 ? 'week' : 'weeks'} passed`);
-    return bits.length ? `While you were away: ${bits.join(', ')}.` : 'Welcome back.';
-  }
 </script>
 
 <div class="shell">
@@ -85,12 +73,7 @@
       <h1>Loading…</h1>
       <p>Opening the ledger and catching up on your idle time.</p>
     {:else}
-      {#if engine.offline}
-        <div class="offline">
-          <p>{offlineHeadline(engine.offline)}</p>
-          <button type="button" onclick={dismissOffline}>Dismiss</button>
-        </div>
-      {/if}
+      <CollectReveal />
       {#if active === 'Workshop'}
         <Workshop />
       {:else}
