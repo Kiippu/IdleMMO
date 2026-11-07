@@ -19,6 +19,7 @@ E.newState = function () {
   const c = cfg(); const now = ctx.now();
   const s = {
     v: SCHEMA, createdAt: now, lastSeen: now, gold: num(c.startingGold, 150), week: 1, hp: 1, focus: 0,
+    spec: { skillId: null, lastSwitchAt: null },
     skills: {}, mastery: {}, pity: {}, inv: {}, gear: [],
     equipped: { weapon: null, offhand: null, head: null, chest: null, legs: null, ring: null },
     active: null, settings: { matPriority: 'best', useCatalyst: false, useCore: false },
@@ -59,6 +60,13 @@ export function migrate(raw) {
   ['gold', 'week', 'hp', 'focus', 'createdAt', 'lastSeen', 'seq'].forEach((k) => { out[k] = num(raw[k], fresh[k]); });
   out.week = Math.max(1, Math.floor(out.week)); out.focus = clamp(out.focus, 0, 100);
   out.skills = {}; skillDefs().forEach((d) => { out.skills[d.id] = { xp: Math.max(0, num(raw.skills[d.id] && raw.skills[d.id].xp, 0)) }; });
+  // v5+ spec field: carry over if present and well-formed; v1/v3/v4 saves get the default.
+  const rawSpec = (raw.spec && typeof raw.spec === 'object') ? raw.spec : {};
+  const specSkillOk = typeof rawSpec.skillId === 'string' && skillDefs().some((d) => d.id === rawSpec.skillId);
+  out.spec = {
+    skillId: specSkillOk ? rawSpec.skillId : null,
+    lastSwitchAt: (isFinite(rawSpec.lastSwitchAt) && rawSpec.lastSwitchAt > 0) ? Math.floor(rawSpec.lastSwitchAt) : null,
+  };
   out.mastery = raw.mastery && typeof raw.mastery === 'object' ? raw.mastery : {};
   out.pity = raw.pity && typeof raw.pity === 'object' ? raw.pity : {};
   out.inv = {};
