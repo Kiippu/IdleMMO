@@ -74,17 +74,39 @@ Art and UI
 6. Launch (move to Workers Paid, payments, quality pass).
 Also: remove dev-only tools before players see them (devSetClock / Raid "next week" button, crew "Testing" panel).
 
-## Current state (2026-11-06) — phase 0 complete, cutting phase 1
-Phase 0 is merged to `main` (PR #1, `a22a399`). The TS engine reproduces the legacy prototype byte-for-byte
-under the parity gate. About to cut `rebuild/phase-1` for the design-update work (roadmap item 1).
-- Branch: `rebuild/phase-1` (to be created).
-- Engine: `npm run test -w @guildwright/engine` is green — 16/16 (11 parity fixtures + 5 legacy-selftest seeds).
-  `npm run typecheck -w @guildwright/engine` is clean. See `engine/PORTING.md` for what's ported and the
-  §2 "Not ported / deferred" list — that list is phase 1's scope.
-- Scaffold verified: root npm workspaces, `client/` (Vite 8 + Svelte 5.57 placeholder with the five tabs and
-  design tokens), `server/` Worker (wrangler 4.158, D1 `DB`, DO `Guild`, weekly cron `0 22 * * 6` UTC,
-  `GET /api/health`, `migrations/0001_init.sql`), `.github/workflows/ci.yml`.
-- Still not re-verified on this Windows checkout: `wrangler dev` live run + `/api/health` + `--test-scheduled`
-  (workerd crashed in the Linux VM during phase 0). Pick this up when a server change is needed in phase 1.
-- `.npmrc` still sets `legacy-peer-deps=true` to dodge an npm 10.9 install crash with vitest. Try removing it
-  on npm 11 the next time deps are bumped.
+## Current state (2026-11-07) — phase 1 in progress on `rebuild/phase-1`
+Branch cut from phase-0 merge (`a22a399` on main). Engine: `npm run test -w @guildwright/engine` is green —
+19/19 (14 v4-migration + treasury-log + vault-consumption cases + 5 legacy-selftest seeds).
+`npm run typecheck -w @guildwright/engine` is clean. See `engine/PORTING.md` for what's ported; phase 0's
+11 parity fixtures + `test/parity.test.ts` + `scenarios/` + `record-fixtures.mjs` are gone because phase 1
+deliberately breaks their numbers.
+
+Design doc (owner-confirmed in session 2026-11-07): currency = gold only (no premium, no raid tokens);
+town contracts = existing requisition system; crew vault items are consumed in raids as hybrid pool
+(food + heal potions → crew food survival; buff potions → crew check multiplier capped at +50%;
+weakness potions → extra mitigation); treasury payout = `min(cap × bossTier, perAttendee × bossTier ×
+attendCount × avgContribution)` where avgContribution = crewHave / crewNeed clamped 0..1.
+
+Phase 1 landed (6 commits so far, bottom-up):
+- `ab376a9` phase-0 parity harness removed
+- `33f0448` schema v4 → v5 + supply board dropped (`state.supply`, `supply.ts`, generateSupply, config)
+- `a1d16a5` raid tokens dropped (`state.tokens`, `raid.rules.tokens`, `rec.tokens`); core odds = floor+tier
+- `68e4c26` coin → gold end-to-end (`treasury.coin → .gold`, `economy.raidCoin → .raidGold`,
+  action-table `coins → gold`, config `crewCoinPerAttendee → crewGoldPerAttendee`, etc.); migration folds v4 fields
+- `c5a9aa8` treasury audit log (`state.crew.treasury.log`, cap 80) + `ensureV4 → ensureV5` rename
+- `f8d1358` crew vault consumption in raids + payout by turnout × contribution
+
+Phase 1 remaining:
+- D1 one action slot — ALREADY correct by construction (`state.active` is one field, `E.start` and `E.assist`
+  overwrite atomically). Just add a test to pin the invariant.
+- D2 specialization switch — new `state.spec`, `E.switchSpec(state, newSkillId)`, clamps old XP to level-70 cap,
+  3000g cost, 7-day cooldown.
+- E NPC crewmates stand-in — extend `state.crew.members[]` with per-NPC spec + slot + stash; NPCs contribute
+  to vault via contracts. Roster: 4 authored (Merrick/Aldis/Branka/Osric), one spec each.
+- F speed tuning — target ~1000g/hour at level 40 per design doc; back-compute per-tier multiplier from
+  current combat `gold` rates in `data.ts`.
+- G dev cleanup — delete `E.devSetClock` from `weekly.ts`.
+
+Not reverified on this Windows checkout: `wrangler dev` + `/api/health` + `--test-scheduled` (workerd crashed
+in Linux VM during phase 0). Pick up when a server change lands.
+`.npmrc` still sets `legacy-peer-deps=true` to dodge an npm 10.9 vitest install crash.
