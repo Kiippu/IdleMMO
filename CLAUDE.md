@@ -74,38 +74,37 @@ Art and UI
 6. Launch (move to Workers Paid, payments, quality pass).
 Also: remove dev-only tools before players see them (devSetClock / Raid "next week" button, crew "Testing" panel).
 
-## Current state (2026-11-07) — phase 1 in progress on `rebuild/phase-1`
+## Current state (2026-11-07) — phase 1 complete on `rebuild/phase-1`
 Branch cut from phase-0 merge (`a22a399` on main). Engine: `npm run test -w @guildwright/engine` is green —
-19/19 (14 v4-migration + treasury-log + vault-consumption cases + 5 legacy-selftest seeds).
-`npm run typecheck -w @guildwright/engine` is clean. See `engine/PORTING.md` for what's ported; phase 0's
-11 parity fixtures + `test/parity.test.ts` + `scenarios/` + `record-fixtures.mjs` are gone because phase 1
-deliberately breaks their numbers.
+**40/40** (migration + single-slot + crew roster + spec switch + speed factor + 5 legacy-selftest seeds).
+`npm run typecheck -w @guildwright/engine` is clean. Phase 1 gate per roadmap ("new rule tests pass; v4 saves
+still load") is met.
 
-Design doc (owner-confirmed in session 2026-11-07): currency = gold only (no premium, no raid tokens);
-town contracts = existing requisition system; crew vault items are consumed in raids as hybrid pool
-(food + heal potions → crew food survival; buff potions → crew check multiplier capped at +50%;
-weakness potions → extra mitigation); treasury payout = `min(cap × bossTier, perAttendee × bossTier ×
-attendCount × avgContribution)` where avgContribution = crewHave / crewNeed clamped 0..1.
+Design decisions confirmed in session 2026-11-07 against the game design doc (claude.ai artifact
+c3d56c6e-...): currency = gold only (no premium, no raid tokens); town contracts = existing requisition
+system; crew vault items consumed in raids as hybrid pool (food + heal potions → crew food survival; buff
+potions → crew check multiplier capped at +50%; weakness potions → extra mitigation); treasury payout =
+`min(cap × bossTier, perAttendee × bossTier × attendCount × avgContribution)` where avgContribution =
+crewHave / crewNeed clamped 0..1; crew roster = 4 authored NPCs (Merrick/Aldis/Branka/Osric) with
+smelting/carpentry/smithing/tailoring specs; speed factor = 10x (anchored to the design doc's "1000g/hr
+at level 40" combat target).
 
-Phase 1 landed (6 commits so far, bottom-up):
-- `ab376a9` phase-0 parity harness removed
-- `33f0448` schema v4 → v5 + supply board dropped (`state.supply`, `supply.ts`, generateSupply, config)
+Phase 1 commits (11 on `rebuild/phase-1`, bottom-up):
+- `ab376a9` phase-0 parity harness removed (fixtures + scenarios + record-fixtures + parity.test; 16→5 tests)
+- `33f0448` schema v4 → v5 + supply board dropped (`state.supply`, `supply.ts`, generateSupply, cfg)
 - `a1d16a5` raid tokens dropped (`state.tokens`, `raid.rules.tokens`, `rec.tokens`); core odds = floor+tier
-- `68e4c26` coin → gold end-to-end (`treasury.coin → .gold`, `economy.raidCoin → .raidGold`,
-  action-table `coins → gold`, config `crewCoinPerAttendee → crewGoldPerAttendee`, etc.); migration folds v4 fields
+- `68e4c26` coin → gold end-to-end (schema + API + config + migration folds)
 - `c5a9aa8` treasury audit log (`state.crew.treasury.log`, cap 80) + `ensureV4 → ensureV5` rename
 - `f8d1358` crew vault consumption in raids + payout by turnout × contribution
+- `2437f49` D1: single-slot invariant test (engine was already correct by construction)
+- `a8b5632` G: remove `E.devSetClock` and the "already raided this week" auto-advance
+- `6c9b8a7` D2: specialization switch (3000g cost, 7-day cooldown, old-skill XP clamped to level 70)
+- `320bf54` E: NPC crewmate stand-ins — four authored members, roster cap 10
+- `444c0c8` F: real-speed tuning via `cfg.speedFactor` (default 10x; one knob to retune)
 
-Phase 1 remaining:
-- D1 one action slot — ALREADY correct by construction (`state.active` is one field, `E.start` and `E.assist`
-  overwrite atomically). Just add a test to pin the invariant.
-- D2 specialization switch — new `state.spec`, `E.switchSpec(state, newSkillId)`, clamps old XP to level-70 cap,
-  3000g cost, 7-day cooldown.
-- E NPC crewmates stand-in — extend `state.crew.members[]` with per-NPC spec + slot + stash; NPCs contribute
-  to vault via contracts. Roster: 4 authored (Merrick/Aldis/Branka/Osric), one spec each.
-- F speed tuning — target ~1000g/hour at level 40 per design doc; back-compute per-tier multiplier from
-  current combat `gold` rates in `data.ts`.
-- G dev cleanup — delete `E.devSetClock` from `weekly.ts`.
+Next: phase 2 (Solo PWA — Svelte rebuild of the five tabs, IndexedDB saves v5 with v4 import, save export
+code, catch-up worker, collect reveal, 160x64 scene strip + LPC hero, installable). Start by merging phase 1
+to main (not done yet — branch still unpushed as of this edit), then cut `rebuild/phase-2`.
 
 Not reverified on this Windows checkout: `wrangler dev` + `/api/health` + `--test-scheduled` (workerd crashed
 in Linux VM during phase 0). Pick up when a server change lands.
