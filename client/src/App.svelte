@@ -8,6 +8,7 @@
   import Market from './tabs/Market.svelte';
   import Crew from './tabs/Crew.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
+  import SaveMenu from './overlays/SaveMenu.svelte';
 
   const tabs = ['Workshop', 'Stores', 'Market', 'War Room', 'Crew'] as const;
   type Tab = (typeof tabs)[number];
@@ -15,6 +16,7 @@
   let active = $state<Tab>('Workshop');
   let bootError = $state<string | null>(null);
   let updateReady = $state<null | (() => void)>(null);
+  let saveMenuOpen = $state(false);
   let seeded = false;
 
   $effect(() => {
@@ -57,9 +59,14 @@
 <div class="shell">
   <header class="topbar">
     <span class="brand">Guildwright</span>
-    {#if engine.snapshot}
-      <span class="gold">{engine.snapshot.gold}g</span>
-    {/if}
+    <div class="top-right">
+      {#if engine.snapshot}
+        <span class="gold">{engine.snapshot.gold}g</span>
+      {/if}
+      {#if engine.ready}
+        <button type="button" class="save-btn" onclick={() => (saveMenuOpen = true)} aria-label="Open save menu">Save</button>
+      {/if}
+    </div>
   </header>
 
   {#if updateReady}
@@ -92,6 +99,10 @@
     {/if}
   </main>
 </div>
+
+{#if saveMenuOpen}
+  <SaveMenu onClose={() => (saveMenuOpen = false)} />
+{/if}
 
 {#if engine.ready && !bootError}
   <nav class="tabbar" aria-label="Main">

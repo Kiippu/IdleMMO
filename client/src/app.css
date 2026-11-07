@@ -89,6 +89,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .brand { font: 700 var(--t-lg)/1 var(--f-display); color: var(--woad); }
 .gold { font: 600 var(--t-md)/1 var(--f-display); color: var(--brass); }
+.top-right { display: flex; align-items: baseline; gap: 12px; }
+.save-btn {
+  padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
+  font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.save-btn:hover { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
 
 .update {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
