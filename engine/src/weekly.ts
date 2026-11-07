@@ -55,25 +55,9 @@ export function processClock(state, events) {
     }
   }
 }
-E.devSetClock = function (state, to) {
-  ensureClock(state); const events = []; const now = nowOf(state);
-  let target = null;
-  if (to === 'raid') { const w = windowFor(state, now); target = now < w.start ? w.start + 60000 : (now < w.end ? now : windowFor(state, addDays(mondayOf(now), 7)).start + 60000); }
-  else if (to === 'nextWeek') target = addDays(mondayOf(now), 7) + 60000;
-  else if (to === 'friday') { const f = new Date(addDays(mondayOf(now), 4)); f.setHours(12, 0, 0, 0); target = f.getTime() > now ? f.getTime() : addDays(f.getTime(), 7); }
-  else if (to === 'reset') {
-    const wkBefore = weekNum(state, now); state.clock.offsetMs = 0;
-    const wkAfter = weekNum(state, nowOf(state)); state.clock.epoch = addDays(state.clock.epoch, -7 * (wkBefore - wkAfter));
-    return { ok: true, reason: '', events };
-  } else return { ok: false, reason: 'Unknown clock target.', events };
-  state.clock.offsetMs = num(state.clock.offsetMs, 0) + (target - now);
-  processClock(state, events);
-  return { ok: true, reason: '', events };
-};
 E.startRaidNow = function (state) {
   if (!E.currentBoss(state)) return { ok: false, reason: 'No raid boss is scheduled in this build.' };
   const events = [];
-  if (raidDoneThisWeek(state)) { E.devSetClock(state, 'nextWeek').events.forEach((e) => events.push(e)); processClock(state, events); }
   if (raidDoneThisWeek(state)) return { ok: false, reason: 'This week\'s raid already ran.', events };
   state.active = null;
   const r = resolveRaid(state, { startedAt: nowOf(state), instant: true }, events);
