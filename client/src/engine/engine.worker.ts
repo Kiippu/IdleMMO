@@ -26,7 +26,12 @@ function derive(): Derived {
   const skills = state && state.skills;
   if (skills) for (const id of Object.keys(skills)) skillLevels[id] = E.skillLevel(state, id);
   const activeTime = state && state.active ? (E.actionTime(state, state.active.actionId) as number) : null;
-  return { skillLevels, activeTime };
+  const gearNames: Record<string, string> = {};
+  const playerGear = (state && state.gear) || [];
+  for (const g of playerGear) gearNames[g.uid] = E.gearName(g);
+  const vaultGear = state && state.crew && state.crew.vault && state.crew.vault.gear;
+  if (Array.isArray(vaultGear)) for (const g of vaultGear) gearNames[g.uid] = E.gearName(g);
+  return { skillLevels, activeTime, gearNames };
 }
 
 function startTicking() {
@@ -81,6 +86,14 @@ async function handle(req: Req): Promise<unknown> {
       return undefined;
     case 'stop':
       E.stop(state);
+      return undefined;
+    case 'equip':
+      E.equip(state, req.uid);
+      E.save(state);
+      return undefined;
+    case 'unequip':
+      E.unequip(state, req.slot);
+      E.save(state);
       return undefined;
     case 'pause':
       stopTicking();

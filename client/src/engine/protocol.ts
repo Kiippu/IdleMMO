@@ -11,6 +11,8 @@ export type EngineEvent = { type: string; [k: string]: any };
 export interface Derived {
   skillLevels: Record<string, number>;
   activeTime: number | null;
+  /** uid -> human-readable gear name (player bag + crew vault). */
+  gearNames: Record<string, string>;
 }
 
 export interface OfflineSummary {
@@ -32,6 +34,8 @@ export type Req =
   | { id: string; type: 'stop' }
   | { id: string; type: 'pause' }
   | { id: string; type: 'resume' }
+  | { id: string; type: 'equip'; uid: string }
+  | { id: string; type: 'unequip'; slot: string }
   | { id: string; type: 'export' }
   | { id: string; type: 'import'; code: string }
   | { id: string; type: 'reset' };

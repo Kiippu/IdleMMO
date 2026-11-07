@@ -3,6 +3,7 @@
   import { initEngineClient, engineClient } from './engine/client';
   import { registerServiceWorker } from './pwa';
   import Workshop from './tabs/Workshop.svelte';
+  import Stores from './tabs/Stores.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
 
   const tabs = ['Workshop', 'Stores', 'Market', 'War Room', 'Crew'] as const;
@@ -76,6 +77,8 @@
       <CollectReveal />
       {#if active === 'Workshop'}
         <Workshop />
+      {:else if active === 'Stores'}
+        <Stores />
       {:else}
         <h1>{active}</h1>
         <p>Placeholder screen. This tab lands in a later slice.</p>

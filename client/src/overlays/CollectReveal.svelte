@@ -6,9 +6,9 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
 
-  const items: Array<{ id: string; name: string }> = (DATA as any).items;
+  const items: Record<string, { id?: string; name?: string }> = (DATA as any).items;
   const skills: Array<{ id: string; name: string }> = (DATA as any).skills;
-  const itemName = (id: string) => items.find((i) => i.id === id)?.name ?? id;
+  const itemName = (id: string) => items[id]?.name ?? id;
   const skillName = (id: string) => skills.find((s) => s.id === id)?.name ?? id;
 
   let summary = $derived(engine.offline);
