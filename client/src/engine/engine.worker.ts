@@ -39,6 +39,8 @@ function derive(): Derived {
     bossIntel: state ? E.bossIntel(state) : null,
     raidStatus: state ? E.raidStatus(state) : null,
     marketTax: state ? (E.marketTax(state) as number) : 0.05,
+    crewMembers: state ? (E.crewMembers(state) as any[]) : [],
+    crewJobs: state ? (E.crewJobs(state) as any[]) : [],
   };
 }
 
@@ -138,6 +140,11 @@ async function handle(req: Req): Promise<unknown> {
       E.cancelListing(state, req.listingId);
       E.save(state);
       return undefined;
+    case 'assistJob': {
+      const res = E.assist(state, req.jobId);
+      E.save(state);
+      return res;
+    }
     case 'pause':
       stopTicking();
       E.save(state);

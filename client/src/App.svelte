@@ -6,6 +6,7 @@
   import Stores from './tabs/Stores.svelte';
   import WarRoom from './tabs/WarRoom.svelte';
   import Market from './tabs/Market.svelte';
+  import Crew from './tabs/Crew.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
 
   const tabs = ['Workshop', 'Stores', 'Market', 'War Room', 'Crew'] as const;
@@ -85,9 +86,8 @@
         <WarRoom />
       {:else if active === 'Market'}
         <Market />
-      {:else}
-        <h1>{active}</h1>
-        <p>Placeholder screen. This tab lands in a later slice.</p>
+      {:else if active === 'Crew'}
+        <Crew />
       {/if}
     {/if}
   </main>

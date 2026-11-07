@@ -75,6 +75,8 @@ export const engineClient = {
     rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'listItem', itemId, grade, qty, price }),
   cancelListing: (listingId: string) =>
     rpc<void>({ id: nextId(), type: 'cancelListing', listingId }),
+  assistJob: (jobId: string) =>
+    rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'assistJob', jobId }),
   export: () => rpc<string>({ id: nextId(), type: 'export' }),
   import: (code: string) => rpc<void>({ id: nextId(), type: 'import', code }),
   reset: () => rpc<void>({ id: nextId(), type: 'reset' }),

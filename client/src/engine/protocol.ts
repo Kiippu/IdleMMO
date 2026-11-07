@@ -21,6 +21,10 @@ export interface Derived {
   raidStatus: any;
   /** E.marketTax(state) — current sell-side tax (0..1). */
   marketTax: number;
+  /** E.crewMembers(state) — roster with ranks + specializations. */
+  crewMembers: any[];
+  /** E.crewJobs(state) — open jobs with assist state and ETA. */
+  crewJobs: any[];
 }
 
 export interface OfflineSummary {
@@ -52,6 +56,7 @@ export type Req =
   | { id: string; type: 'buyListing'; listingId: string; qty: number }
   | { id: string; type: 'listItem'; itemId: string; grade: number; qty: number; price: number }
   | { id: string; type: 'cancelListing'; listingId: string }
+  | { id: string; type: 'assistJob'; jobId: string }
   | { id: string; type: 'export' }
   | { id: string; type: 'import'; code: string }
   | { id: string; type: 'reset' };
