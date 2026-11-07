@@ -83,8 +83,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
   margin: 0 auto;
   padding: 0 var(--gut-r) calc(var(--tabbar-h) + 16px) var(--gut-l);
 }
-.topbar { padding-block: 12px; border-bottom: 1px solid var(--rule); }
+.topbar {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding-block: 12px; border-bottom: 1px solid var(--rule);
+}
 .brand { font: 700 var(--t-lg)/1 var(--f-display); color: var(--woad); }
+.gold { font: 600 var(--t-md)/1 var(--f-display); color: var(--brass); }
+
+.offline {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 0 -8px 12px; padding: 10px 12px;
+  background: var(--woad-soft); border: 1px solid var(--rule);
+}
+.offline p { margin: 0; color: var(--ink); }
+.offline button {
+  padding: 6px 10px; border: 1px solid var(--rule); background: var(--paper);
+  font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.bad { color: var(--bad); }
 .panel {
   margin-top: 16px; padding: 16px;
   background: var(--paper); border: 1px solid var(--rule);

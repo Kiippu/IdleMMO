@@ -7,12 +7,14 @@ export const engine = $state<{
   snapshot: Snapshot | null;
   ready: boolean;
   offline: OfflineSummary | null;
+  defaultTab: 'workshop' | 'raid';
   lastEvents: EngineEvent[];
   lastError: string | null;
 }>({
   snapshot: null,
   ready: false,
   offline: null,
+  defaultTab: 'workshop',
   lastEvents: [],
   lastError: null,
 });

@@ -36,7 +36,7 @@ function stopTicking() {
   tickTimer = null;
 }
 
-async function init(): Promise<OfflineSummary | null> {
+async function init(): Promise<{ offline: OfflineSummary | null; defaultTab: 'workshop' | 'raid' }> {
   storage = createIdbStorage();
   await storage.hydrate([SAVE_KEY]);
 
@@ -56,11 +56,12 @@ async function init(): Promise<OfflineSummary | null> {
   state = E.load() ?? E.newState();
   const res = E.applyOffline(state, Date.now()) as { seconds: number; summary: OfflineSummary } | null;
   const offline = res && res.seconds >= 60 ? res.summary : null;
+  const defaultTab = E.defaultTab(state) as 'workshop' | 'raid';
 
   E.save(state);
   await storage.flush();
   startTicking();
-  return offline;
+  return { offline, defaultTab };
 }
 
 async function handle(req: Req): Promise<unknown> {

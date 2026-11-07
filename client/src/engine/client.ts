@@ -48,8 +48,9 @@ export async function initEngineClient(): Promise<void> {
   if (worker) return;
   worker = new Worker(new URL('./engine.worker.ts', import.meta.url), { type: 'module' });
   worker.addEventListener('message', onMessage);
-  const offline = await rpc<OfflineSummary | null>({ id: nextId(), type: 'init' });
-  engine.offline = offline ?? null;
+  const init = await rpc<{ offline: OfflineSummary | null; defaultTab: 'workshop' | 'raid' }>({ id: nextId(), type: 'init' });
+  engine.offline = init.offline ?? null;
+  engine.defaultTab = init.defaultTab;
   engine.ready = true;
 }
 
