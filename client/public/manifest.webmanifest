@@ -1,0 +1,15 @@
+{
+  "name": "Guildwright",
+  "short_name": "Guildwright",
+  "description": "A cozy idle MMO about gathering, crafting and trading in a medieval guild town.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e2e5dc",
+  "theme_color": "#2a479e",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

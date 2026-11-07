@@ -1,6 +1,7 @@
 <script lang="ts">
   import { engine } from './engine/store.svelte';
   import { initEngineClient, engineClient } from './engine/client';
+  import { registerServiceWorker } from './pwa';
   import Workshop from './tabs/Workshop.svelte';
 
   const tabs = ['Workshop', 'Stores', 'Market', 'War Room', 'Crew'] as const;
@@ -8,10 +9,12 @@
 
   let active = $state<Tab>('Workshop');
   let bootError = $state<string | null>(null);
+  let updateReady = $state<null | (() => void)>(null);
   let seeded = false;
 
   $effect(() => {
     void initEngineClient().catch((err) => { bootError = String(err?.message ?? err); });
+    registerServiceWorker((restart) => { updateReady = restart; });
   });
 
   // One-shot: when the engine reports ready, seed the active tab from the
@@ -66,6 +69,13 @@
       <span class="gold">{engine.snapshot.gold}g</span>
     {/if}
   </header>
+
+  {#if updateReady}
+    <div class="update">
+      <p>A new version is ready.</p>
+      <button type="button" onclick={updateReady}>Restart</button>
+    </div>
+  {/if}
 
   <main class="panel">
     {#if bootError}

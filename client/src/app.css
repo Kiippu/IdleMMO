@@ -90,17 +90,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .brand { font: 700 var(--t-lg)/1 var(--f-display); color: var(--woad); }
 .gold { font: 600 var(--t-md)/1 var(--f-display); color: var(--brass); }
 
-.offline {
+.offline, .update {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin: 0 -8px 12px; padding: 10px 12px;
+  margin: 12px -8px 0; padding: 10px 12px;
   background: var(--woad-soft); border: 1px solid var(--rule);
 }
-.offline p { margin: 0; color: var(--ink); }
-.offline button {
+.offline p, .update p { margin: 0; color: var(--ink); }
+.offline button, .update button {
   padding: 6px 10px; border: 1px solid var(--rule); background: var(--paper);
   font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
   color: var(--ink-2);
 }
+.update { background: var(--sunk); border-color: var(--woad); }
+.update button { border-color: var(--woad); color: var(--woad); }
 .bad { color: var(--bad); }
 .panel {
   margin-top: 16px; padding: 16px;
