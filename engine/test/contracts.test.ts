@@ -19,7 +19,7 @@ describe('town contracts', () => {
     ks.forEach((k: any) => {
       expect(k.week).toBe(s.week);
       expect(k.payer).toBe('treasury'); expect(k.paidBy).toBe('Treasury');
-      expect(k.rewardPer).toBe(Math.max(1, Math.round(E.itemValue(k.itemId, 1) * 0.5)));
+      expect(k.rewardPer).toBe(Math.max(1, Math.round(E.itemValue(k.itemId, 1) * mod.DATA.config.contractRewardMult)));
       expect(k.escrow).toBe(k.qty * k.rewardPer); // only posts what it can pay for
       expect(k.capacity).toBe(k.qty);
       expect(k).not.toHaveProperty('repPer'); expect(k).not.toHaveProperty('pays');

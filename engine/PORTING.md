@@ -73,7 +73,7 @@ Phase 2.5 (save schema **v6**):
   `town` contracts are generated each Monday (and on a fresh/migrated save with none for the
   week) from raid needs: food + healing potions from `E.crewReadiness`, plus buff potions for
   last weekend's debrief gaps (or the crew's weakest check). Reward = item value x
-  `contractRewardMult` (0.5), funded from up to `contractBudgetShare` (75%) of free treasury
+  `contractRewardMult` (1.1), funded from up to `contractBudgetShare` (75%) of free treasury
   gold; a contract is only posted for the units the escrow covers. The raid closes town
   contracts and releases unspent escrow.
   `crew` requests are posted by a player (`E.postCrewRequest`) and paid from that player's own
@@ -97,8 +97,8 @@ Phase 2.5 (save schema **v6**):
 - **Specialization**: profession skills (gathering/refining/crafting) level to 70 for everyone;
   every non-spec profession skill is held at EFFECTIVE 70 while XP keeps accruing. Combat skills
   are never capped and can't be a spec. A spec needs a profession skill at raw level 70+. The
-  first pick is free with no cooldown; switching costs `specSwitchCost` (45,000g ≈ 3 h of a
-  typical level-40 income, pinned by `test/economy.test.ts`) and a one-week game-clock cooldown;
+  first pick is free with no cooldown; switching costs `specSwitchCost` (3 H = 44,000g, pinned
+  by `test/economy.test.ts`) and a one-week game-clock cooldown;
   switching back restores the full level. `spec.capped` is gone. Migration: a spec on a skill
   below 70 (or a combat skill) is cleared, the cooldown reset and `LEGACY_SPEC_CHARGE` (3,000g,
   what every old pick cost) refunded once.
@@ -110,6 +110,13 @@ Phase 2.5 (save schema **v6**):
 - **Core odds**: the +0.8 token share is gone from `serverTickets`; per-participant
   tickets = floor + `serverAvgTierTickets` (2.6). Pity scales with tier
   (`corePityByTier`: gold 3, silver 4, bronze 5, none 6 empty joined kills).
+- **Economy in hours of play** (`data.ts` `H` + `ECON`, the one place to retune): H = one hour of a
+  typical level-40 income (14,820 g/h at speedFactor 1, re-measured by `test/economy.test.ts`).
+  Spec switch = 3 H (44,000g). Raid gold (`raidGoldSplit` in `raid-payouts.ts`): pool =
+  perAttendee x attended x 1.25^(boss tier-1) x crew contribution x (0.5 + 0.5 x turnout), capped at
+  18 attendees' worth; 2.5% goes to the crew treasury (logged; funds next week's town contracts),
+  the rest is split evenly between attendees (1.5 H each at tier 1 with full contribution and
+  turnout). Contracts pay 1.1 x item value per unit.
 - **Speed**: `speedFactor: 1` (prototype pace; the first 10 levels are pinned to the legacy
   build in `test/economy.test.ts`); offline stays 12 h at 10%. `E.actionTime` is the one
   time-per-rep function; `E.incomePerHour` prices an action in gold/hour.

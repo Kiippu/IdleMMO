@@ -355,7 +355,7 @@ export function buffItemFor(state, check) {
   const ids = Object.keys(D().items || {}).filter((id) => { const it = item(id); return it && it.kind === 'potion' && it.buff && it.buff.stat === 'heal'; });
   return ids.length ? ids.sort((a, b) => num(item(a).tier, 1) - num(item(b).tier, 1))[0] : gapItem(state, 'healing');
 }
-export const contractRewardPer = (itemId) => Math.max(1, Math.round(E.itemValue(itemId, 1) * num(cfg().contractRewardMult, 0.5)));
+export const contractRewardPer = (itemId) => Math.max(1, Math.round(E.itemValue(itemId, 1) * num(cfg().contractRewardMult, 1.1)));
 const payerName = (k) => (k.payer === 'player' ? k.postedBy || 'You' : 'Treasury');
 function addEscrow(state, k, amount) { // reserve gold for k from its payer
   if (!(amount > 0)) return;

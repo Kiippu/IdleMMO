@@ -479,6 +479,23 @@ const crewRanks = [
   { id: 'recruit', name: 'Recruit', perms: { viewVault: true, deposit: true, withdraw: false, postRequisitions: false, setSchedule: false, marketList: false, manageRoles: false }, withdrawCap: 0 }
 ];
 
+// ---- Economy unit H: one hour of a typical level-40 player's income (gold/hour) at speedFactor 1.
+// Measured with E.incomePerHour: the median, across the four gathering skills, of each skill's best
+// level-40 action sold at Standard value after market tax. test/economy.test.ts re-measures it and
+// fails if this drifts more than 5%. Every gold amount priced "in hours of play" derives from H, so a
+// speed change rescales them all from here.
+const SPEED = 1;
+export const H = Math.round(14820 / SPEED);
+export const ECON = {
+  H,
+  specSwitchHours: 3,          // spec switch = ~3 H
+  raidPayHours: 1.5,           // a player's NET raid gold at boss tier 1, full contribution, full turnout
+  raidTierGrowth: 1.25,        // x per boss tier above the first
+  raidTreasuryShare: 0.025,    // share of each raid gold pool routed to the crew treasury: a typical 5-person crew (~55k pool) banks ~1.4k, enough at 75% to fund next week's ~1k of town contracts
+  raidCapAttendees: 18,        // pool cap = this many full-turnout attendees' worth (bites only for big crews)
+  contractRewardMult: 1.1,     // contract pay per unit = item value x this (market sale nets 0.95 x value)
+};
+
 export const DATA: any = {
   config: {
     saveKey: 'guildwright-proto-v1',
@@ -489,7 +506,7 @@ export const DATA: any = {
     maxLevel: 99,
     marketTax: 0.05,
     pityThreshold: 40,
-    speedFactor: 1,               // phase 2.5: match the prototype's pace (owner's call, 2026-11-08)
+    speedFactor: SPEED,           // phase 2.5: match the prototype's pace (owner's call, 2026-11-08)
     baseHp: 60,
     hpPerCombatLevel: 4,
     // v4 weekend raids
@@ -507,18 +524,24 @@ export const DATA: any = {
     faintFrames: 3,               // 30 min at camp
     reviveDurability: 2,
     pouchCap: 60,
-    crewGoldPerAttendee: 10,      // x boss tier
-    crewGoldCap: 180,             // x boss tier
+    // Raid gold (in hours of play, see ECON): pool = perAttendee x attendees x tierScale x contribution x
+    // turnoutFactor, capped at perAttendee x raidCapAttendees x tierScale. raidTreasuryShare of the pool goes
+    // to the crew treasury, the rest is split evenly between attendees. perAttendee is set so the net
+    // per-player share at tier 1 with full contribution and turnout is raidPayHours x H.
+    raidGoldPerAttendee: Math.round(ECON.raidPayHours * H / (1 - ECON.raidTreasuryShare)),
+    raidTierGrowth: ECON.raidTierGrowth,
+    raidCapAttendees: ECON.raidCapAttendees,
+    raidTreasuryShare: ECON.raidTreasuryShare,
     weekBuffs: [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }, { kind: 'tax', value: 0.02, label: 'Market tax 2%' }],
     crewStartTreasury: 120,
     // phase 2.5: town contracts (generated each Monday from what the coming raid needs). Gold only.
     contractBudgetShare: 0.75,    // share of free treasury gold escrowed for town contract rewards
-    contractRewardMult: 0.5,      // gold per unit = item value x this
+    contractRewardMult: ECON.contractRewardMult, // gold per unit = item value x this (>= market after tax)
     contractNpcShare: 0.5,        // NPC crewmates fill at most this share of each contract (Fri until the raid)
     // ~3 hours of a typical level-40 player's income: the median, across the four gathering skills,
     // of each skill's best level-40 action sold at Standard value after tax (~14,800 g/h at speedFactor 1).
     // Pinned by test/economy.test.ts (cost / hourly income must stay within 2.5-3.5).
-    specSwitchCost: 45000,
+    specSwitchCost: Math.round(ECON.specSwitchHours * H / 1000) * 1000,
     // core draw: average tier tickets per server participant (floor ticket is added on top)
     serverAvgTierTickets: 2.6
   },

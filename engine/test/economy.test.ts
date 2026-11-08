@@ -3,7 +3,7 @@
 // income: ~3 hours of a typical level-40 player's gather → sell loop.
 import { describe, expect, it } from 'vitest';
 import { loadLegacy } from '../legacy/harness.mjs';
-import { freshEngine } from './engine-helpers';
+import { freshEngine, resolveRaidByClock, DAY } from './engine-helpers';
 
 const GATHER = ['mining', 'woodcutting', 'herbalism', 'fishing'];
 
@@ -35,6 +35,12 @@ describe('pace', () => {
     }
   });
 
+  it('the economy unit H in data.ts matches the measured level-40 income (within 5%)', async () => {
+    const { E, mod } = await freshEngine();
+    const inc = typicalL40Income(E, mod.DATA);
+    expect(Math.abs(mod.H / inc.median - 1)).toBeLessThan(0.05);
+  });
+
   it('spec switch cost is 2.5-3.5 hours of a typical level-40 income', async () => {
     const { E, mod } = await freshEngine();
     const inc = typicalL40Income(E, mod.DATA);
@@ -44,5 +50,81 @@ describe('pace', () => {
     expect(ratio).toBeGreaterThanOrEqual(2.5);
     expect(ratio).toBeLessThanOrEqual(3.5);
     expect(E.spec(E.newState()).switchCost).toBe(mod.DATA.config.specSwitchCost);
+  });
+});
+
+describe('raid gold and contract pay, in hours of play (H)', () => {
+  it('tier 1, full contribution, full turnout: a player nets ~1.5 H per raid', async () => {
+    const { E, mod } = await freshEngine();
+    const s = E.newState(); // roster of 5
+    const rp = await import('../src/raid-payouts');
+    const p = rp.raidGoldSplit(s, 1, 5, 1, true);
+    expect(p.player / mod.H).toBeGreaterThan(1.47);
+    expect(p.player / mod.H).toBeLessThan(1.53);
+    expect(p.capped).toBe(false);
+  });
+
+  it('scales x1.25 per boss tier, and with turnout and contribution', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    const rp = await import('../src/raid-payouts');
+    const t1 = rp.raidGoldSplit(s, 1, 5, 1, true).player;
+    expect(rp.raidGoldSplit(s, 2, 5, 1, true).player / t1).toBeCloseTo(1.25, 2);
+    expect(rp.raidGoldSplit(s, 4, 5, 1, true).player / t1).toBeCloseTo(1.25 ** 3, 2);
+    expect(rp.raidGoldSplit(s, 1, 5, 0.5, true).player / t1).toBeCloseTo(0.5, 2);
+    expect(rp.raidGoldSplit(s, 1, 3, 1, true).player).toBeLessThan(t1); // weaker turnout pays less each
+    expect(rp.raidGoldSplit(s, 1, 5, 1, false).player).toBe(0); // absent: nothing
+  });
+
+  it('the per-crew cap only bites past 18 full-turnout attendees, at every tier', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    const rp = await import('../src/raid-payouts');
+    const roster = (n: number) => { s.crew.members = Array.from({ length: n - 1 }, (_, i) => ({ id: 'c' + i, name: 'M' + i })); };
+    for (const tier of [1, 3, 6]) {
+      roster(18); expect(rp.raidGoldSplit(s, tier, 18, 1, true).capped).toBe(false);
+      roster(25); expect(rp.raidGoldSplit(s, tier, 25, 1, true).capped).toBe(true);
+    }
+  });
+
+  it('a raid pays the player and routes 2.5% of the pool to the treasury (logged)', async () => {
+    const h = await freshEngine();
+    const s = h.E.newState();
+    h.E.setRaidPlan(s, { role: 'striker' });
+    const gold0 = s.gold; const t0 = h.E.crewGold(s).total;
+    const { recap } = resolveRaidByClock(h, s);
+    const p = recap.payout;
+    expect(p.gold).toBeGreaterThan(0);
+    expect(s.gold - gold0).toBeGreaterThanOrEqual(p.gold); // plus any item sales etc.
+    expect(p.crewGold).toBe(Math.round(p.pool * 0.025));
+    expect(h.E.crewGold(s).total - t0).toBe(p.crewGold);
+    expect(s.crew.treasury.log.find((e: any) => e.kind === 'payout').delta).toBe(p.crewGold);
+  });
+
+  it('a typical 5-person crew\'s raid funds ~100% of next week\'s town contracts', async () => {
+    let posted = 0, needed = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      const h = await freshEngine(seed);
+      const { E } = h;
+      const s = E.newState();
+      resolveRaidByClock(h, s);
+      const ce = await import('../src/crew-economy');
+      needed += ce.contractNeeds(s).reduce((a: number, n: any) => a + n.qty * ce.contractRewardPer(n.itemId), 0);
+      h.setNow(E.raidWindow(s).start + 3 * DAY); E.tick(s, 1);
+      expect(s.week).toBe(2);
+      posted += s.crew.contracts.filter((k: any) => k.source === 'town' && k.week === 2).reduce((a: number, k: any) => a + k.escrow, 0);
+    }
+    expect(posted / needed).toBeGreaterThan(0.9);
+  });
+
+  it('contract pay is 1.0-1.2x item value, at least what the market nets after tax', async () => {
+    const { E, mod } = await freshEngine();
+    const ce = await import('../src/crew-economy');
+    expect(mod.DATA.config.contractRewardMult).toBeGreaterThanOrEqual(1.0);
+    expect(mod.DATA.config.contractRewardMult).toBeLessThanOrEqual(1.2);
+    for (const id of ['bread', 'mint_tonic', 'fury_draught', 'ironskin_draught', 'salmon_pie']) {
+      const v = E.itemValue(id, 1);
+      expect(ce.contractRewardPer(id)).toBeGreaterThanOrEqual(v * (1 - mod.DATA.config.marketTax));
+    }
   });
 });

@@ -44,6 +44,9 @@ Game design
 - Speed: `speedFactor: 1` (prototype pace). Prefer income too high over too low; price things in hours of play.
 - Core-draw pity scales with contribution tier (3 / 4 / 5 / 6 empty kills, top tier to none).
 - NPC crewmates (stand-ins) fill at most 50% of a contract, only from Friday until the raid opens.
+- Economy is priced in H = one hour of level-40 income (`H`/`ECON` in engine data.ts): raid payout 1.5 H per player at
+  full contribution (x1.25 per boss tier), 2.5% of each raid pool to the crew treasury, contracts pay 1.1x item value,
+  spec switch 3 H. Any rank can post crew requests. No refund for 3,000g first picks made at 70+ before 2026-11-08.
 - Navigation: Workshop, Stores (Mine/Crew), Market, War Room (Loadout/Hunt/Raid), Crew. The log opens as a sheet.
 - Name stays Guildwright.
 Tech

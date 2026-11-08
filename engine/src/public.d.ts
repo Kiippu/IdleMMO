@@ -28,6 +28,7 @@ export interface EngineContext {
 // Treasury: E.crewGold(state) → CrewGold; E.treasury(state) → TreasuryView; E.treasuryLog(state) → TreasuryLogEntry[].
 // Spec: E.spec(state) → SpecInfo; E.specCooldown(state) → SpecCooldown; E.switchSpec(state, skillId) → SwitchSpecResult;
 //   E.skillProgress(state, skillId) → SkillProgress.
+// Raid recap payout gains: gold (player's share), pool, perAttendee, capped, turnout, contribution.
 // Pace: E.actionTime(state, actionId) → seconds per rep (THE time-per-rep function);
 //   E.incomePerHour(state, actionId) → gold/hour selling the outputs at Standard value after tax.
 // Removed in 2.5: startRaidNow, runRaid, raidStatus().canStartNow, farmRaids, runFarmRaid, setViewAsMember,
@@ -108,6 +109,14 @@ export const ctx: EngineContext;
 
 /** Static game content. */
 export const DATA: any;
+
+/** Economy unit: one hour of a typical level-40 player's income, in gold (see data.ts). */
+export const H: number;
+/** Hour-based economy knobs that every hours-priced amount derives from. */
+export const ECON: {
+  H: number; specSwitchHours: number; raidPayHours: number; raidTierGrowth: number;
+  raidTreasuryShare: number; raidCapAttendees: number; contractRewardMult: number;
+};
 
 declare const _default: typeof createEngine;
 export default _default;

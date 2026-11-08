@@ -24,7 +24,7 @@ import './state';
 
 export type { EngineContext, SaveStorage } from './context';
 export { mulberry32, memoryStorage, ctx } from './context';
-export { DATA } from './data';
+export { DATA, H, ECON } from './data';
 
 /** The engine object (GW.Engine in the prototype). */
 export const Engine: any = E;
