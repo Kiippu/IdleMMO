@@ -27,6 +27,13 @@ describe('dev shortcuts removed', () => {
 });
 
 describe('cut features', () => {
+  it('reputation is gone (state, contracts, fill results)', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    expect(s.rep).toBeUndefined();
+    expect(JSON.stringify(E.listContracts(s))).not.toMatch(/rep(Per|Paid|Units)|"pays"/);
+  });
+
   it('farm raids are gone (verbs, state, config)', async () => {
     const { E, mod } = await freshEngine();
     const s = E.newState();
@@ -45,15 +52,15 @@ describe('cut features', () => {
     expect(E.playerRank(s)).toBe('officer');
   });
 
-  it('weekly rollover posts contracts, not NPC requisitions', async () => {
+  it('weekly rollover posts town contracts, and no NPC requisitions exist', async () => {
     const h = await freshEngine();
     const s = h.E.newState();
-    const reqs0 = s.crew.requisitions.length;
     resolveRaidByClock(h, s);
     h.setNow(h.E.raidWindow(s).start + 3 * 86400000);
     h.E.tick(s, 1);
     expect(s.week).toBe(2);
-    expect(s.crew.requisitions.length).toBe(reqs0);
+    expect(s.crew.requisitions).toBeUndefined();
+    expect(s.crew.contracts.every((k: any) => k.source === 'town')).toBe(true);
     expect(s.crew.contracts.some((k: any) => k.week === 2 && k.status === 'open')).toBe(true);
   });
 });

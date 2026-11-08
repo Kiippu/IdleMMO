@@ -38,18 +38,18 @@ describe('treasury log covers every movement', () => {
     expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'withdraw', who: 'Mira', itemId: 'bread', qty: -2 });
   });
 
-  it('requisition escrow, cancel release and contract escrow are logged; free/escrow stay consistent', async () => {
+  it('contract escrow and release are logged with who paid; free/escrow stay consistent', async () => {
     const { E } = await freshEngine();
     const s = E.newState();
     const g0 = E.crewGold(s);
-    expect(E.postRequisition(s, { itemId: 'bread', qty: 5, rewardPer: 2 }).ok).toBe(true);
-    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'escrow', delta: 0, escrowDelta: 10 });
-    const g1 = E.crewGold(s);
-    expect(g1).toEqual({ free: g0.free - 10, escrowed: g0.escrowed + 10, total: g0.total });
-    const id = s.crew.requisitions[0].id;
-    expect(E.cancelRequisition(s, id).ok).toBe(true);
-    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'release', delta: 0, escrowDelta: -10 });
-    expect(E.crewGold(s)).toEqual(g0);
+    s.gold = 100;
+    const id = E.postCrewRequest(s, { itemId: 'bread', qty: 5, rewardPer: 2 }).contract.id;
+    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'contract-escrow', delta: 0, gold: 10, paidBy: 'You' });
+    expect(E.crewGold(s)).toEqual(g0); // a player-funded request doesn't touch the treasury
+    expect(E.cancelCrewRequest(s, id).ok).toBe(true);
+    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'contract-release', delta: 0, gold: 10, paidBy: 'You' });
+    expect(s.gold).toBe(100);
+    expect(s.crew.treasury.log.filter((e: any) => e.kind === 'contract-escrow' && e.paidBy === 'Treasury').length).toBeGreaterThan(0);
     // the log replays to the current split: sum of escrowDelta == escrowed
     const esc = s.crew.treasury.log.reduce((a: number, e: any) => a + (e.escrowDelta || 0), 0);
     expect(esc).toBe(E.crewGold(s).escrowed);

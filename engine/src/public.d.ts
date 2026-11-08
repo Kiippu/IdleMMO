@@ -22,38 +22,56 @@ export interface EngineContext {
 }
 
 // ---- Phase 2.5 shapes (save schema v6). Engine methods stay `any`-typed; these interfaces
-// describe what the new verbs return so the client can annotate its derived bundle.
-// Verbs: E.listContracts(state) → Contract[]; E.fillContract(state, contractId, qty) → FillContractResult;
-// E.crewGold(state) → CrewGold; E.treasury(state) → TreasuryView; E.treasuryLog(state) → TreasuryLogEntry[];
-// E.spec(state) → SpecInfo; E.specCooldown(state) → SpecCooldown; E.switchSpec(state, skillId);
-// E.skillProgress(state, skillId) → SkillProgress; E.actionTime(state, actionId) → seconds per rep.
-// Removed in 2.5: startRaidNow, runRaid, raidStatus().canStartNow, farmRaids, runFarmRaid, setViewAsMember.
+// describe what the verbs return so the client can annotate its derived bundle.
+// Contracts board: E.listContracts(state) → Contract[]; E.fillContract(state, contractId, qty) → FillContractResult;
+//   E.postCrewRequest(state, CrewRequestSpec) → PostCrewRequestResult; E.cancelCrewRequest(state, contractId) → CancelCrewRequestResult.
+// Treasury: E.crewGold(state) → CrewGold; E.treasury(state) → TreasuryView; E.treasuryLog(state) → TreasuryLogEntry[].
+// Spec: E.spec(state) → SpecInfo; E.specCooldown(state) → SpecCooldown; E.switchSpec(state, skillId) → SwitchSpecResult;
+//   E.skillProgress(state, skillId) → SkillProgress.
+// Pace: E.actionTime(state, actionId) → seconds per rep (THE time-per-rep function);
+//   E.incomePerHour(state, actionId) → gold/hour selling the outputs at Standard value after tax.
+// Removed in 2.5: startRaidNow, runRaid, raidStatus().canStartNow, farmRaids, runFarmRaid, setViewAsMember,
+//   postRequisition, cancelRequisition, fillRequisition, requisitions, neededByCrew, isNeededByCrew,
+//   markRequisitionsSeen, requisitionFromGap; state.rep and every reputation field.
 
-export type ContractPays = 'gold' | 'mixed' | 'reputation';
+export type ContractSource = 'town' | 'crew';
+export type ContractStatus = 'open' | 'filled' | 'closed' | 'cancelled';
 export interface Contract {
-  id: string; week: number; check: string; itemId: string; itemName: string;
+  id: string;
+  /** town = raid needs paid from the treasury; crew = a player's request paid from their own gold */
+  source: ContractSource;
+  /** where the escrow lives: crew treasury, or the posting player's gold */
+  payer: 'treasury' | 'player';
+  /** 'Treasury' or the posting player's name */
+  paidBy: string;
+  postedBy: string; week: number; check: string | null; itemId: string; itemName: string;
   qty: number; filled: number; remaining: number; minGrade: number;
-  rewardPer: number; repPer: number; escrow: number; paid: number; repPaid: number;
-  goldUnitsLeft: number; repUnits: number; pays: ContractPays;
-  status: 'open' | 'filled' | 'closed'; postedAt: number; note: string;
+  rewardPer: number; escrow: number; paid: number;
+  /** units it can still take now (limited by remaining qty AND by escrow) */
+  capacity: number;
+  status: ContractStatus; postedAt: number; note: string;
   have: number; vaultHas: number; recipeActionId: string | null;
+  /** your own crew request */
+  mine: boolean; canCancel: boolean;
   canFill: { ok: boolean; reason: string };
-  submissions: { who: string; qty: number; gold: number; rep: number; t: number }[];
+  submissions: { who: string; qty: number; gold: number; t: number }[];
 }
-export interface FillContractResult {
-  ok: boolean; reason: string; accepted: number; gold: number; rep: number;
-  partial?: boolean; status?: Contract['status'];
-}
+export interface FillContractResult { ok: boolean; reason: string; accepted: number; gold: number; partial?: boolean; status?: ContractStatus }
+export interface CrewRequestSpec { itemId: string; qty: number; rewardPer: number; minGrade?: number; note?: string }
+export interface PostCrewRequestResult { ok: boolean; reason: string; contract?: Contract; escrow?: number }
+export interface CancelCrewRequestResult { ok: boolean; reason: string; refunded: number }
 export interface CrewGold { free: number; escrowed: number; total: number }
-export type TreasuryLogKind = 'payout' | 'contract' | 'contract-escrow' | 'contract-release' | 'fill' | 'escrow'
-  | 'release' | 'deposit' | 'withdraw' | 'raid-stock';
+export type TreasuryLogKind = 'payout' | 'contract' | 'contract-escrow' | 'contract-release' | 'release'
+  | 'deposit' | 'withdraw' | 'raid-stock';
 export interface TreasuryLogEntry {
-  /** time in ms (legacy `at` is normalised to `t` on load) */
+  /** game-clock time in ms (legacy `at` is normalised to `t` on load) */
   t: number; week: number; kind: TreasuryLogKind | string; who: string; reason: string;
-  /** change in total crew gold (free + escrowed) */
+  /** change in total crew gold (free + escrowed); 0 for player-funded crew requests */
   delta: number;
-  /** change in escrowed gold; free-gold change = delta - escrowDelta */
+  /** change in escrowed treasury gold; free-gold change = delta - escrowDelta */
   escrowDelta?: number;
+  /** contract rows: gold paid / escrowed / released, and who funded it ('Treasury' or a player) */
+  gold?: number; paidBy?: string;
   /** item rows: signed qty (+ into the vault, - out) */
   itemId?: string; qty?: number; grade?: number;
   /** gear rows */
@@ -63,8 +81,14 @@ export interface TreasuryView extends CrewGold { gold: number; escrow: number; l
 export interface SpecCooldown { ms: number; /** "Xd Yh", never seconds */ text: string; ready: boolean }
 export interface SpecInfo {
   skillId: string | null; lastSwitchAt: number | null; cooldownMs: number; cooldownText: string;
-  cost: number; capLevel: number; /** skills held at the level-70 effective cap (XP kept) */ capped: string[];
+  /** what the next pick costs: 0 for the first pick, else switchCost */
+  cost: number; switchCost: number; firstPickFree: boolean; capLevel: number;
+  /** profession skills at level 70+ you could pick (excludes the current spec) */
+  eligible: string[];
+  /** profession skills held at effective 70 with XP past it */
+  capped: string[];
 }
+export interface SwitchSpecResult { ok: boolean; reason: string; cost?: number; first?: boolean; cooldownMs?: number; cooldownText?: string }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */

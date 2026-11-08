@@ -121,14 +121,14 @@ E.badges = function (state) {
   const rf = E.readinessFlags(state); const last = E.lastRecap(state);
   const raidOn = rf.badge || !!(last && !last.seen && last.week === state.week);
   const inc = E.loadouts(state).filter((l) => !l.complete);
-  const newReqs = E.requisitions(state).filter((r) => r.status === 'open' && r.isNew && r.canFill.ok);
+
   const pend = arr(state.crew && state.crew.withdrawRequests).filter((r) => r.status === 'pending' && !r.isYou);
   const canAnswer = E.can(state, 'withdraw').ok;
   const fillable = E.listContracts(state).filter((k) => k.canFill.ok);
-  const count = newReqs.length + fillable.length + (canAnswer ? pend.length : 0);
+  const count = fillable.length + (canAnswer ? pend.length : 0);
   return { raid: { on: raidOn, reason: rf.badge ? rf.reasons[0] : raidOn ? 'Raid recap ready.' : '' },
     kit: { on: inc.length > 0, reason: inc.length ? `${inc[0].name} is incomplete.` : '' },
-    crew: { on: count > 0, count, reason: fillable.length ? 'A town contract you can fill.' : newReqs.length ? 'New requisition you can fill.' : count ? 'A crewmate is asking for a withdrawal.' : '' } };
+    crew: { on: count > 0, count, reason: fillable.length ? 'A contract you can fill.' : count ? 'A crewmate is asking for a withdrawal.' : '' } };
 };
 
 // compat preview (v3 raid screen)

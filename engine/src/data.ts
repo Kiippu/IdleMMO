@@ -500,7 +500,8 @@ export const DATA: any = {
     checkpoints: [0.25, 0.5, 0.75],
     tierShares: { bronze: 0.5, silver: 1.0, gold: 2.0 },   // x fair share (1 / population)
     tierTickets: { floor: 1, bronze: 2, silver: 4, gold: 8 },
-    corePityMax: 3,               // kills joined without a core before one is guaranteed
+    corePityMax: 3,               // fallback; see corePityByTier
+    corePityByTier: { gold: 3, silver: 4, bronze: 5, none: 6 }, // empty joined kills before a guaranteed core, by contribution tier
     auraTierAttendance: [6, 12, 20], // doc: 10/25/50; scaled for the prototype's ~16-member crews
     auraStrength: [0, 0.04, 0.08, 0.12],
     faintFrames: 3,               // 30 min at camp
@@ -510,12 +511,14 @@ export const DATA: any = {
     crewGoldCap: 180,             // x boss tier
     weekBuffs: [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }, { kind: 'tax', value: 0.02, label: 'Market tax 2%' }],
     crewStartTreasury: 120,
-    // phase 2.5: town contracts (generated each Monday from what the coming raid needs)
-    contractBudgetShare: 0.6,     // share of free treasury gold escrowed for contract rewards
-    contractRewardMult: 0.4,      // gold per unit = item value x this
-    contractRepPer: 1,            // reputation per unit once a contract's gold escrow runs out
-    contractNpcShare: 0.5,        // NPC crewmates fill at most this share of each contract
-    specSwitchCost: 3000,
+    // phase 2.5: town contracts (generated each Monday from what the coming raid needs). Gold only.
+    contractBudgetShare: 0.75,    // share of free treasury gold escrowed for town contract rewards
+    contractRewardMult: 0.5,      // gold per unit = item value x this
+    contractNpcShare: 0.5,        // NPC crewmates fill at most this share of each contract (Fri until the raid)
+    // ~3 hours of a typical level-40 player's income: the median, across the four gathering skills,
+    // of each skill's best level-40 action sold at Standard value after tax (~14,800 g/h at speedFactor 1).
+    // Pinned by test/economy.test.ts (cost / hourly income must stay within 2.5-3.5).
+    specSwitchCost: 45000,
     // core draw: average tier tickets per server participant (floor ticket is added on top)
     serverAvgTierTickets: 2.6
   },

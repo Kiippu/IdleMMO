@@ -154,35 +154,6 @@ describe('treasury log', () => {
     expect(payout.who).toBe('Raid');
   });
 
-  it('writes a fill entry when a requisition is paid out to a submitter', async () => {
-    const { E } = await freshEngine();
-    const s = E.newState();
-    // Find an item that's stackable and available as a craft/refine recipe output, so we
-    // can grant ourselves some to fill a requisition.
-    const anyItemId = Object.keys(s.inv)[0];
-    expect(anyItemId).toBeTruthy();
-    // Post a requisition for it as leader (treasury has starting gold).
-    const r = E.postRequisition(s, { itemId: anyItemId, qty: 2, rewardPer: 10, minGrade: 0, note: 'test' });
-    expect(r.ok).toBe(true);
-    expect(s.crew.treasury.log[0].kind).toBe('escrow');
-    expect(s.crew.treasury.log[0].escrowDelta).toBe(20);
-    const openReq = s.crew.requisitions.find((x: any) => x.status === 'open');
-    expect(openReq).toBeDefined();
-    const logBefore = s.crew.treasury.log.length;
-    const fill = E.fillRequisition(s, openReq.id, 1);
-    expect(fill.ok).toBe(true);
-    expect(fill.paid).toBeGreaterThan(0);
-    // One new 'fill' entry, negative delta, who = 'You', carrying the item moved into the vault.
-    expect(s.crew.treasury.log.length).toBe(logBefore + 1);
-    const entry = s.crew.treasury.log[0];
-    expect(entry.kind).toBe('fill');
-    expect(entry.delta).toBe(-fill.paid);
-    expect(entry.escrowDelta).toBe(-fill.paid);
-    expect(entry.itemId).toBe(anyItemId);
-    expect(entry.qty).toBe(1);
-    expect(entry.who).toBe('You');
-  });
-
   it('caps the log at 200 entries (oldest drops)', async () => {
     const { E, setNow } = await freshEngine();
     const s = E.newState();

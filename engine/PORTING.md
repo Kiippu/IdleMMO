@@ -56,7 +56,7 @@ the prototype.
 | `raid-sim.ts` | Pure wave-by-wave fight simulation, timeline, moments. | 1596-1816 |
 | `raid-payouts.ts` | Payouts, chests, core odds, debrief, gap drafts, resolveRaid. | 1817-2027 |
 | `weekly.ts` | processClock, weekRollover, raid status, readiness, badges. (Dev clock, start-raid-now and farm raids removed.) | 2028-2229 |
-| `crew-economy.ts` | Vault, treasury + audit log, town contracts, player requisitions, feed, withdrawal flow, officer answers, crewEconomyStep, lock sim. | 2230-2570 |
+| `crew-economy.ts` | Vault, treasury + audit log, contracts board (town + crew requests), feed, withdrawal flow, officer answers, crewEconomyStep, lock sim. | 2230-2570 |
 | `state.ts` | Fresh state, save/load, `migrate` dispatch, clamp HP. | 2571-2694 |
 | `selftest.ts` | `E._test` (the prototype's headless smoke run, used by `test/legacy-selftest.test.ts` indirectly via the legacy vm). | 2695-3048 |
 | `index.ts` | Public entry. Imports modules in the legacy source order so side-effect `E.*` assignments happen in the same order; exports `createEngine`, `mulberry32`, `memoryStorage`, `DATA`. | (new) |
@@ -68,42 +68,58 @@ tokens dropped (there is no `supply.ts` any more; v4 `state.supply` and `state.t
 are stripped on load), one idle action slot, NPC crewmates, first treasury log.
 
 Phase 2.5 (save schema **v6**):
-- **Town contracts** (`crew-economy.ts`): each Monday (and on a fresh/migrated save
-  with none for the current week) `postContracts` turns raid needs into contracts:
-  food + healing potions from `E.crewReadiness`, plus buff potions for last weekend's
-  debrief gaps (or the crew's weakest check). Reward = item value x
-  `contractRewardMult`, escrowed from free treasury gold up to `contractBudgetShare`;
-  units past the escrow pay `contractRepPer` reputation (`state.rep`). Items go to the
-  crew vault only. The raid closes the week's contracts and releases unspent escrow.
-  NPCs fill at most `contractNpcShare` of each contract, every 30-60 min.
-  Verbs: `E.listContracts`, `E.fillContract(state, id, qty)` (partial fills allowed).
-- **NPC auto-posted requisitions cut**: `crewWeekly` no longer posts them; open ones
-  on old saves are cancelled and their escrow released (logged). Player-posted
-  requisitions remain (open question: merge with contracts?).
-- **Treasury log** covers every movement: contract fills/escrow/release, requisition
-  escrow/fill/release, vault item and gear deposits/withdrawals (incl. approved
-  crewmate requests), raid stock used, raid payouts. Entries use `t`; legacy `at` is
-  normalised on load. `delta` = change in total crew gold, `escrowDelta` = change in
-  escrow, item rows carry `itemId` + signed `qty`. Cap raised to 200. `E.crewGold`
-  returns `{ free, escrowed, total }`.
-- **Specialization**: XP is no longer clamped. `state.spec.capped` lists former spec
-  skills; `E.skillLevel` caps their effective level at 70 and switching back lifts it.
-  `E.specCooldown` gives `{ ms, text: "Xd Yh" }`.
+- **Contracts board** (`crew-economy.ts`), gold only (reputation removed: `state.rep` and
+  every rep field are stripped on load). Two sources on one board:
+  `town` contracts are generated each Monday (and on a fresh/migrated save with none for the
+  week) from raid needs: food + healing potions from `E.crewReadiness`, plus buff potions for
+  last weekend's debrief gaps (or the crew's weakest check). Reward = item value x
+  `contractRewardMult` (0.5), funded from up to `contractBudgetShare` (75%) of free treasury
+  gold; a contract is only posted for the units the escrow covers. The raid closes town
+  contracts and releases unspent escrow.
+  `crew` requests are posted by a player (`E.postCrewRequest`) and paid from that player's own
+  escrowed gold (`payer: 'player'`, outside the treasury); `E.cancelCrewRequest` refunds what is
+  left. They stay open across weeks.
+  `E.fillContract(state, id, qty)` fills either kind (not your own request); partial fills are
+  allowed; a contract never takes items it can't pay for and closes when its escrow runs out.
+  Items go to the crew vault only. NPCs fill at most `contractNpcShare` (50%) of each contract,
+  every 30-60 min, only from Friday (game clock) until the raid window opens.
+- **Requisitions merged into the board.** The separate requisition verbs are gone. On load,
+  `migrateRequisitions` turns open player-posted requisitions with a reward into `crew`
+  contracts that keep their treasury escrow (`payer: 'treasury'`, capped to what the escrow
+  pays for); reward-free and NPC-posted ones are closed with their escrow released (logged).
+  `crew.requisitions`, `seenReqIds`, `reqSimIn` are then deleted.
+- **Treasury log** covers every movement: contract escrow/fill/release (with `gold` and
+  `paidBy`: 'Treasury' or the paying player), vault item and gear deposits/withdrawals (incl.
+  approved crewmate requests), raid stock used, raid payouts. Entries use the game clock `t`;
+  legacy `at` is normalised on load. `delta` = change in total crew gold (0 for player-funded
+  rows), `escrowDelta` = change in treasury escrow, item rows carry `itemId` + signed `qty`.
+  Cap 200. `E.crewGold` returns `{ free, escrowed, total }`.
+- **Specialization**: profession skills (gathering/refining/crafting) level to 70 for everyone;
+  every non-spec profession skill is held at EFFECTIVE 70 while XP keeps accruing. Combat skills
+  are never capped and can't be a spec. A spec needs a profession skill at raw level 70+. The
+  first pick is free with no cooldown; switching costs `specSwitchCost` (45,000g ≈ 3 h of a
+  typical level-40 income, pinned by `test/economy.test.ts`) and a one-week game-clock cooldown;
+  switching back restores the full level. `spec.capped` is gone. Migration: a spec on a skill
+  below 70 (or a combat skill) is cleared, the cooldown reset and `LEGACY_SPEC_CHARGE` (3,000g,
+  what every old pick cost) refunded once.
 - **Raid stock** (`raid-sim.ts`): the sim draws vault food/potions one unit at a time
   when a member needs it (own food gone, about to faint, player below eat-at with an
   empty pouch, revive) plus one buff potion per member for their role. Each unit
   credits that member's contribution on the running check. `resolveRaid` removes
   exactly `sim.vaultConsumed` and logs `raid-stock` rows; the recap has `crewStock`.
 - **Core odds**: the +0.8 token share is gone from `serverTickets`; per-participant
-  tickets = floor + `serverAvgTierTickets` (2.6).
-- **Speed**: `speedFactor: 1` (prototype pace); offline stays 12 h at 10%.
-  `E.actionTime` is the one time-per-rep function (the active card reads it too).
+  tickets = floor + `serverAvgTierTickets` (2.6). Pity scales with tier
+  (`corePityByTier`: gold 3, silver 4, bronze 5, none 6 empty joined kills).
+- **Speed**: `speedFactor: 1` (prototype pace; the first 10 levels are pinned to the legacy
+  build in `test/economy.test.ts`); offline stays 12 h at 10%. `E.actionTime` is the one
+  time-per-rep function; `E.incomePerHour` prices an action in gold/hour.
 - **Removed**: `startRaidNow`, `runRaid`, `raidStatus().canStartNow`, farm raids
   (`farmRaids`, `runFarmRaid`, `state.raid.farm`, `farm*` config), the "view as member"
   toggle (`setViewAsMember`, `crew.viewAsMember`). There is no dev clock setter; tests
   move the injected `ctx.now` (see `test/engine-helpers.ts`).
-- Save fixtures: `test/fixtures/v4-save.json` (written by the legacy prototype) and
-  `test/fixtures/v5-phase2-save.json` (phase-2 TS engine) must keep loading.
+- Save fixtures: `test/fixtures/v4-save.json` (legacy prototype), `v5-phase2-save.json`
+  (phase-2 TS engine) and `v6-phase25-save.json` (first phase-2.5 engine, with rep and
+  requisitions) must keep loading.
 
 Everything in `data.ts` (items, recipes, bosses, raid roles, affixes, etc.) is
 left alone until the design updates land; adding or renaming items would break

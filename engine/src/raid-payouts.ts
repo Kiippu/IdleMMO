@@ -131,8 +131,8 @@ export function resolveRaid(state, opts, events) {
       });
     });
   }
-  // the raid has happened: this week's contracts close and any unspent escrow goes back
-  closeContracts(state, 'Raid over');
+  // the raid has happened: this week's town contracts close and any unspent escrow goes back
+  closeContracts(state, 'Raid over', 'town'); // crew requests stay open
   // Crew treasury gold by turnout AND contribution (never by boss HP).
   // avgContribution = crew's filled share of expected-per-attendee work, clamped 0..1.
   // crewHave aggregates the crew's actual check fill across waves; crewNeed is the fair-share
@@ -226,7 +226,7 @@ export function coreOddsFor(state, rec, boss, cumTier) {
   // Stage C enriches the tier basis to also account for pouch submissions via contracts.
   const breakdown = { floor: rec.joinedWeekends > 0 ? num(tk.floor, 1) : 0, tier: num(tk[cumTier], 0) };
   const tickets = breakdown.floor + breakdown.tier;
-  const pity = num(state.raid.corePity, 0); const pityMax = num(cfg().corePityMax, 3);
+  const pity = num(state.raid.corePity, 0); const pityMax = pityMaxFor(cumTier);
   // Phase 2.5: raid tokens are gone, so the old +0.8 token share is dropped. Every participant
   // holds the floor ticket plus, on average, cfg.serverAvgTierTickets from their tier.
   const parts = Math.round(num(state.server.pop, 1200) * num(cfg().serverTurnout, 0.85));
@@ -236,6 +236,9 @@ export function coreOddsFor(state, rec, boss, cumTier) {
   const chance = tickets <= 0 ? 0 : pity >= pityMax ? 1 : clamp(1 - Math.pow(1 - eff / (serverTickets + eff), cores), 0, 1);
   return { tickets, breakdown, tier: cumTier, serverTickets: Math.round(serverTickets), cores, chance, pity, pityMax, guaranteed: tickets > 0 && pity >= pityMax, coreItemId: boss.coreItem || null };
 }
+// Pity scales with contribution tier: a guaranteed core after this many empty joined kills
+// (gold 3, silver 4, bronze 5, no tier 6).
+export function pityMaxFor(tier) { const m = cfg().corePityByTier || {}; return Math.max(0, Math.floor(num(m[tier], num(cfg().corePityMax, 3)))); }
 export function serverTicketsPerPlayer() { const tk = cfg().tierTickets || { floor: 1 }; return num(tk.floor, 1) + num(cfg().serverAvgTierTickets, 2.6); }
 E.coreOdds = function (state) {
   const boss = E.currentBoss(state); const rec = curRecord(state);

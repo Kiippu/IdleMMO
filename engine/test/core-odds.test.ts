@@ -41,8 +41,8 @@ describe('core-draw odds without tokens', () => {
         tier, tickets: t,
         beforeFirst: chance(t, 0, cfg.corePityMax, parts, before, boss.cores),
         afterFirst: chance(t, 0, cfg.corePityMax, parts, after, boss.cores),
-        beforeSteady: steadyRate(t, cfg.corePityMax, parts, before, boss.cores),
-        afterSteady: steadyRate(t, cfg.corePityMax, parts, after, boss.cores),
+        beforeSteady: steadyRate(t, 3, parts, before, boss.cores), // old rule: flat pity 3 for every tier
+        afterSteady: steadyRate(t, cfg.corePityByTier[tier], parts, after, boss.cores),
       };
     });
     const avg = (k: keyof typeof rows[0]) => rows.reduce((a, r) => a + (r[k] as number), 0) / rows.length;
@@ -67,7 +67,17 @@ describe('core-draw odds without tokens', () => {
     const serverWide = parts * (1 - Math.pow(1 - after / (parts * after), boss.cores));
     expect(serverWide).toBeGreaterThan(boss.cores * 0.95);
     expect(serverWide).toBeLessThanOrEqual(boss.cores);
-    // pity still guarantees a core within corePityMax + 1 joined kills
-    rows.forEach((r) => expect(r.afterSteady).toBeGreaterThanOrEqual(1 / (cfg.corePityMax + 1)));
+    // pity scales with tier: a guaranteed core within pityMax + 1 joined kills, and a higher tier
+    // now earns clearly more cores over time (gold ~1.6x no tier, was ~1.1x with flat pity)
+    rows.forEach((r) => expect(r.afterSteady).toBeGreaterThanOrEqual(1 / (cfg.corePityByTier[r.tier] + 1)));
+    const by = (t: string) => rows.find((r) => r.tier === t)!.afterSteady;
+    expect(by('gold')).toBeGreaterThan(by('silver'));
+    expect(by('silver')).toBeGreaterThan(by('bronze'));
+    expect(by('bronze')).toBeGreaterThan(by('none'));
+    expect(by('gold') / by('none')).toBeGreaterThan(1.5);
+    // the engine applies the tier's pity
+    const ce = await import('../src/raid-payouts');
+    expect(ce.pityMaxFor('gold')).toBe(3); expect(ce.pityMaxFor('silver')).toBe(4);
+    expect(ce.pityMaxFor('bronze')).toBe(5); expect(ce.pityMaxFor('none')).toBe(6);
   });
 });
