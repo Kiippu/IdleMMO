@@ -1,6 +1,6 @@
 <script lang="ts">
   import { DATA } from '@guildwright/engine';
-  import { fmtG } from '../format';
+  import { fmtG, hasPayout } from '../format';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
 
@@ -202,11 +202,13 @@
       <h3>Last recap</h3>
       <article class="recap">
         <p class="meta">Week {snap.raid.last.week}{snap.raid.last.result ? ` · ${snap.raid.last.result}` : ''}</p>
-        <p class="yourgold">Your gold: <span class="brass">+{fmtG(pay?.gold ?? snap.raid.last.gold ?? 0)}</span></p>
-        {#if pay}
+        {#if hasPayout(pay)}
+          <p class="yourgold">Your gold: <span class="brass">+{fmtG(pay.gold ?? 0)}</span></p>
           <p class="meta">
-            Pool {fmtG(pay.pool ?? 0)} · turnout {pct(pay.turnout)} · your contribution {pct(pay.contribution)}{pay.capped ? ' · crew cap reached' : ''}
+            Pool {fmtG(pay.pool)} · turnout {pct(pay.turnout)} · your contribution {pct(pay.contribution)}{pay.capped ? ' · crew cap reached' : ''}
           </p>
+        {:else if snap.raid.last.gold}
+          <p class="meta">Gold: {fmtG(snap.raid.last.gold)}</p>
         {/if}
         {#if snap.raid.last.xp}<p class="meta">XP: {Math.round(snap.raid.last.xp)}</p>{/if}
         {#if snap.raid.last.crewStock}
