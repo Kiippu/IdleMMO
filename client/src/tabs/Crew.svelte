@@ -2,6 +2,7 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
+  import { fmtG } from '../format';
 
   let sub = $state<'roster' | 'jobs' | 'contracts' | 'treasury'>('roster');
   let snap = $derived(engine.snapshot);
@@ -16,7 +17,6 @@
   let spec = $derived(view?.spec ?? null);
   let cooldown = $derived(view?.specCooldown ?? { ms: 0, text: '', ready: true });
   let gold = $derived(Math.floor(snap?.gold ?? 0));
-  const fmtG = (n: number) => `${Math.floor(n).toLocaleString('en-US')}g`;
   const skillList: { id: string; name: string }[] = (DATA as any).skills;
   const skillName = (id: string) => skillList.find((k) => k.id === id)?.name ?? id;
   let pickSkill = $state('');
@@ -60,7 +60,7 @@
     if (!confirm(`Specialize in ${skillName(pickSkill)} ${first ? 'for free' : `for ${fmtG(spec.cost)}`}? ${spec.skillId ? `${skillName(spec.skillId)} drops to level ${spec.capLevel} (XP kept). ` : ''}You can't switch again for a week.`)) return;
     try {
       const res = await engineClient.switchSpec(pickSkill);
-      msg = res && res.ok === false ? (res.reason || 'Could not switch.') : 'Specialization changed.';
+      msg = res && res.ok === false ? (res.reason || 'Could not switch.') : `Specialized in ${skillName(pickSkill)}.`;
       if (!res || res.ok !== false) pickSkill = '';
     } catch (err) { console.error('switchSpec failed', err); }
   }
@@ -141,7 +141,7 @@
         <p class="meta first">
           {spec.skillId ? `Specialized in ${skillName(spec.skillId)}.` : 'Not specialized yet.'}
         </p>
-        {#if (spec.eligible ?? []).length === 0}
+        {#if !spec.skillId && (spec.eligible ?? []).length === 0}
           <p class="meta">Reach level {spec.capLevel} in a skill to specialise.</p>
         {:else}
           <p class="meta">
@@ -149,12 +149,13 @@
             {cooldown.ready ? '' : `Next switch in ${cooldown.text}.`} You have <span class="brass">{fmtG(gold)}</span>.
           </p>
           <div class="row sub">
-            <select bind:value={pickSkill} aria-label="New specialization">
-              <option value="">Choose a skill</option>
+            <select bind:value={pickSkill} aria-label="New specialization" disabled={(spec.eligible ?? []).length === 0}>
+              <option value="">{(spec.eligible ?? []).length === 0 ? 'No other skill at level ' + spec.capLevel : 'Choose a skill'}</option>
               {#each spec.eligible as id (id)}<option value={id}>{skillName(id)}</option>{/each}
             </select>
             <button type="button" class="action-btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
           </div>
+          {#if (spec.eligible ?? []).length === 0}<p class="meta">Reach level {spec.capLevel} in another skill to switch.</p>{/if}
         {/if}
         {#if msg}<p class="meta">{msg}</p>{/if}
       </article>
@@ -287,13 +288,13 @@
             <div class="row">
               <span class="name">{#if entry.itemId || entry.uid}{entry.qty < 0 ? '−' : '+'} {rowText(entry)}{:else}{entry.who ?? 'Crew'}{/if}</span>
               {#if entry.delta || entry.gold}
-                {@const amt = entry.delta || entry.gold}
-                <span class={`delta ${entry.delta ? (amt > 0 ? 'pos' : 'neg') : 'plain'}`}>
-                  {entry.delta && amt > 0 ? '+' : ''}{fmtG(amt)}
+                {@const sgn = entry.delta ? Math.sign(entry.delta) : entry.kind === 'contract-escrow' ? -1 : entry.kind === 'contract-release' ? 1 : 0}
+                <span class={`delta ${sgn > 0 ? 'pos' : sgn < 0 ? 'neg' : 'plain'}`}>
+                  {sgn > 0 ? '+' : sgn < 0 ? '−' : ''}{fmtG(Math.abs(entry.delta || entry.gold))}
                 </span>
               {/if}
             </div>
-            <p class="meta">{fmtAt(entry.t ?? entry.at)} · {entry.itemId || entry.uid ? `${entry.who ?? 'Crew'} · ` : ''}{entry.reason ?? entry.kind}{entry.paidBy ? ` · paid by ${entry.paidBy}` : ''}</p>
+            <p class="meta">{fmtAt(entry.t ?? entry.at)} · {entry.itemId || entry.uid ? `${entry.who ?? 'Crew'} · ` : ''}{entry.reason ?? entry.kind}{entry.paidBy && !(entry.reason ?? '').includes(entry.paidBy) ? ` · paid by ${entry.paidBy}` : ''}</p>
           </li>
         {/each}
       </ul>
