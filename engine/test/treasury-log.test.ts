@@ -91,3 +91,21 @@ describe('treasury log covers every movement', () => {
     expect(e.at).toBeUndefined();
   });
 });
+
+describe('treasury log uses the game clock', () => {
+  it('entry t (and contract/feed timestamps) follow nowOf(state), including the clock offset', async () => {
+    const { E, now } = await freshEngine();
+    const s = E.newState();
+    s.clock.offsetMs = 5 * 86400000; // game clock ahead of real time
+    s.inv.bread = [0, 3, 0, 0, 0];
+    E.vaultDeposit(s, 'bread', 1, 2);
+    expect(s.crew.treasury.log[0].t).toBe(now() + 5 * 86400000);
+    expect(s.crew.treasury.log[0].t).toBe(E.now(s));
+    expect(s.crew.feed[0].t).toBe(E.now(s));
+    const k = s.crew.contracts.find((x: any) => x.status === 'open');
+    s.inv[k.itemId] = [0, 1, 0, 0, 0];
+    E.fillContract(s, k.id, 1);
+    expect(s.crew.treasury.log[0].t).toBe(E.now(s));
+    expect(k.submissions[k.submissions.length - 1].t).toBe(E.now(s));
+  });
+});

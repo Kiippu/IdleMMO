@@ -21,7 +21,7 @@ The legacy single-file prototype is `index.html` at the repo root. It is the beh
   area to own and send follow-ups back to that agent. Use a fresh agent for independent review/testing.
   Parallel agents must not edit the same files. At the end of a session, list the agents used and what each owned.
 - Commit and push to GitHub. Work on branches; don't push to `main` without asking.
-- Builds must keep existing player saves working (save schema v4 in localStorage today; `migrate()` handles v1, v3).
+- Builds must keep existing player saves working (save schema v6 in IndexedDB since phase 2.5; `migrate()` loads v1, v3, v4, v5, v6; fixtures in `engine/test/fixtures/`).
 - Test at phone width (max 460px column) in light and dark mode.
 
 ## Settled decisions (don't reopen unless asked)
@@ -73,6 +73,13 @@ Art and UI
 3. Art and credits. 4. Accounts and cloud save. 5. Shared world (Durable Objects, WebSockets, Cron raids).
 6. Launch (move to Workers Paid, payments, quality pass).
 Also: remove dev-only tools before players see them (devSetClock / Raid "next week" button, crew "Testing" panel).
+
+## Phase 2.5 (2026-11-08) — rules fixes on `rebuild/phase-2.5` (not merged)
+Plan: `docs/phase-2.5-plan.md`. Done: town contracts (Crew → Contracts; gold from escrow then reputation; items to
+crew vault only), spec switch (XP kept, effective cap 70, 3,000g, 1-week cooldown shown "Xd Yh"), full treasury log
+(game-clock `t`, items × qty, gear, escrow, raid stock, payouts), core odds without tokens, vault stock used in raids
+credits the member's contribution, `speedFactor: 1` with `E.actionTime` used by list + active card, dev raid start
+removed, cuts (farm raids, view-as-member, NPC-posted requisitions). Save schema v6. Engine 74 tests, client 15.
 
 ## Current state (2026-11-07) — phase 2 feature-complete on `rebuild/phase-2`
 Phase 1 is merged to `main` (`445cb69`); `rebuild/phase-2` is cut from there and pushed, 12 commits on top.

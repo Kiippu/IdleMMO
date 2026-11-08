@@ -2,7 +2,6 @@
 // Ported from legacy/engine.js lines 2230-2570. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { ctx } from './context';
 import { E, SLOTS, D, arr, num, cfg, grades, item, allActions, bosses, rand, clamp, randInt, pick, lcFirst, itemName, isStackable, nextId } from './core';
 import { addItem } from './inventory';
 import { findGear, clampHp } from './gear';
@@ -18,7 +17,7 @@ import { gapItem, gapDraft } from './raid-payouts';
 export function feedPush(state, kind, who, text) {
   const cr = state.crew; if (!cr) return null;
   if (!Array.isArray(cr.feed)) cr.feed = [];
-  const e = { t: ctx.now(), kind, who: who || 'You', text };
+  const e = { t: nowOf(state), kind, who: who || 'You', text };
   cr.feed.unshift(e); if (cr.feed.length > FEED_CAP) cr.feed.length = FEED_CAP;
   return e;
 }
@@ -36,7 +35,7 @@ export function logTreasury(state, kind, delta, who, reason, extras?) {
   const esc = num(extras.escrowDelta, 0);
   if (!delta && !esc && !extras.itemId) return null;
   if (!Array.isArray(cr.treasury.log)) cr.treasury.log = [];
-  const e: any = { t: ctx.now(), week: num(state.week, 1), kind, who: who || 'You', delta: num(delta, 0), reason };
+  const e: any = { t: nowOf(state), week: num(state.week, 1), kind, who: who || 'You', delta: num(delta, 0), reason };
   if (esc) e.escrowDelta = esc;
   if (extras.itemId) { e.itemId = extras.itemId; if (extras.qty != null) e.qty = extras.qty; if (extras.grade != null) e.grade = extras.grade; if (extras.uid) { e.uid = extras.uid; e.gear = true; } }
   cr.treasury.log.unshift(e); if (cr.treasury.log.length > TREASURY_LOG_CAP) cr.treasury.log.length = TREASURY_LOG_CAP;
@@ -144,7 +143,7 @@ E.requestWithdrawal = function (state, spec, note) {
   if (spec.uid) { if (!findVaultGear(state, spec.uid)) return { ok: false, reason: 'That item is not in the vault.' }; }
   else { if (!item(spec.itemId)) return { ok: false, reason: 'Unknown item.' }; if (!(num(spec.qty, 0) >= 1)) return { ok: false, reason: 'Ask for at least 1.' }; }
   const req = { id: nextId(state, 'W'), who: 'You', isYou: true, itemId: spec.uid ? null : spec.itemId, grade: spec.grade == null ? null : clamp(Math.floor(spec.grade), 0, 4), qty: spec.uid ? 1 : Math.floor(spec.qty), uid: spec.uid || null,
-    note: String(note || '').slice(0, 80), t: ctx.now(), status: 'pending', answeredBy: null, answerIn: randInt(45, 100) };
+    note: String(note || '').slice(0, 80), t: nowOf(state), status: 'pending', answeredBy: null, answerIn: randInt(45, 100) };
   cr.withdrawRequests.unshift(req); cr.withdrawRequests = cr.withdrawRequests.slice(0, 20);
   feedPush(state, 'request', 'You', `Asked an officer for ${spec.uid ? E.gearName(findVaultGear(state, spec.uid)) : req.qty + ' ' + itemName(req.itemId)}.`);
   return { ok: true, reason: '', request: Object.assign({}, req) };
@@ -190,7 +189,7 @@ export function postReq(state, d, who, source) {
   cr.treasury.gold -= escrow; cr.treasury.escrow += escrow;
   if (escrow) logTreasury(state, 'escrow', 0, who, `Escrowed ${escrow}g for a ${itemName(d.itemId)} requisition`, { escrowDelta: escrow });
   const req = { id: nextId(state, 'Q'), itemId: d.itemId, qty: d.qty, rewardPer: d.rewardPer, minGrade: d.minGrade, note: d.note || '', filled: 0, escrow, paid: 0,
-    postedBy: who, postedAt: ctx.now(), week: state.week, source, status: 'open', submissions: [] };
+    postedBy: who, postedAt: nowOf(state), week: state.week, source, status: 'open', submissions: [] };
   cr.requisitions.unshift(req); cr.requisitions = cr.requisitions.slice(0, 24);
   feedPush(state, 'requisition', who, `Posted a requisition: ${d.qty} ${itemName(d.itemId)}${d.rewardPer ? ` at ${d.rewardPer}g each (${escrow} escrowed)` : ''}.`);
   return req;
@@ -223,7 +222,7 @@ export function submitToReq(state, r, who, grades) { // grades: [{grade, qty}] a
   const pay = Math.min(r.escrow, qty * r.rewardPer);
   r.escrow -= pay; cr.treasury.escrow -= pay; r.paid += pay; r.filled += qty;
   grades.forEach((g) => invAdd(cr.vault.inv, r.itemId, g.grade, g.qty));
-  r.submissions.push({ who, qty, grade: grades[0] ? grades[0].grade : 1, paid: pay, t: ctx.now() });
+  r.submissions.push({ who, qty, grade: grades[0] ? grades[0].grade : 1, paid: pay, t: nowOf(state) });
   if (pay > 0) econ(state, 'reqPaid', pay);
   logTreasury(state, 'fill', -pay, who, `Filled ${qty} ${itemName(r.itemId)}`, { escrowDelta: -pay, itemId: r.itemId, qty });
   feedPush(state, 'payout', who, `${who} filled ${qty} ${itemName(r.itemId)}${pay ? `, +${pay}g` : ''}`);
@@ -315,7 +314,7 @@ export function crewEconomyStep(state, dt, events) {
     const v = Object.keys(cr.vault.inv).filter((id) => invCount(cr.vault.inv, id) > 0);
     if (v.length && cr.members.length && cr.withdrawRequests.filter((w) => w.status === 'pending' && !w.isYou).length < 2) {
       const id = pick(v); const m = pick(cr.members.filter((x) => x.rank !== 'leader').concat(cr.members.slice(0, 1)));
-      cr.withdrawRequests.unshift({ id: nextId(state, 'W'), who: m.name, isYou: false, itemId: id, grade: null, qty: Math.min(invCount(cr.vault.inv, id), randInt(1, 3)), uid: null, note: 'For the raid', t: ctx.now(), status: 'pending', answeredBy: null });
+      cr.withdrawRequests.unshift({ id: nextId(state, 'W'), who: m.name, isYou: false, itemId: id, grade: null, qty: Math.min(invCount(cr.vault.inv, id), randInt(1, 3)), uid: null, note: 'For the raid', t: nowOf(state), status: 'pending', answeredBy: null });
       cr.withdrawRequests = cr.withdrawRequests.slice(0, 20);
       events.push({ type: 'crewFeed', entry: feedPush(state, 'request', m.name, `Asked for ${itemName(id)} from the vault.`) });
     }
@@ -412,7 +411,7 @@ export function ensureV5(state) {
   const curDef = bosses()[r.ladder]; const fresh = !!curDef && !r.bosses[curDef.id];
   const cur = curRecord(state); if (cur && cur.revealedWeek == null && (fresh || cur.unlockedWeek < state.week)) cur.revealedWeek = state.week;
   if (!Array.isArray(state.loadouts)) state.loadouts = [];
-  state.loadouts = state.loadouts.filter((l) => l && l.id).map((l) => ({ id: String(l.id), name: String(l.name || 'Loadout'), slots: cleanSlots(state, l.slots), goal: l.goal || null, boundTo: l.boundTo || null, createdAt: num(l.createdAt, ctx.now()) }));
+  state.loadouts = state.loadouts.filter((l) => l && l.id).map((l) => ({ id: String(l.id), name: String(l.name || 'Loadout'), slots: cleanSlots(state, l.slots), goal: l.goal || null, boundTo: l.boundTo || null, createdAt: num(l.createdAt, nowOf(state)) }));
   if (!state.economy || typeof state.economy !== 'object') state.economy = { raidGold: 0, reqPaid: 0, weeks: [] };
   state.economy.weeks = arr(state.economy.weeks);
   ensureCrewV5(state);
@@ -468,7 +467,7 @@ export function postContracts(state, events) {
     const escrow = units * rewardPer; budget -= escrow;
     cr.treasury.gold -= escrow; cr.treasury.escrow += escrow;
     const k = { id: nextId(state, 'K'), week: state.week, check: n.check, itemId: n.itemId, qty: n.qty, filled: 0, minGrade: 1, rewardPer, repPer: Math.max(1, Math.floor(num(cfg().contractRepPer, 1))),
-      escrow, paid: 0, repPaid: 0, status: 'open', postedAt: ctx.now(), note: `${n.why}: ${n.qty} ${itemName(n.itemId)}`, submissions: [] };
+      escrow, paid: 0, repPaid: 0, status: 'open', postedAt: nowOf(state), note: `${n.why}: ${n.qty} ${itemName(n.itemId)}`, submissions: [] };
     if (escrow) logTreasury(state, 'contract-escrow', 0, 'Town', `Escrowed ${escrow}g for the ${itemName(n.itemId)} contract`, { escrowDelta: escrow });
     cr.contracts.unshift(k);
     if (events) events.push({ type: 'contractPosted', contractId: k.id });
@@ -494,7 +493,7 @@ export function submitToContract(state, k, who, grades) {
   const gold = goldUnits * k.rewardPer; const rep = (n - goldUnits) * num(k.repPer, 1);
   k.escrow -= gold; cr.treasury.escrow = Math.max(0, cr.treasury.escrow - gold); k.paid += gold; k.repPaid += rep; k.filled += n;
   grades.forEach((g) => invAdd(cr.vault.inv, k.itemId, g.grade, g.qty));
-  k.submissions.push({ who, qty: n, gold, rep, t: ctx.now() }); if (k.submissions.length > 40) k.submissions = k.submissions.slice(-40);
+  k.submissions.push({ who, qty: n, gold, rep, t: nowOf(state) }); if (k.submissions.length > 40) k.submissions = k.submissions.slice(-40);
   if (gold > 0) econ(state, 'reqPaid', gold);
   logTreasury(state, 'contract', -gold, who, `${who === 'You' ? 'You' : who} filled ${n} ${itemName(k.itemId)} (contract ${k.id})${gold ? `, paid ${gold}g` : ''}${rep ? `, ${rep} reputation` : ''}`, { escrowDelta: -gold, itemId: k.itemId, qty: n, grade: grades[0] ? grades[0].grade : null });
   feedPush(state, 'contract', who, `${who} filled ${n} ${itemName(k.itemId)} for the raid${gold ? `, +${gold}g` : ''}${rep ? `, +${rep} rep` : ''}.`);
