@@ -10,7 +10,7 @@ import { ROLE_CHECK, OFF_ROLE, ROLE_MIX, invCount } from './v4-helpers';
 import { mondayOf, addDays, dayKey, nowOf, ensureClock, weekNum, weekStartOf, windowFor } from './clock';
 import { curRecord, bossReq } from './server';
 import { statsFor, powersOf } from './stats';
-import { lockedNow, raidDoneThisWeek, lockWarnings, makeLock } from './raid-rules';
+import { lockedNow, raidDoneThisWeek, lockWarnings, makeLock, prepLock } from './raid-rules';
 import { grant, resolveRaid } from './raid-payouts';
 import { crewWeekly } from './crew-economy';
 
@@ -57,6 +57,7 @@ export function processClock(state, events) {
 }
 // Phase 2.5: the dev shortcuts startRaidNow / runRaid / canStartNow are gone. The weekend raid
 // resolves only on the game clock (processClock, at the crew's raid-window start).
+function prepFields(state) { const p = prepLock(state); return { prepPhase: p.phase, prepLocked: p.locked, prepReason: p.reason }; }
 E.raidStatus = function (state) {
   const now = nowOf(state); const w = windowFor(state, now); const live = now >= w.start && now < w.end;
   const resolved = raidDoneThisWeek(state); const cur = state.raid.current && state.raid.current.week === state.week ? state.raid.current : null;
@@ -69,7 +70,9 @@ E.raidStatus = function (state) {
     sittingOut: num(state.raid.satOutWeek, 0) === state.week,
     // game-clock ms of the start of the next raid the player can take part in (this week's window
     // while it is still to be fought, else next week's)
-    nextRaidAt: !resolved && now < w.end ? w.start : windowFor(state, addDays(mondayOf(now), 7)).start };
+    nextRaidAt: !resolved && now < w.end ? w.start : windowFor(state, addDays(mondayOf(now), 7)).start,
+    // War Room prep lock (gear, loadouts, Hunt rules): 'prep' | 'live' | 'recap'; locked only while live
+    ...prepFields(state) };
 };
 E.readinessFlags = function (state) {
   const now = nowOf(state); const w = windowFor(state, now); const secTo = (w.start - now) / 1000;

@@ -6,6 +6,7 @@ import { ctx } from './context';
 import { E, num, arr, cfg, skillDefs, clamp, logq, fmtGold } from './core';
 import { WEEK_MS } from './v4-helpers';
 import { nowOf } from './clock';
+import { pushEvent } from './events';
 
 // ---------------------------------------------------------------- skills / XP
 export const xpTable = [0, 0];
@@ -65,6 +66,7 @@ export function addXp(state, skillId, amount, events) {
     events.push({ type: 'levelup', skill: skillId, level: after });
     const def = skillDefs().find((d) => d.id === skillId);
     logq(state, 'level', `${def ? def.name : skillId} reached level ${after}.`);
+    pushEvent(state, 'skill', `${def ? def.name : skillId} reached level ${after}.`);
   }
   return amount;
 }

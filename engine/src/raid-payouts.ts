@@ -4,6 +4,7 @@
 /* eslint-disable */
 import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, itemName, nextId, fmtGold } from './core';
 import { addItem } from './inventory';
+import { pushEvent } from './events';
 import { findGear } from './gear';
 import { CHECK_LABEL, TIER_NAME, ROLE_MIX, mulberry, clone, roleDef, invTake, WORST } from './v4-helpers';
 import { nowOf, weekStartOf, windowFor } from './clock';
@@ -221,6 +222,11 @@ export function resolveRaid(state, opts, events) {
   if (joined) E.log(state, 'raid', won ? `${boss.name} defeated! ${recap.tierLabel} (${(share * 100).toFixed(3)}% share). ${cores.won ? 'You won a core!' : `${cores.tickets} core tickets, no core this time.`}`
     : `Raid on ${boss.name}: ${recap.tierLabel} (${(share * 100).toFixed(3)}% share), ${foodTotal} food eaten${sim.faints ? `, fainted ${sim.faints}x` : ''}. Boss left at ${Math.ceil(rec.hpLeft / rec.maxHp * 100)}%.`);
   chests.forEach((ch) => E.log(state, 'raid', `Server chest (${Math.round(ch.at * 100)}% checkpoint): ${ch.items.map((x) => x.qty + ' ' + itemName(x.itemId)).join(', ')}.`));
+  if (joined) {
+    pushEvent(state, 'raid', won ? `${boss.name} defeated! ${recap.tierLabel}.${cores.won ? ' You won a core!' : ''}` : `Raid on ${boss.name}: ${recap.tierLabel}. Boss left at ${Math.ceil(rec.hpLeft / rec.maxHp * 100)}%.`);
+    if (pay.player > 0) pushEvent(state, 'gold', `Raid payout: +${fmtGold(pay.player)}.`, { gold: pay.player });
+    recap.payout.items.forEach((x: any) => pushEvent(state, 'loot', `Raid loot: ${x.qty} ${itemName(x.itemId)}.`, { itemId: x.itemId, qty: x.qty, grade: x.grade }));
+  } else pushEvent(state, 'raid', `The crew fought ${boss.name} without you.`);
   events.push({ type: 'raidResolved', recapId: recap.id, won });
   return { recap, result, timeline: sim.timeline };
 }

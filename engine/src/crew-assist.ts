@@ -3,7 +3,8 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, rand, clamp, randInt, pick, shuffle, nextId, gradeOf, rarityIdx, rarityDef, logq, fmtGold } from './core';
+import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, rand, clamp, randInt, pick, shuffle, nextId, gradeOf, rarityIdx, rarityDef, logq, fmtGold, flags, itemName } from './core';
+import { pushEvent } from './events';
 import { addXp } from './skills';
 import { rarityOdds } from './actions';
 import { schedule } from './clock';
@@ -95,6 +96,8 @@ export function jobCraft(state, job, act, helping, events) {
   const xp = num(act.xp, 0) * num(cfg().xpMult, 1) * 0.75;
   events.push({ type: 'assist', jobId: job.id, owner: job.owner, actionId: act.id, xp, items: it ? [{ itemId: outId, grade, qty: q }] : [], rarity });
   addXp(state, act.skill, xp, events);
+  if (!flags.quiet) pushEvent(state, 'crew', `Helped ${job.owner} make 1 ${itemName(outId)}.`, { itemId: outId, qty: 1 }, 'assist:' + job.id,
+    (e) => `Helped ${job.owner} make ${e.qty} ${itemName(outId)}.`);
   if (rarity && rarityIdx(rarity) >= 2) logq(state, 'craft', `${job.owner}'s ${it.name} came out ${rarityDef(rarity).name}. You helped!`);
 }
 export function finishJob(state, job, act, events) {
@@ -105,6 +108,7 @@ export function finishJob(state, job, act, events) {
     state.gold += tip;
     events.push({ type: 'jobDone', jobId: job.id, owner: job.owner, actionId: act.id, tip, assisted: job.assisted });
     logq(state, 'info', `${job.owner}'s ${act.name} job is finished. You helped with ${job.assisted} and got a ${fmtGold(tip)} tip.`);
+    pushEvent(state, 'crew', `${job.owner}'s ${act.name} job is finished. You helped with ${job.assisted}: +${fmtGold(tip)} tip.`, { gold: tip });
   }
   if (state.active && state.active.jobId === job.id) { state.active = null; events.push({ type: 'stopped', reason: 'Job finished.' }); }
 }
@@ -153,6 +157,7 @@ E.assist = function (state, jobId) {
   if (state.active && state.active.jobId === jobId) return { ok: true, reason: '' };
   const job = state.crew.jobs.find((j) => j.id === jobId);
   state.active = { actionId: job.actionId, progress: 0, jobId };
+  pushEvent(state, 'crew', `Started helping ${job.owner} with ${(action(job.actionId) || {}).name || 'a job'}.`);
   return { ok: true, reason: '' };
 };
 E.crewJobs = function (state) {

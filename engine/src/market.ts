@@ -3,11 +3,26 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, MAX_PLAYER_LISTINGS, D, arr, num, grades, skillDefs, itemsMap, item, allActions, rand, clamp, randInt, pick, lcFirst, itemName, qtyAvg, zeros5, isStackable, nextId, fmtGold } from './core';
+import { E, MAX_PLAYER_LISTINGS, D, cfg, arr, num, grades, skillDefs, itemsMap, item, allActions, rand, clamp, randInt, pick, lcFirst, itemName, qtyAvg, zeros5, isStackable, nextId, fmtGold } from './core';
 import { addItem, cleanInv } from './inventory';
 import { actionTimeWith } from './actions';
 
 // ---------------------------------------------------------------- market
+// Parked 2026-11-08: cfg.playerMarket false turns the player market off (see data.ts). The NPC
+// general store (store.ts) replaces it for players.
+export const marketEnabled = () => cfg().playerMarket !== false;
+export const MARKET_CLOSED = 'The market is closed. Use the general store.';
+/** return the player's open listings to the bag and drop the NPC board (used on load while parked) */
+export function parkMarket(state) {
+  const m = state.market || (state.market = { listings: [], mine: [], refreshedAt: ctx.now(), age: 0 });
+  const back = [];
+  arr(m.mine).forEach((l) => {
+    const q = Math.floor(num(l.qty, 0));
+    if (q > 0 && item(l.itemId)) { addItem(state, l.itemId, clamp(Math.floor(num(l.grade, 1)), 0, 4), q); back.push({ itemId: l.itemId, grade: l.grade, qty: q }); }
+  });
+  m.mine = []; m.listings = [];
+  return back;
+}
 export function tierCap(state) {
   const top = skillDefs().reduce((m, s) => Math.max(m, E.skillLevel(state, s.id)), 1);
   return clamp(1 + Math.floor(top / 15), 1, 5);
@@ -50,7 +65,10 @@ E.refreshMarket = function (state) {
   state.market.refreshedAt = ctx.now();
   state.market.age = 0;
 };
-E.gatherEstimate = function (state, itemId) {
+// Seconds per unit to gather or make an item yourself at the player's current levels and gear
+// (refine/craft include the time to gather their inputs). null = you can't make it yet.
+E.gatherEstimate = function (state, itemId) { return E.gatherEstimates(state, [itemId])[itemId]; };
+E.gatherEstimates = function (state, itemIds) {
   const ps = E.playerStats(state); const memo = {};
   const levels = {};
   const lvl = (s) => (levels[s] != null ? levels[s] : (levels[s] = E.skillLevel(state, s)));
@@ -79,10 +97,12 @@ E.gatherEstimate = function (state, itemId) {
     memo[id] = best;
     return best;
   }
-  const r = est(itemId, 0, new Set());
-  return r == null ? null : Math.max(0.1, Math.round(r * 10) / 10);
+  const out = {};
+  arr(itemIds).forEach((itemId) => { const r = est(itemId, 0, new Set()); out[itemId] = r == null ? null : Math.max(0.1, Math.round(r * 10) / 10); });
+  return out;
 };
 E.buy = function (state, listingId, qty) {
+  if (!marketEnabled()) return { ok: false, reason: MARKET_CLOSED };
   const l = arr(state.market.listings).find((x) => x.id === listingId);
   if (!l) return { ok: false, reason: 'That listing is gone.' };
   qty = Math.floor(num(qty, 1));
@@ -96,6 +116,7 @@ E.buy = function (state, listingId, qty) {
   return { ok: true, reason: '', gold: cost };
 };
 E.list = function (state, itemId, grade, qty, price) {
+  if (!marketEnabled()) return { ok: false, reason: MARKET_CLOSED };
   const it = item(itemId);
   if (!it) return { ok: false, reason: 'Unknown item.' };
   if (!isStackable(it)) return { ok: false, reason: 'Gear cannot be listed in this prototype.' };

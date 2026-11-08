@@ -8,6 +8,7 @@ import { findGear, clampHp } from './gear';
 import { tagDefs } from './v4-helpers';
 import { statsFor, powersOf, slotsOf, TAG_PHRASE, tagUnit, tagIds, slotsTags, tagScore } from './stats';
 import { findVaultGear } from './crew-economy';
+import { prepLock } from './raid-rules';
 
 // ================================================================ v4: loadouts
 export const emptySlots = () => { const o = {}; SLOTS.forEach((s) => { o[s] = null; }); return o; };
@@ -43,6 +44,7 @@ E.deleteLoadout = function (state, id) {
   return { ok: true, reason: '' };
 };
 E.equipLoadout = function (state, id) {
+  const pl = prepLock(state); if (pl.locked) return { ok: false, reason: pl.reason, missing: [], equipped: 0 };
   const l = E.loadout(state, id); if (!l) return { ok: false, reason: 'That loadout is gone.', missing: [], equipped: 0 };
   const missing = []; let n = 0;
   SLOTS.forEach((s) => {

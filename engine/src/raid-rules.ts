@@ -10,6 +10,7 @@ import { nowOf } from './clock';
 import { avgPop, curRecord, bossReq } from './server';
 import { statsFor, powersOf } from './stats';
 import { cleanSlots } from './loadouts';
+import { pushEvent } from './events';
 
 // ================================================================ v4: raid rules, plan, pouch, lock
 export function normRules(state, r) {
@@ -26,8 +27,25 @@ export function prepBlocked(state) {
   if (lockedNow(state)) return 'You are locked in. Unlock to change your plan.';
   return '';
 }
+// Raid prep lock (owner decision 2026-11-08): War Room prep (Hunt: stance / tactic / eat threshold;
+// raid plan; equipping gear and loadouts) is LOCKED while the raid is live and open otherwise.
+//   phase 'live'  = inside this week's raid window
+//   phase 'recap' = this week's raid has been fought and the window is over (until the Monday rollover)
+//   phase 'prep'  = everything else
+// A player sitting this raid out (save created after it opened) is not locked.
+export const PREP_LOCK_REASON = 'The raid is live: gear, loadouts and hunt plans are locked until it ends.';
+export function prepLock(state) {
+  const live = !!E.isRaidWindow(state);
+  const phase = live ? 'live' : raidDoneThisWeek(state) ? 'recap' : 'prep';
+  const sittingOut = num(state.raid && state.raid.satOutWeek, 0) === state.week;
+  const locked = live && !sittingOut;
+  return { phase, locked, reason: locked ? PREP_LOCK_REASON : '' };
+}
+E.raidPrep = (state) => prepLock(state);
 E.setRaidRules = function (state, rules) {
-  const b = prepBlocked(state); if (b && lockedNow(state)) return { ok: false, reason: b, rules: Object.assign({}, state.raid.rules) };
+  const pl = prepLock(state); if (pl.locked) return { ok: false, reason: pl.reason, rules: Object.assign({}, state.raid.rules) };
+  // after the raid is fought (recap) the rules are for next week's raid, so they can change again
+  const b = prepBlocked(state); if (b && lockedNow(state) && !raidDoneThisWeek(state)) return { ok: false, reason: b, rules: Object.assign({}, state.raid.rules) };
   state.raid.rules = normRules(state, Object.assign({}, state.raid.rules, rules || {}));
   return { ok: true, reason: '', rules: Object.assign({}, state.raid.rules) };
 };
@@ -37,7 +55,8 @@ export function bestRole(state, slots) {
   return p[r] >= need * 0.5 ? r : 'supply';
 }
 E.setRaidPlan = function (state, spec) {
-  const b = prepBlocked(state); if (b) return { ok: false, reason: b, plan: Object.assign({}, state.raid.plan) };
+  const pl = prepLock(state); if (pl.locked) return { ok: false, reason: pl.reason, plan: Object.assign({}, state.raid.plan) };
+  const b = prepBlocked(state); if (b && !raidDoneThisWeek(state)) return { ok: false, reason: b, plan: Object.assign({}, state.raid.plan) };
   spec = spec || {}; const plan = state.raid.plan || (state.raid.plan = { role: null, loadoutId: null });
   if (spec.role !== undefined) { if (!RAID_ROLE_IDS.includes(spec.role)) return { ok: false, reason: 'Unknown role.', plan: Object.assign({}, plan) }; plan.role = spec.role; }
   if (spec.loadoutId !== undefined) { if (spec.loadoutId && !E.loadout(state, spec.loadoutId)) return { ok: false, reason: 'That loadout is gone.', plan: Object.assign({}, plan) }; plan.loadoutId = spec.loadoutId || null; }
@@ -115,6 +134,7 @@ E.lockIn = function (state) {
   if (lockedNow(state)) return { ok: true, reason: '', lock: state.raid.lock, warnings: lockWarnings(state, state.raid.lock) };
   const lock = makeLock(state, false); state.raid.lock = lock;
   E.log(state, 'raid', `Locked in as ${roleDef(lock.role).name} for week ${state.week}.`);
+  pushEvent(state, 'raid', `Locked in as ${roleDef(lock.role).name} for week ${state.week}.`);
   return { ok: true, reason: '', lock, warnings: lockWarnings(state, lock) };
 };
 E.unlock = function (state) {
@@ -127,6 +147,7 @@ export function autoLock(state, events) {
   state.raid.lock = makeLock(state, true);
   events.push({ type: 'raidLocked', auto: true });
   E.log(state, 'raid', `Auto-locked as ${roleDef(state.raid.lock.role).name} at raid start.`);
+  pushEvent(state, 'raid', `Auto-locked as ${roleDef(state.raid.lock.role).name} at raid start.`);
 }
 E.tierThresholds = function (state) {
   const rec = curRecord(state); const pop = Math.max(1, num(rec && rec.pop, avgPop(state)));

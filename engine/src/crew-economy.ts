@@ -12,6 +12,7 @@ import { cleanSlots } from './loadouts';
 import { normRules, lockedNow, raidDoneThisWeek } from './raid-rules';
 import { shuffleWith } from './raid-sim';
 import { gapItem, gapDraft } from './raid-payouts';
+import { pushEvent } from './events';
 
 // ================================================================ v4: crew economy
 export function feedPush(state, kind, who, text) {
@@ -398,7 +399,7 @@ export function releaseContractEscrow(state, k, why) {
   const back = Math.max(0, num(k.escrow, 0)); if (!back) return 0;
   k.escrow = 0;
   if (k.payer === 'player') {
-    if (k.postedBy === 'You') state.gold = num(state.gold, 0) + back;
+    if (k.postedBy === 'You') { state.gold = num(state.gold, 0) + back; if (back > 0 && why !== 'Request cancelled') pushEvent(state, 'gold', `${why}: ${fmtGold(back)} escrow back from your ${itemName(k.itemId)} request.`, { itemId: k.itemId, gold: back }); }
     logTreasury(state, 'contract-release', 0, k.postedBy, `${why}: ${fmtGold(back)} escrow back to ${k.postedBy === 'You' ? 'you' : k.postedBy} from the ${itemName(k.itemId)} request`, { gold: back, paidBy: payerName(k) });
   } else {
     const cr = state.crew; cr.treasury.escrow = Math.max(0, cr.treasury.escrow - back); cr.treasury.gold += back;
@@ -427,6 +428,7 @@ export function submitToContract(state, k, who, grades) {
   logTreasury(state, 'contract', treas ? -gold : 0, who, `${who} filled ${n} ${itemName(k.itemId)} (${k.source === 'crew' ? `${k.postedBy}'s request` : 'town contract'} ${k.id}), paid ${fmtGold(gold)} by ${payerName(k)}`,
     Object.assign({ itemId: k.itemId, qty: n, grade: grades[0] ? grades[0].grade : null, gold, paidBy: payerName(k) }, treas ? { escrowDelta: -gold } : {}));
   feedPush(state, 'contract', who, `${who} filled ${n} ${itemName(k.itemId)} for the crew, +${fmtGold(gold)}.`);
+  if (k.postedBy === 'You' && who !== 'You') pushEvent(state, 'crew', `${who} filled ${n} ${itemName(k.itemId)} on your request (${fmtGold(gold)} paid from your escrow).`, { itemId: k.itemId, qty: n });
   if (k.filled >= k.qty) { k.status = 'filled'; releaseContractEscrow(state, k, 'Contract filled'); feedPush(state, 'contract', 'Crew', `The ${itemName(k.itemId)} ${k.source === 'crew' ? 'request' : 'contract'} is filled.`); }
   else if (contractCapacity(k) < 1) { k.status = 'closed'; releaseContractEscrow(state, k, 'Escrow ran out'); feedPush(state, 'contract', 'Crew', `The ${itemName(k.itemId)} ${k.source === 'crew' ? 'request' : 'contract'} ran out of gold and closed.`); }
   return gold;
@@ -454,6 +456,7 @@ E.fillContract = function (state, contractId, qty) {
   const gold = submitToContract(state, k, 'You', taken);
   state.gold = num(state.gold, 0) + gold;
   E.log(state, 'info', `Filled ${n} ${itemName(k.itemId)} for the crew's stock and earned ${fmtGold(gold)}.`);
+  pushEvent(state, 'crew', `Filled ${n} ${itemName(k.itemId)} for ${k.source === 'crew' ? `${k.postedBy}'s request` : 'a town contract'}: +${fmtGold(gold)}.`, { itemId: k.itemId, qty: n, gold });
   return { ok: true, reason: '', accepted: n, gold, partial: n < qty, status: k.status };
 };
 // A player posts a request on the crew board, paying from their own gold (escrowed now, refunded on cancel).
@@ -470,6 +473,7 @@ E.postCrewRequest = function (state, spec) {
   addEscrow(state, k, escrow);
   state.crew.contracts.unshift(k); trimContracts(state);
   feedPush(state, 'contract', 'You', `Posted a crew request: ${qty} ${it.name} at ${fmtGold(rewardPer)} each (${fmtGold(escrow)} escrowed).`);
+  pushEvent(state, 'crew', `Posted a crew request for ${qty} ${it.name}: ${fmtGold(escrow)} put in escrow.`, { itemId: spec.itemId, qty, gold: -escrow });
   return { ok: true, reason: '', contract: clone(k), escrow };
 };
 E.cancelCrewRequest = function (state, contractId) {
@@ -479,6 +483,7 @@ E.cancelCrewRequest = function (state, contractId) {
   k.status = 'cancelled';
   const refunded = releaseContractEscrow(state, k, 'Request cancelled');
   feedPush(state, 'contract', 'You', `Cancelled the ${itemName(k.itemId)} request${refunded ? `; ${fmtGold(refunded)} refunded` : ''}.`);
+  pushEvent(state, 'crew', `Cancelled the ${itemName(k.itemId)} request${refunded ? `: +${fmtGold(refunded)} escrow back` : ''}.`, { itemId: k.itemId, gold: refunded });
   return { ok: true, reason: '', refunded };
 };
 E.listContracts = function (state) {

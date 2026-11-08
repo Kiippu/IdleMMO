@@ -99,6 +99,77 @@ export interface RaidStatus {
   sittingOut: boolean;
   /** game-clock ms when the next raid the player can join starts */
   nextRaidAt: number;
+  /** War Room prep lock (2026-11-08). NOTE `locked` above means "locked in", not this. */
+  prepPhase: RaidPrepPhase;
+  /** true while the raid is live: equip/unequip/equipLoadout/setRaidRules/setRaidPlan refuse with prepReason */
+  prepLocked: boolean;
+  prepReason: string;
+}
+
+// ---- 2026-11-08 additions (save schema stays v6; state.events / state.eventSeq / state.store are additive)
+// Worker: E.derivedExtras(state) → DerivedExtras (one call per snapshot), or the pieces below.
+// Rarity: DATA.itemRarity[itemId] (static, main-thread safe) and DATA.items[id].rarity. Stackables by tier
+//   (1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary), boss cores mythic. Gear instances carry their own
+//   rolled `rarity`, which wins. Rank = index in DATA.rarities (common 0 .. mythic 5).
+// Gather time: E.gatherSecs(state) → Record<itemId, number|null> (cached); E.gatherEstimates(state, ids);
+//   E.gatherEstimate(state, id) → seconds per unit to gather/make it yourself now (null = can't yet).
+// Raid prep: E.raidPrep(state) → RaidPrep; E.raidStatus(state) gains prepPhase / prepLocked / prepReason.
+// Store: E.storeView(state) → StoreView; E.storeBuy(state, slot, qty) → StoreBuyResult;
+//   E.storeSell(state, itemId, grade, qty) → StoreSellResult; E.storeSellGear(state, uid) → StoreSellResult;
+//   E.storeBuyPrice(itemId, grade); E.storeSellPrice(itemId, grade).
+// Event log: E.events(state, n = 50) → GameEvent[] (newest first; state.events keeps the last 200).
+// Player market parked: DATA.config.playerMarket = false; E.buy / E.list return { ok: false, reason }.
+export type RarityId = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
+export type RaidPrepPhase = 'prep' | 'live' | 'recap';
+export interface RaidPrep { phase: RaidPrepPhase; locked: boolean; reason: string }
+export type GameEventCat = 'loot' | 'gold' | 'crew' | 'raid' | 'skill';
+export interface GameEvent {
+  /** stable, increasing id (use as a list key; a merged line keeps its id) */
+  id: number;
+  /** game-clock ms (E.now(state)) of the latest update */
+  t: number;
+  cat: GameEventCat; text: string;
+  qty?: number; itemId?: string; grade?: number | null;
+  /** signed gold change carried by this line */
+  gold?: number;
+  /** gear crafted / sold: the instance rarity */
+  rarity?: RarityId;
+}
+export interface StoreSlot {
+  /** pass to storeBuy */
+  slot: number;
+  itemId: string; name: string; kind: 'resource' | 'gear';
+  /** grade index for resources (0 Rough .. 4 Pristine); null for gear (sold Common, Standard quality) */
+  grade: number | null;
+  rarity: RarityId;
+  /** left to buy this hour */
+  qty: number; stock: number;
+  /** gold per unit */
+  price: number;
+  /** seconds per unit to gather/make it yourself at your current levels; null = you can't yet */
+  gatherSecs: number | null;
+}
+export interface StoreView {
+  /** game-clock hour index (floor(game ms / 3,600,000)) */
+  hour: number;
+  /** game-clock ms when the stock rotates */
+  refreshesAt: number;
+  slots: StoreSlot[];
+  buyMult: { resource: number; gear: number };
+  sellMult: number;
+  /** what the store pays per unit, by grade 0..4, for every stackable in your bag */
+  sellPrices: Record<string, number[]>;
+  /** what the store pays for each gear piece in your bag, by uid */
+  gearSellPrices: Record<string, number>;
+}
+export interface StoreBuyResult { ok: boolean; reason: string; qty: number; gold: number; itemId?: string; /** gear bought */ uids?: string[] }
+export interface StoreSellResult { ok: boolean; reason: string; qty: number; gold: number }
+export interface DerivedExtras {
+  store: StoreView;
+  /** last 50, newest first */
+  events: GameEvent[];
+  raidPrep: RaidPrep;
+  gatherSecs: Record<string, number | null>;
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
@@ -126,6 +197,8 @@ export const H: number;
 export const ECON: {
   H: number; specSwitchHours: number; raidPayHours: number; raidTierGrowth: number;
   raidTreasuryShare: number; raidCapAttendees: number; contractRewardMult: number;
+  storeResourceMult: number; storeGearMult: number; storeSellMult: number;
+  storeResourceSlots: number; storeGearSlots: number; storeGearMaxTier: number;
 };
 
 declare const _default: typeof createEngine;
