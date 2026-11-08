@@ -13,6 +13,10 @@ import { mondayOf, addDays } from './clock';
 import { curRecord } from './server';
 import { normRules } from './raid-rules';
 import { ensureV5 } from './crew-economy';
+import { isProfession, rawSkillLevel, SPEC_CAP_LEVEL } from './skills';
+
+/** what switchSpec charged for every pick before the phase 2.5 rework (refunded when a spec is cleared on load) */
+export const LEGACY_SPEC_CHARGE = 3000;
 
 // ---------------------------------------------------------------- state lifecycle
 E.newState = function () {
@@ -51,8 +55,12 @@ E.newState = function () {
 };
 export function migrate(raw) {
   if (!raw || typeof raw !== 'object' || typeof raw.skills !== 'object' || !raw.skills) return null;
-  // Accepted: v5 (current), v4, v1, and null (implicit v3 from the prototype).
-  if (raw.v != null && raw.v !== 1 && raw.v !== 4 && raw.v !== SCHEMA) return null;
+  // Accepted: v6 (current), v5 (phase 2), v4, v1, and null (implicit v3 from the prototype).
+  // v4/v5 → v6 adds: crew.contracts (+ contractSimIn), treasury log `at` → `t`; merges crew.requisitions
+  // into the contracts board; strips cut features: crew.viewAsMember, raid.farm, state.rep, spec.capped,
+  // NPC-posted requisitions (escrow released). A spec below level 70 is cleared and refunded (see below).
+  if (raw.v != null && raw.v !== 1 && raw.v !== 4 && raw.v !== 5 && raw.v !== SCHEMA) return null;
+  try { raw = JSON.parse(JSON.stringify(raw)); } catch (e) { return null; } // never mutate the caller's object
   // v3 and earlier predate clock/server/economy/loadouts and the v4 raid shape.
   const legacyV3 = raw.v == null || raw.v === 1;
   const s = E.newState(); const fresh = s;
@@ -61,12 +69,24 @@ export function migrate(raw) {
   out.week = Math.max(1, Math.floor(out.week)); out.focus = clamp(out.focus, 0, 100);
   out.skills = {}; skillDefs().forEach((d) => { out.skills[d.id] = { xp: Math.max(0, num(raw.skills[d.id] && raw.skills[d.id].xp, 0)) }; });
   // v5+ spec field: carry over if present and well-formed; v1/v3/v4 saves get the default.
+  let specNote = '';
   const rawSpec = (raw.spec && typeof raw.spec === 'object') ? raw.spec : {};
   const specSkillOk = typeof rawSpec.skillId === 'string' && skillDefs().some((d) => d.id === rawSpec.skillId);
   out.spec = {
     skillId: specSkillOk ? rawSpec.skillId : null,
     lastSwitchAt: (isFinite(rawSpec.lastSwitchAt) && rawSpec.lastSwitchAt > 0) ? Math.floor(rawSpec.lastSwitchAt) : null,
   };
+  // Phase 2.5 spec rule: only a profession skill at level 70+ can be a specialization. Before this rule
+  // a spec could be picked at any level, and every pick went through switchSpec, which charged
+  // LEGACY_SPEC_CHARGE (3,000g). A save whose spec breaks the rule gets the spec cleared, the cooldown
+  // reset and 3,000g refunded once (only the last charge is knowable from the save).
+  if (out.spec.skillId && (!isProfession(out.spec.skillId) || rawSkillLevel(out, out.spec.skillId) < SPEC_CAP_LEVEL)) {
+    const name = (skillDefs().find((d) => d.id === out.spec.skillId) || { name: out.spec.skillId }).name;
+    out.spec = { skillId: null, lastSwitchAt: null };
+    out.gold += LEGACY_SPEC_CHARGE;
+    specNote = `Specializations now need level 70. Your ${name} specialization was cleared and ${LEGACY_SPEC_CHARGE}g refunded.`;
+  }
+  delete out.rep; // reputation removed
   out.mastery = raw.mastery && typeof raw.mastery === 'object' ? raw.mastery : {};
   out.pity = raw.pity && typeof raw.pity === 'object' ? raw.pity : {};
   out.inv = {};
@@ -101,13 +121,13 @@ export function migrate(raw) {
     out.raid = Object.assign({}, rr, { rules: normRules(out, rr.rules) });
   }
   out.log = arr(raw.log).filter((l) => l && l.text).slice(0, LOG_CAP);
+  if (specNote) E.log(out, 'info', specNote);
   // v5: supply board removed. Any carried-over state.supply from v1/v3/v4 is dropped.
   delete out.supply;
   // v5: raid tokens removed. Hoarded tokens on v4 saves are discarded; stale rec.tokens
   // on per-boss records is left as dead data (nothing reads it after the raid-payouts rewrite).
   delete out.tokens;
-  ensureV5(out);
-  // v5: coin → gold on the crew treasury and the economy ledger. ensureV5 above already
+  // v5: coin → gold on the crew treasury and the economy ledger. migrateCrew already
   // normalised out.crew.treasury.gold to 0 if the raw save only had .coin; fold the legacy
   // value in and drop it. Same for state.economy.raidCoin (incl. per-week entries).
   if (out.crew && out.crew.treasury && 'coin' in out.crew.treasury) {
@@ -123,6 +143,7 @@ export function migrate(raw) {
       if (w && 'raidCoin' in w) { w.raidGold = num(w.raidGold, 0) + num(w.raidCoin, 0); delete w.raidCoin; }
     });
   }
+  ensureV5(out);
   if (legacyV3) {
     const rec = curRecord(out); const v3max = num(V3_BOSS_HP[out.raid.ladder], 0);
     const pctLeft = v3max > 0 && isFinite(rr.bossHp) && rr.bossHp > 0 ? clamp(rr.bossHp / v3max, 0.05, 1) : 1;

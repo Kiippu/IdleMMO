@@ -31,7 +31,18 @@ function derive(): Derived {
   for (const g of playerGear) gearNames[g.uid] = E.gearName(g);
   const vaultGear = state && state.crew && state.crew.vault && state.crew.vault.gear;
   if (Array.isArray(vaultGear)) for (const g of vaultGear) gearNames[g.uid] = E.gearName(g);
+  const actionTimes: Record<string, number> = {};
+  for (const a of (DATA as any).actions) actionTimes[a.id] = E.actionTime(state, a.id) as number;
+  const skillProgress: Record<string, any> = {};
+  if (skills) for (const id of Object.keys(skills)) skillProgress[id] = E.skillProgress(state, id);
   return {
+    actionTimes,
+    skillProgress,
+    contracts: state ? (E.listContracts(state) as any[]) : [],
+    crewGold: state ? E.crewGold(state) : { free: 0, escrowed: 0, total: 0 },
+    treasuryLog: state ? (E.treasuryLog(state) as any[]) : [],
+    spec: state ? E.spec(state) : null,
+    specCooldown: state ? E.specCooldown(state) : { ms: 0, text: '', ready: true },
     skillLevels,
     activeTime,
     gearNames,
@@ -121,8 +132,23 @@ async function handle(req: Req): Promise<unknown> {
       E.setRaidRules(state, req.rules);
       E.save(state);
       return undefined;
-    case 'runRaid': {
-      const res = E.runRaid(state);
+    case 'fillContract': {
+      const res = E.fillContract(state, req.contractId, req.qty);
+      E.save(state);
+      return res;
+    }
+    case 'postCrewRequest': {
+      const res = E.postCrewRequest(state, req.spec);
+      E.save(state);
+      return res;
+    }
+    case 'cancelCrewRequest': {
+      const res = E.cancelCrewRequest(state, req.contractId);
+      E.save(state);
+      return res;
+    }
+    case 'switchSpec': {
+      const res = E.switchSpec(state, req.skillId);
       E.save(state);
       return res;
     }

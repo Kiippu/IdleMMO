@@ -30,13 +30,22 @@ export function actionTimeWith(state, act, ps) {
     const power = num((act.enemy || {}).power, 1);
     t *= clamp(power / Math.max(1, roleStatOf(act, ps)), 0.5, 3);
   }
-  // Phase 1 real-speed tuning: cfg.speedFactor stretches every action to the design doc's
-  // ~1000g/hr anchor at level 40. Combat at level 40 (sec=9, gold ~25) under the current
-  // factor of 10 produces ~1000g/hr, matching the design.
+  // cfg.speedFactor stretches every action (1 since phase 2.5 = prototype pace). E.actionTime is THE
+  // time-per-rep function: the action list, the active card and crew jobs must all read it
+  // (E.activeInfo already does) so they never disagree.
   t *= Math.max(1, num(cfg().speedFactor, 1));
   return Math.max(0.25, t * (1 - clamp(num(ps.speed, 0), 0, 50) / 100));
 }
 E.actionTime = function (state, actionId) { return actionTimeWith(state, action(actionId), E.playerStats(state)); };
+// Gold per hour from repeating an action and selling its main outputs at Standard-grade value
+// after market tax (bonus drops ignored). Used for the spec switch price rule and economy tests.
+E.incomePerHour = function (state, actionId) {
+  const act = action(actionId); if (!act) return 0;
+  const t = E.actionTime(state, actionId); if (!(t > 0) || !isFinite(t)) return 0;
+  const val = Object.keys(act.outputs || {}).reduce((a, id) => a + E.itemValue(id, 1) * num(act.outputs[id], 0), 0) + (Array.isArray(act.gold) ? (act.gold[0] + act.gold[1]) / 2 : num(act.gold, 0));
+  const tax = state && state.server ? E.marketTax(state) : num(cfg().marketTax, 0.05);
+  return 3600 / t * val * (1 - tax);
+};
 E.maxRepeats = function (state, actionId) {
   const act = action(actionId); if (!act) return 0;
   if (act.kind !== 'refine' && act.kind !== 'craft') return Infinity;

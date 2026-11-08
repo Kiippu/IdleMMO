@@ -25,6 +25,19 @@ export interface Derived {
   crewMembers: any[];
   /** E.crewJobs(state) — open jobs with assist state and ETA. */
   crewJobs: any[];
+  /** E.actionTime for every action: THE seconds-per-rep used by list and active card. */
+  actionTimes: Record<string, number>;
+  /** E.skillProgress per skill: {level, rawLevel, capped, ...}. */
+  skillProgress: Record<string, any>;
+  /** E.listContracts(state). */
+  contracts: any[];
+  /** E.crewGold(state): {free, escrowed, total}. */
+  crewGold: { free: number; escrowed: number; total: number };
+  /** E.treasuryLog(state), newest first. */
+  treasuryLog: any[];
+  /** E.spec(state) plus E.specCooldown(state). */
+  spec: any;
+  specCooldown: { ms: number; text: string; ready: boolean };
 }
 
 export interface OfflineSummary {
@@ -52,11 +65,14 @@ export type Req =
   | { id: string; type: 'deleteLoadout'; loadoutId: string }
   | { id: string; type: 'equipLoadout'; loadoutId: string }
   | { id: string; type: 'setRaidRules'; rules: { eatAt?: number; stance?: string; tactic?: string } }
-  | { id: string; type: 'runRaid' }
   | { id: string; type: 'buyListing'; listingId: string; qty: number }
   | { id: string; type: 'listItem'; itemId: string; grade: number; qty: number; price: number }
   | { id: string; type: 'cancelListing'; listingId: string }
   | { id: string; type: 'assistJob'; jobId: string }
+  | { id: string; type: 'fillContract'; contractId: string; qty: number }
+  | { id: string; type: 'postCrewRequest'; spec: { itemId: string; qty: number; rewardPer: number; minGrade?: number; note?: string } }
+  | { id: string; type: 'cancelCrewRequest'; contractId: string }
+  | { id: string; type: 'switchSpec'; skillId: string }
   | { id: string; type: 'export' }
   | { id: string; type: 'import'; code: string }
   | { id: string; type: 'reset' };

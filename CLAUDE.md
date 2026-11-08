@@ -21,15 +21,17 @@ The legacy single-file prototype is `index.html` at the repo root. It is the beh
   area to own and send follow-ups back to that agent. Use a fresh agent for independent review/testing.
   Parallel agents must not edit the same files. At the end of a session, list the agents used and what each owned.
 - Commit and push to GitHub. Work on branches; don't push to `main` without asking.
-- Builds must keep existing player saves working (save schema v4 in localStorage today; `migrate()` handles v1, v3).
+- Builds must keep existing player saves working (save schema v6 in IndexedDB since phase 2.5; `migrate()` loads v1, v3, v4, v5, v6; fixtures in `engine/test/fixtures/`).
 - Test at phone width (max 460px column) in light and dark mode.
 
 ## Settled decisions (don't reopen unless asked)
 Game design
 - Currency is "gold", written "g" in prices (e.g. 6g). Never "coin".
 - No premium currency. The bond token ($5, 14 days of membership) is the only bridge between cash and gold.
-- Town contracts list what the raid needs and pay gold or reputation. The gold comes from the crew/guild treasury
-  and can be spent anywhere.
+- Town contracts list what the raid needs and pay gold only (reputation removed 2026-11-08). The gold comes from the
+  crew/guild treasury and can be spent anywhere. Player-posted crew requests share the same Contracts board.
+- Specialization: every profession skill levels to 70 without specialising; a spec is picked only once a skill hits 70
+  and lets that skill go past 70. First pick is free.
 - Resources submitted through contracts go only to crew/guild stock and are used in raids to heal and buff members,
   which raises their contribution.
 - Every gold and resource movement in a treasury is logged; all crew/guild members can see the log.
@@ -38,7 +40,13 @@ Game design
   (floor) and contribution tier; retune the core-draw odds.
 - One idle action slot per player. Helping a crewmate uses it.
 - Specialization switch: allowed for free players, old skill drops to the level-70 cap with no XP lost,
-  costs about 3,000 gold, one-week cooldown.
+  costs about 3 hours of level-40 income, one-week cooldown.
+- Speed: `speedFactor: 1` (prototype pace). Prefer income too high over too low; price things in hours of play.
+- Core-draw pity scales with contribution tier (3 / 4 / 5 / 6 empty kills, top tier to none).
+- NPC crewmates (stand-ins) fill at most 50% of a contract, only from Friday until the raid opens.
+- Economy is priced in H = one hour of level-40 income (`H`/`ECON` in engine data.ts): raid payout 1.5 H per player at
+  full contribution (x1.25 per boss tier), 2.5% of each raid pool to the crew treasury, contracts pay 1.1x item value,
+  spec switch 3 H. Any rank can post crew requests. No refund for 3,000g first picks made at 70+ before 2026-11-08.
 - Navigation: Workshop, Stores (Mine/Crew), Market, War Room (Loadout/Hunt/Raid), Crew. The log opens as a sheet.
 - Name stays Guildwright.
 Tech
@@ -73,6 +81,23 @@ Art and UI
 3. Art and credits. 4. Accounts and cloud save. 5. Shared world (Durable Objects, WebSockets, Cron raids).
 6. Launch (move to Workers Paid, payments, quality pass).
 Also: remove dev-only tools before players see them (devSetClock / Raid "next week" button, crew "Testing" panel).
+
+## Phase 2.5 (2026-11-08) — rules fixes, merged to `main`
+Plan: `docs/phase-2.5-plan.md`, plus owner decisions the same day (see Settled decisions). Done:
+- Contracts: one Crew → Contracts board with Town contracts (raid needs, paid from treasury escrow) and player-posted
+  Crew requests (paid from the poster's escrow). Gold only, 1.1x item value; a contract closes when its gold runs out.
+  Items go to crew vault only. NPC stand-ins fill <=50%, Friday until the raid opens.
+- Specialization: profession skills level to 70 freely; pick a spec only at 70+ (first pick free); switch costs 3 H
+  (44,000g) with a 1-week cooldown shown "Xd Yh"; old skill back to effective 70, XP kept. Combat skills never capped.
+- Treasury log covers every movement (game-clock `t`, items x qty, gear, escrow, raid stock, payouts, who paid).
+- Raids: core odds without tokens, tiered pity; vault stock used on a member credits their contribution; players get
+  raid gold (1.5 H at full contribution, x1.25 per boss tier), 2.5% of the pool to the treasury.
+- Economy constants in `H`/`ECON` (engine data.ts), H = median level-40 income (~14,820g/h); `speedFactor: 1`;
+  `E.actionTime` used by Workshop list + active card; early game matches the prototype.
+- Removed: dev raid start, reputation, farm raids, view-as-member, NPC-posted requisitions, old requisition verbs.
+- Save schema v6; fixtures v4 (prototype), v5 (phase 2), v6 (pre-decision phase 2.5) all load.
+- Tests: engine 87, client 18, server 3. Live tunnel checked at 400px light + dark.
+Open for the UI/UX pass: pixel-font digits (5 reads as 9), sparse raid recap card, plus the list in the plan's "Next".
 
 ## Current state (2026-11-07) — phase 2 feature-complete on `rebuild/phase-2`
 Phase 1 is merged to `main` (`445cb69`); `rebuild/phase-2` is cut from there and pushed, 12 commits on top.
@@ -157,6 +182,6 @@ Not verified on this Windows checkout: `wrangler dev` + `/api/health` + `--test-
 in Linux VM during phase 0). Pick up when a server change lands.
 `.npmrc` still sets `legacy-peer-deps=true` to dodge an npm 10.9 vitest install crash.
 
-Next: merge `rebuild/phase-2` → `main` via PR, then phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
+Next (after 2.5): UI/UX review (see `docs/phase-2.5-plan.md` "Next"), then phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
 art pack (DawnBringer 32 remap), LPC hero layer composite driven by equipped slots in SceneStrip (the
 placeholder goes away), per-action animation variety, `art/CREDITS.md` + in-game credits screen.

@@ -1,4 +1,4 @@
-// Weekly flow and farm raids.
+// Weekly flow (farm raids cut in phase 2.5).
 // Ported from legacy/engine.js lines 2028-2229. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
@@ -55,18 +55,8 @@ export function processClock(state, events) {
     }
   }
 }
-E.startRaidNow = function (state) {
-  if (!E.currentBoss(state)) return { ok: false, reason: 'No raid boss is scheduled in this build.' };
-  const events = [];
-  if (raidDoneThisWeek(state)) return { ok: false, reason: 'This week\'s raid already ran.', events };
-  state.active = null;
-  const r = resolveRaid(state, { startedAt: nowOf(state), instant: true }, events);
-  return { ok: true, reason: '', recap: r.recap, timeline: r.timeline, result: r.result, events };
-};
-E.runRaid = function (state) {
-  if (!lockedNow(state) && E.raidPlan(state).role !== 'supply' && !findGear(state, E.raidPlan(state).slots.weapon)) return { ok: false, reason: 'Equip a weapon before joining the raid, or choose Supply line.' };
-  return E.startRaidNow(state);
-};
+// Phase 2.5: the dev shortcuts startRaidNow / runRaid / canStartNow are gone. The weekend raid
+// resolves only on the game clock (processClock, at the crew's raid-window start).
 E.raidStatus = function (state) {
   const now = nowOf(state); const w = windowFor(state, now); const live = now >= w.start && now < w.end;
   const resolved = raidDoneThisWeek(state); const cur = state.raid.current && state.raid.current.week === state.week ? state.raid.current : null;
@@ -74,7 +64,7 @@ E.raidStatus = function (state) {
   const chargeMs = num(cfg().raidChargeHours, 10) * 3600000;
   return { week: state.week, phase, locked: lockedNow(state), lock: state.raid.lock, windowStart: w.start, windowEnd: w.end,
     secToStart: Math.max(0, (w.start - now) / 1000), secLeft: live ? (w.end - now) / 1000 : 0, resolved, recapId: cur ? cur.recapId : null,
-    fightPct: cur ? (cur.instant && !live ? 1 : clamp((now - cur.startedAt) / chargeMs, 0, 1)) : 0, canStartNow: true };
+    fightPct: cur ? (cur.instant && !live ? 1 : clamp((now - cur.startedAt) / chargeMs, 0, 1)) : 0 };
 };
 E.readinessFlags = function (state) {
   const now = nowOf(state); const w = windowFor(state, now); const secTo = (w.start - now) / 1000;
@@ -131,13 +121,14 @@ E.badges = function (state) {
   const rf = E.readinessFlags(state); const last = E.lastRecap(state);
   const raidOn = rf.badge || !!(last && !last.seen && last.week === state.week);
   const inc = E.loadouts(state).filter((l) => !l.complete);
-  const newReqs = E.requisitions(state).filter((r) => r.status === 'open' && r.isNew && r.canFill.ok);
+
   const pend = arr(state.crew && state.crew.withdrawRequests).filter((r) => r.status === 'pending' && !r.isYou);
   const canAnswer = E.can(state, 'withdraw').ok;
-  const count = newReqs.length + (canAnswer ? pend.length : 0);
+  const fillable = E.listContracts(state).filter((k) => k.canFill.ok);
+  const count = fillable.length + (canAnswer ? pend.length : 0);
   return { raid: { on: raidOn, reason: rf.badge ? rf.reasons[0] : raidOn ? 'Raid recap ready.' : '' },
     kit: { on: inc.length > 0, reason: inc.length ? `${inc[0].name} is incomplete.` : '' },
-    crew: { on: count > 0, count, reason: newReqs.length ? 'New requisition you can fill.' : count ? 'A crewmate is asking for a withdrawal.' : '' } };
+    crew: { on: count > 0, count, reason: fillable.length ? 'A contract you can fill.' : count ? 'A crewmate is asking for a withdrawal.' : '' } };
 };
 
 // compat preview (v3 raid screen)
@@ -163,38 +154,3 @@ export function bossPhases(boss) {
   const p = arr(boss.phases).filter((x) => x).map((x) => ({ name: x.name || 'Onslaught', check: CHECKS.includes(x.check) ? x.check : 'damage' }));
   return p.length ? p : [{ name: 'Onslaught', check: 'damage' }];
 }
-
-// ---------------- farm raids (defeated bosses, weekdays, lower loot)
-E.farmRaids = function (state) {
-  const per = num(cfg().farmRunsPerDay, 3); const day = dayKey(nowOf(state));
-  const used = state.raid.farm && state.raid.farm.day === day ? num(state.raid.farm.runs, 0) : 0;
-  const live = E.isRaidWindow(state);
-  const list = bosses().slice(0, num(state.raid.ladder, 0)).map((b) => ({ bossId: b.id, name: b.name, lootMult: num(cfg().farmLootMult, 0.35), reqPower: bossReq(b) }));
-  return { runsLeft: Math.max(0, per - used), perDay: per, allowed: !live && used < per && list.length > 0, reason: live ? 'Farm raids pause during the weekend raid.' : used >= per ? 'No farm runs left today.' : !list.length ? 'Defeat a boss to farm it on weekdays.' : '', bosses: list };
-};
-E.runFarmRaid = function (state, bossId) {
-  const fr = E.farmRaids(state); const b = fr.bosses.find((x) => x.bossId === bossId);
-  if (!b) return { ok: false, reason: fr.bosses.length ? 'That boss is not on your farm list.' : fr.reason };
-  if (!fr.allowed) return { ok: false, reason: fr.reason };
-  if (!findGear(state, state.equipped.weapon)) return { ok: false, reason: 'Equip a weapon first.' };
-  if (!(state.hp > 0)) return { ok: false, reason: 'You need some HP to raid.' };
-  const def = bosses().find((x) => x.id === bossId); const ps = E.playerStats(state); const pw = powersOf(ps, def);
-  const role = ['striker', 'guardian', 'mender'].sort((x, y) => pw[y] - pw[x])[0];
-  const ev = []; let faints = 0; const eaten0 = foodAndPotions(state);
-  const pressure = 0.06 * clamp(bossReq(def) / Math.max(5, pw[role]), 0.4, 3);
-  for (let i = 0; i < 12; i++) {
-    autoEat(state, ev, num(state.raid.rules.eatAt, 0.5), ps.maxHp);
-    state.hp -= ps.maxHp * pressure * (0.7 + rand() * 0.6);
-    if (state.hp <= 0) { faints++; state.hp = Math.round(ps.maxHp * 0.3); }
-  }
-  const eaten1 = foodAndPotions(state);
-  const loot = []; const mult = b.lootMult * clamp(pw[role] / bossReq(def), 0.5, 1.5);
-  arr(def.loot).slice(1).forEach((l) => { if (item(l.item) && rand() < clamp(num(l.chance, 0) * mult * 1.5, 0, 0.9)) grant(state, loot, l.item, gradeOf(45 + rand() * 40), Math.max(1, Math.round(qtyRange(l.qty) * 0.5))); });
-  if (def.floorItem) grant(state, loot, def.floorItem, 1, randInt(1, 3));
-  const xp = Math.round(bossReq(def) * 6 * num(cfg().xpMult, 1)); addXp(state, role, xp, ev);
-  drainDurability(state, 3, ev);
-  const day = dayKey(nowOf(state));
-  state.raid.farm = { day, runs: (state.raid.farm && state.raid.farm.day === day ? num(state.raid.farm.runs, 0) : 0) + 1 };
-  E.log(state, 'raid', `Farm raid on ${def.name}: ${loot.length ? loot.map((x) => x.qty + ' ' + itemName(x.itemId)).join(', ') : 'nothing this time'}.`);
-  return { ok: true, reason: '', result: { bossId, loot, eaten: (eaten0.food + eaten0.potion) - (eaten1.food + eaten1.potion), faints, xp, role } };
-};

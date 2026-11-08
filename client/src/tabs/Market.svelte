@@ -84,7 +84,7 @@
 
 {#if sub === 'buy'}
   <section class="group">
-    <h3>Buyer listings</h3>
+    <h3>For sale</h3>
     <p class="meta">
       You have {gold}g on hand. Sales are taxed at {Math.round(tax * 100)}%.
     </p>
@@ -103,7 +103,7 @@
               <span class="price">{l.price}g</span>
             </div>
             <div class="row sub">
-              <span class="meta">×{l.qty} · {l.seller ?? 'buyer'}</span>
+              <span class="meta">×{l.qty} · {l.seller ?? 'town'}</span>
               <button type="button" class="action-btn" disabled={!canAfford} onclick={() => buy(l.id, l.qty)}>
                 {canAfford ? 'Buy' : 'Not enough gold'}
               </button>

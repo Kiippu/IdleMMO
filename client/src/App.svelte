@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fmtG } from './format';
   import { engine } from './engine/store.svelte';
   import { initEngineClient, engineClient } from './engine/client';
   import { registerServiceWorker } from './pwa';
@@ -61,7 +62,7 @@
     <span class="brand">Guildwright</span>
     <div class="top-right">
       {#if engine.snapshot}
-        <span class="gold">{engine.snapshot.gold}g</span>
+        <span class="gold">{fmtG(engine.snapshot.gold)}</span>
       {/if}
       {#if engine.ready}
         <button type="button" class="save-btn" onclick={() => (saveMenuOpen = true)} aria-label="Open save menu">Save</button>
