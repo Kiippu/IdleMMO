@@ -1,5 +1,6 @@
 <script lang="ts">
   import { DATA } from '@guildwright/engine';
+  import { fmtG } from '../format';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
 
@@ -29,6 +30,9 @@
   let stats = $derived(view?.playerStats ?? null);
   let boss = $derived(view?.bossIntel ?? null);
   let status = $derived(view?.raidStatus ?? null);
+  let recap = $derived<any>((snap?.raid?.recaps ?? []).find((x: any) => x.id === snap?.raid?.last?.recapId) ?? null);
+  let pay = $derived<any>(recap?.payout ?? null);
+  const pct = (x: number) => `${Math.round((x ?? 0) * 100)}%`;
   let hp = $derived<number>(snap?.hp ?? 0);
 
   function fmtDuration(sec: number): string {
@@ -198,7 +202,12 @@
       <h3>Last recap</h3>
       <article class="recap">
         <p class="meta">Week {snap.raid.last.week}{snap.raid.last.result ? ` · ${snap.raid.last.result}` : ''}</p>
-        {#if snap.raid.last.gold}<p class="meta">Gold: {snap.raid.last.gold}g</p>{/if}
+        <p class="yourgold">Your gold: <span class="brass">+{fmtG(pay?.gold ?? snap.raid.last.gold ?? 0)}</span></p>
+        {#if pay}
+          <p class="meta">
+            Pool {fmtG(pay.pool ?? 0)} · turnout {pct(pay.turnout)} · your contribution {pct(pay.contribution)}{pay.capped ? ' · crew cap reached' : ''}
+          </p>
+        {/if}
         {#if snap.raid.last.xp}<p class="meta">XP: {Math.round(snap.raid.last.xp)}</p>{/if}
         {#if snap.raid.last.crewStock}
           {@const cs = snap.raid.last.crewStock}
@@ -289,6 +298,8 @@
   .phase-done { color: var(--ok); }
   .phase-prep { color: var(--ink-2); }
 
+  .yourgold { margin: 6px 0 0; font: 600 var(--t-lg)/1.2 var(--f-display); color: var(--ink); }
+  .brass { color: var(--brass); }
   .recap h4 { margin: 12px 0 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
   .stock { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; font-size: var(--t-sm); }
   .stock li { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }

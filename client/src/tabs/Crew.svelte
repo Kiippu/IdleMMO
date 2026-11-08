@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
+  import { DATA, H } from '@guildwright/engine';
   import { fmtG } from '../format';
 
   let sub = $state<'roster' | 'jobs' | 'contracts' | 'treasury'>('roster');
@@ -145,7 +145,7 @@
           <p class="meta">Reach level {spec.capLevel} in a skill to specialise.</p>
         {:else}
           <p class="meta">
-            {#if spec.firstPickFree}First pick is free.{:else}Switching costs <span class="brass">{fmtG(spec.cost)}</span>; your old skill is capped at level {spec.capLevel} and keeps its XP.{/if}
+            {#if spec.firstPickFree}First pick is free.{:else}Switching costs <span class="brass">{fmtG(spec.cost)}</span>{H > 0 ? ` (about ${Math.round(spec.cost / H)} h of work)` : ''}; your old skill is capped at level {spec.capLevel} and keeps its XP.{/if}
             {cooldown.ready ? '' : `Next switch in ${cooldown.text}.`} You have <span class="brass">{fmtG(gold)}</span>.
           </p>
           <div class="row sub">
@@ -271,7 +271,7 @@
     <article class="treasury">
       <div class="totals">
         <div><dt>Crew gold</dt><dd>{fmtG(cg.total)}</dd></div>
-        <div><dt>Free / escrowed</dt><dd>{Math.floor(cg.free)}g / {Math.floor(cg.escrowed)}g</dd></div>
+        <div><dt>Free / escrowed</dt><dd>{fmtG(cg.free)} / {fmtG(cg.escrowed)}</dd></div>
       </div>
       <p class="meta">All movements are logged below for every crewmate to see.</p>
     </article>
