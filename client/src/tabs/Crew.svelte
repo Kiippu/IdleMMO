@@ -16,6 +16,7 @@
   let spec = $derived(view?.spec ?? null);
   let cooldown = $derived(view?.specCooldown ?? { ms: 0, text: '', ready: true });
   let gold = $derived(Math.floor(snap?.gold ?? 0));
+  const fmtG = (n: number) => `${Math.floor(n).toLocaleString('en-US')}g`;
   let rep = $derived(view?.rep ?? 0);
   const skillList: { id: string; name: string }[] = (DATA as any).skills;
   const skillName = (id: string) => skillList.find((k) => k.id === id)?.name ?? id;
@@ -115,10 +116,10 @@
       <article class="treasury">
         <p class="meta first">
           {spec.skillId ? `Specialized in ${skillName(spec.skillId)}.` : 'Not specialized yet.'}
-          Switching costs <span class="gold">{spec.cost}g</span>; your old skill is capped at level {spec.capLevel} and keeps its XP.
+          Switching costs <span class="brass">{fmtG(spec.cost)}</span>; your old skill is capped at level {spec.capLevel} and keeps its XP.
         </p>
         <p class="meta">
-          {cooldown.ready ? 'Ready to switch.' : `Next switch in ${cooldown.text}.`} You have <span class="gold">{gold}g</span>.
+          {cooldown.ready ? 'Ready to switch.' : `Next switch in ${cooldown.text}.`} You have <span class="brass">{fmtG(gold)}</span>.
         </p>
         <div class="row sub">
           <select bind:value={pickSkill} aria-label="New specialization">
@@ -170,7 +171,7 @@
     <h3>Town contracts</h3>
     <article class="treasury">
       <div class="totals">
-        <div><dt>Crew gold</dt><dd>{Math.floor(cg.total)}g</dd></div>
+        <div><dt>Crew gold</dt><dd>{fmtG(cg.total)}</dd></div>
         <div><dt>Reputation</dt><dd class="rep">{rep}</dd></div>
       </div>
       <p class="meta">Items you hand in go to the crew stock for raids. Gold is paid from the crew treasury.</p>
@@ -214,7 +215,7 @@
     <h3>Treasury</h3>
     <article class="treasury">
       <div class="totals">
-        <div><dt>Crew gold</dt><dd>{Math.floor(cg.total)}g</dd></div>
+        <div><dt>Crew gold</dt><dd>{fmtG(cg.total)}</dd></div>
         <div><dt>Free / escrowed</dt><dd>{Math.floor(cg.free)}g / {Math.floor(cg.escrowed)}g</dd></div>
       </div>
       <p class="meta">All movements are logged below for every crewmate to see.</p>
@@ -285,7 +286,8 @@
   }
   .totals dd { margin: 0; font: 600 var(--t-md)/1 var(--f-display); color: var(--brass); }
 
-  .gold, .rep { color: var(--brass); }
+  .brass, .rep { color: var(--brass); font: inherit; }
+  dd.rep { font: 600 var(--t-md)/1 var(--f-display); }
   .meta.first { margin-top: 0; }
   select, input[type="number"] {
     min-width: 0; padding: 6px 8px; border: 1px solid var(--rule); background: var(--sunk); color: var(--ink);
