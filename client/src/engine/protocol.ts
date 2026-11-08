@@ -38,8 +38,6 @@ export interface Derived {
   /** E.spec(state) plus E.specCooldown(state). */
   spec: any;
   specCooldown: { ms: number; text: string; ready: boolean };
-  /** state.rep */
-  rep: number;
 }
 
 export interface OfflineSummary {
@@ -72,6 +70,8 @@ export type Req =
   | { id: string; type: 'cancelListing'; listingId: string }
   | { id: string; type: 'assistJob'; jobId: string }
   | { id: string; type: 'fillContract'; contractId: string; qty: number }
+  | { id: string; type: 'postCrewRequest'; spec: { itemId: string; qty: number; rewardPer: number; minGrade?: number; note?: string } }
+  | { id: string; type: 'cancelCrewRequest'; contractId: string }
   | { id: string; type: 'switchSpec'; skillId: string }
   | { id: string; type: 'export' }
   | { id: string; type: 'import'; code: string }

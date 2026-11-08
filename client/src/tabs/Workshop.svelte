@@ -43,7 +43,7 @@
   }
   function capNote(skillId: string): string {
     const p = view?.skillProgress?.[skillId];
-    return p?.capped ? ` (raw ${p.rawLevel})` : '';
+    return p?.capped ? ' (cap)' : '';
   }
 
   async function start(id: string) {

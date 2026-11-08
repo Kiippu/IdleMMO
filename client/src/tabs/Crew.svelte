@@ -17,7 +17,6 @@
   let cooldown = $derived(view?.specCooldown ?? { ms: 0, text: '', ready: true });
   let gold = $derived(Math.floor(snap?.gold ?? 0));
   const fmtG = (n: number) => `${Math.floor(n).toLocaleString('en-US')}g`;
-  let rep = $derived(view?.rep ?? 0);
   const skillList: { id: string; name: string }[] = (DATA as any).skills;
   const skillName = (id: string) => skillList.find((k) => k.id === id)?.name ?? id;
   let pickSkill = $state('');
@@ -41,7 +40,7 @@
   }
 
   function maxFill(c: any): number {
-    return Math.max(0, Math.min(c.remaining ?? 0, c.have ?? 0));
+    return Math.max(0, Math.min(c.remaining ?? 0, c.have ?? 0, c.capacity ?? Infinity));
   }
   function qtyFor(c: any): number {
     const want = fillQty[c.id] ?? maxFill(c);
@@ -52,18 +51,43 @@
     try {
       const res = await engineClient.fillContract(c.id, qtyFor(c));
       if (res && res.ok === false) msg = res.reason || 'Could not fill.';
-      else if (res) msg = `Handed in ${res.accepted ?? 0}${res.gold ? `, +${res.gold}g` : ''}${res.rep ? `, +${res.rep} rep` : ''}.`;
+      else if (res) msg = `Handed in ${res.accepted ?? 0}${res.gold ? `, +${res.gold}g` : ''}.`;
     } catch (err) { console.error('fillContract failed', err); }
   }
   async function doSwitch() {
     if (!pickSkill || !spec) return;
-    if (!confirm(`Specialize in ${skillName(pickSkill)} for ${spec.cost}g? ${spec.skillId ? `${skillName(spec.skillId)} drops to level ${spec.capLevel} (XP kept). ` : ''}You can't switch again for 7 days.`)) return;
+    const first = spec.firstPickFree;
+    if (!confirm(`Specialize in ${skillName(pickSkill)} ${first ? 'for free' : `for ${fmtG(spec.cost)}`}? ${spec.skillId ? `${skillName(spec.skillId)} drops to level ${spec.capLevel} (XP kept). ` : ''}You can't switch again for a week.`)) return;
     try {
       const res = await engineClient.switchSpec(pickSkill);
       msg = res && res.ok === false ? (res.reason || 'Could not switch.') : 'Specialization changed.';
+      if (!res || res.ok !== false) pickSkill = '';
     } catch (err) { console.error('switchSpec failed', err); }
   }
-  const payLabel = (c: any) => (c.pays === 'gold' ? 'Pays gold' : c.pays === 'mixed' ? 'Pays gold, then rep' : 'Pays reputation');
+  const GRADES = ['Any grade', 'Fine+', 'Sharp+', 'Keen+', 'Pristine'];
+  const sellable = Object.values(itemsMap as Record<string, { id?: string; name?: string; kind?: string }>)
+    .filter((i) => i.kind !== 'gear' && i.id)
+    .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+  let reqItem = $state('');
+  let reqGrade = $state(0);
+  let reqQty = $state(10);
+  let reqReward = $state(5);
+  let reqEscrow = $derived(Math.max(0, Math.floor(reqQty || 0)) * Math.max(0, Math.floor(reqReward || 0)));
+  let reqValid = $derived(!!reqItem && reqQty >= 1 && reqQty <= 500 && reqReward >= 1 && reqEscrow <= gold);
+  async function postRequest() {
+    msg = '';
+    try {
+      const res = await engineClient.postCrewRequest({ itemId: reqItem, qty: Math.floor(reqQty), rewardPer: Math.floor(reqReward), minGrade: reqGrade || undefined });
+      msg = res && res.ok === false ? (res.reason || 'Could not post.') : `Request posted. ${fmtG(res?.escrow ?? reqEscrow)} held in escrow.`;
+    } catch (err) { console.error('postCrewRequest failed', err); }
+  }
+  async function cancelRequest(c: any) {
+    msg = '';
+    try {
+      const res = await engineClient.cancelCrewRequest(c.id);
+      msg = res && res.ok === false ? (res.reason || 'Could not cancel.') : `Cancelled. ${fmtG(res?.refunded ?? 0)} refunded.`;
+    } catch (err) { console.error('cancelCrewRequest failed', err); }
+  }
   function rowText(e: any): string {
     const q = e.qty ? Math.abs(e.qty) : 1;
     if (e.gear || e.uid) return gearNames[e.uid] ?? e.reason ?? 'Gear';
@@ -116,18 +140,22 @@
       <article class="treasury">
         <p class="meta first">
           {spec.skillId ? `Specialized in ${skillName(spec.skillId)}.` : 'Not specialized yet.'}
-          Switching costs <span class="brass">{fmtG(spec.cost)}</span>; your old skill is capped at level {spec.capLevel} and keeps its XP.
         </p>
-        <p class="meta">
-          {cooldown.ready ? 'Ready to switch.' : `Next switch in ${cooldown.text}.`} You have <span class="brass">{fmtG(gold)}</span>.
-        </p>
-        <div class="row sub">
-          <select bind:value={pickSkill} aria-label="New specialization">
-            <option value="">Choose a skill</option>
-            {#each skillList.filter((k) => k.id !== spec.skillId) as k (k.id)}<option value={k.id}>{k.name}</option>{/each}
-          </select>
-          <button type="button" class="action-btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
-        </div>
+        {#if (spec.eligible ?? []).length === 0}
+          <p class="meta">Reach level {spec.capLevel} in a skill to specialise.</p>
+        {:else}
+          <p class="meta">
+            {#if spec.firstPickFree}First pick is free.{:else}Switching costs <span class="brass">{fmtG(spec.cost)}</span>; your old skill is capped at level {spec.capLevel} and keeps its XP.{/if}
+            {cooldown.ready ? '' : `Next switch in ${cooldown.text}.`} You have <span class="brass">{fmtG(gold)}</span>.
+          </p>
+          <div class="row sub">
+            <select bind:value={pickSkill} aria-label="New specialization">
+              <option value="">Choose a skill</option>
+              {#each spec.eligible as id (id)}<option value={id}>{skillName(id)}</option>{/each}
+            </select>
+            <button type="button" class="action-btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
+          </div>
+        {/if}
         {#if msg}<p class="meta">{msg}</p>{/if}
       </article>
     </section>
@@ -168,13 +196,13 @@
   </section>
 {:else if sub === 'contracts'}
   <section class="group">
-    <h3>Town contracts</h3>
+    <h3>Contracts</h3>
     <article class="treasury">
       <div class="totals">
         <div><dt>Crew gold</dt><dd>{fmtG(cg.total)}</dd></div>
-        <div><dt>Reputation</dt><dd class="rep">{rep}</dd></div>
+        <div><dt>Your gold</dt><dd>{fmtG(gold)}</dd></div>
       </div>
-      <p class="meta">Items you hand in go to the crew stock for raids. Gold is paid from the crew treasury.</p>
+      <p class="meta">Items you hand in go to the crew stock for raids. Town contracts pay from the crew treasury; crew requests pay from the poster's gold.</p>
       {#if msg}<p class="meta">{msg}</p>{/if}
     </article>
   </section>
@@ -187,15 +215,21 @@
           {@const mx = maxFill(c)}
           <li>
             <div class="row">
-              <span class="name">{c.itemName ?? itemName(c.itemId)}{c.minGrade ? ` (grade ${c.minGrade}+)` : ''}</span>
+              <span class="name">{c.itemName ?? itemName(c.itemId)}{c.minGrade ? ` (${GRADES[c.minGrade] ?? `grade ${c.minGrade}+`})` : ''}</span>
               <span class="meta">{c.filled}/{c.qty}</span>
             </div>
             <p class="meta">
-              {payLabel(c)}: {c.pays === 'reputation' ? `${c.repPer} rep` : c.pays === 'gold' ? `${c.rewardPer}g` : `${c.rewardPer}g, then ${c.repPer} rep`} each
+              <span class="tag">{c.source === 'town' ? 'Town' : 'Crew'}</span>
+              {fmtG(c.rewardPer)} each · paid by {c.paidBy}
               · You have {c.have}{c.vaultHas ? ` · Crew has ${c.vaultHas}` : ''}
             </p>
             {#if c.note}<p class="meta">{c.note}</p>{/if}
-            {#if c.status === 'open'}
+            {#if c.status === 'open' && c.mine}
+              <div class="row sub">
+                <span class="meta">Yours · {fmtG(c.escrow)} in escrow</span>
+                {#if c.canCancel}<button type="button" class="action-btn" onclick={() => cancelRequest(c)}>Cancel</button>{/if}
+              </div>
+            {:else if c.status === 'open'}
               <div class="row sub">
                 <input type="number" min="1" max={mx || 1} value={qtyFor(c)} disabled={!c.canFill?.ok || mx < 1}
                   oninput={(e) => (fillQty[c.id] = Number((e.target as HTMLInputElement).value))} aria-label="Quantity" />
@@ -203,12 +237,32 @@
               </div>
               {#if !c.canFill?.ok && c.canFill?.reason}<p class="meta">{c.canFill.reason}</p>{/if}
             {:else}
-              <p class="meta">{c.status === 'filled' ? 'Filled.' : 'Closed.'}</p>
+              <p class="meta">{c.status === 'filled' ? 'Filled.' : c.status === 'cancelled' ? 'Cancelled.' : 'Closed.'}</p>
             {/if}
           </li>
         {/each}
       </ul>
     {/if}
+  </section>
+  <section class="group">
+    <h3>Post a request</h3>
+    <article class="treasury form">
+      <label>Item
+        <select bind:value={reqItem}>
+          <option value="">Choose an item</option>
+          {#each sellable as i (i.id)}<option value={i.id}>{i.name}</option>{/each}
+        </select>
+      </label>
+      <div class="fields">
+        <label>Min grade
+          <select bind:value={reqGrade}>{#each GRADES as g, i}<option value={i}>{g}</option>{/each}</select>
+        </label>
+        <label>Qty (1-500)<input type="number" min="1" max="500" bind:value={reqQty} /></label>
+        <label>Reward each (g)<input type="number" min="1" bind:value={reqReward} /></label>
+      </div>
+      <p class="meta">Escrow: <span class="brass">{fmtG(reqEscrow)}</span> from your {fmtG(gold)}. Cancel any time for a refund of what is left.</p>
+      <button type="button" class="action-btn" disabled={!reqValid} onclick={postRequest}>Post request</button>
+    </article>
   </section>
 {:else}
   <section class="group">
@@ -232,13 +286,14 @@
           <li>
             <div class="row">
               <span class="name">{#if entry.itemId || entry.uid}{entry.qty < 0 ? '−' : '+'} {rowText(entry)}{:else}{entry.who ?? 'Crew'}{/if}</span>
-              {#if entry.delta}
-                <span class={`delta ${entry.delta > 0 ? 'pos' : 'neg'}`}>
-                  {entry.delta > 0 ? '+' : ''}{entry.delta}g
+              {#if entry.delta || entry.gold}
+                {@const amt = entry.delta || entry.gold}
+                <span class={`delta ${entry.delta ? (amt > 0 ? 'pos' : 'neg') : 'plain'}`}>
+                  {entry.delta && amt > 0 ? '+' : ''}{fmtG(amt)}
                 </span>
               {/if}
             </div>
-            <p class="meta">{fmtAt(entry.t ?? entry.at)} · {entry.itemId || entry.uid ? `${entry.who ?? 'Crew'} · ` : ''}{entry.reason ?? entry.kind}</p>
+            <p class="meta">{fmtAt(entry.t ?? entry.at)} · {entry.itemId || entry.uid ? `${entry.who ?? 'Crew'} · ` : ''}{entry.reason ?? entry.kind}{entry.paidBy ? ` · paid by ${entry.paidBy}` : ''}</p>
           </li>
         {/each}
       </ul>
@@ -286,8 +341,13 @@
   }
   .totals dd { margin: 0; font: 600 var(--t-md)/1 var(--f-display); color: var(--brass); }
 
-  .brass, .rep { color: var(--brass); font: inherit; }
-  dd.rep { font: 600 var(--t-md)/1 var(--f-display); }
+  .brass { color: var(--brass); font: inherit; }
+  .tag { display: inline-block; margin-right: 6px; padding: 1px 5px; border: 1px solid var(--rule); background: var(--sunk); font: 400 var(--t-xs)/1.3 var(--f-label); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
+  .delta.plain { color: var(--ink-2); }
+  .form { display: grid; gap: 10px; }
+  .form label { display: grid; gap: 4px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; min-width: 0; }
+  .form .fields { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; }
+  .form input[type="number"] { width: 100%; }
   .meta.first { margin-top: 0; }
   select, input[type="number"] {
     min-width: 0; padding: 6px 8px; border: 1px solid var(--rule); background: var(--sunk); color: var(--ink);

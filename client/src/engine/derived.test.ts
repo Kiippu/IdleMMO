@@ -21,8 +21,11 @@ describe.each(['v4-save.json', 'v5-phase2-save.json'])('client save path: %s', (
     const cg = E.crewGold(state);
     expect(cg.total).toBe(cg.free + cg.escrowed);
     expect(E.specCooldown(state).text).toMatch(/^\d+d \d+h$|^$|^ready|./);
-    expect(E.spec(state).cost).toBeGreaterThan(0);
-    expect(typeof state.rep).toBe('number');
+    expect(E.spec(state).switchCost).toBeGreaterThan(0);
+    const sp = E.spec(state);
+    expect(Array.isArray(sp.eligible)).toBe(true);
+    expect(sp.cost).toBeLessThanOrEqual(sp.switchCost);
+    for (const c of E.listContracts(state)) expect(['town', 'crew']).toContain(c.source);
     for (const e of E.treasuryLog(state)) expect(typeof e.t).toBe('number');
   });
   it('actionTime is the single source for list and active card', () => {

@@ -43,7 +43,6 @@ function derive(): Derived {
     treasuryLog: state ? (E.treasuryLog(state) as any[]) : [],
     spec: state ? E.spec(state) : null,
     specCooldown: state ? E.specCooldown(state) : { ms: 0, text: '', ready: true },
-    rep: state ? Math.floor(state.rep ?? 0) : 0,
     skillLevels,
     activeTime,
     gearNames,
@@ -135,6 +134,16 @@ async function handle(req: Req): Promise<unknown> {
       return undefined;
     case 'fillContract': {
       const res = E.fillContract(state, req.contractId, req.qty);
+      E.save(state);
+      return res;
+    }
+    case 'postCrewRequest': {
+      const res = E.postCrewRequest(state, req.spec);
+      E.save(state);
+      return res;
+    }
+    case 'cancelCrewRequest': {
+      const res = E.cancelCrewRequest(state, req.contractId);
       E.save(state);
       return res;
     }

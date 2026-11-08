@@ -77,9 +77,13 @@ export const engineClient = {
   assistJob: (jobId: string) =>
     rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'assistJob', jobId }),
   fillContract: (contractId: string, qty: number) =>
-    rpc<{ ok: boolean; reason?: string; accepted?: number; gold?: number; rep?: number; partial?: boolean }>({ id: nextId(), type: 'fillContract', contractId, qty }),
+    rpc<{ ok: boolean; reason?: string; accepted?: number; gold?: number; partial?: boolean }>({ id: nextId(), type: 'fillContract', contractId, qty }),
+  postCrewRequest: (spec: { itemId: string; qty: number; rewardPer: number; minGrade?: number; note?: string }) =>
+    rpc<{ ok: boolean; reason?: string; escrow?: number }>({ id: nextId(), type: 'postCrewRequest', spec }),
+  cancelCrewRequest: (contractId: string) =>
+    rpc<{ ok: boolean; reason?: string; refunded?: number }>({ id: nextId(), type: 'cancelCrewRequest', contractId }),
   switchSpec: (skillId: string) =>
-    rpc<{ ok: boolean; reason?: string; cost?: number }>({ id: nextId(), type: 'switchSpec', skillId }),
+    rpc<{ ok: boolean; reason?: string; cost?: number; first?: boolean }>({ id: nextId(), type: 'switchSpec', skillId }),
   export: () => rpc<string>({ id: nextId(), type: 'export' }),
   import: (code: string) => rpc<void>({ id: nextId(), type: 'import', code }),
   reset: () => rpc<void>({ id: nextId(), type: 'reset' }),
