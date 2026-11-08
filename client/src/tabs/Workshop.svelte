@@ -168,8 +168,10 @@
   }
   .action:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
   .action:disabled { opacity: .5; cursor: not-allowed; }
-  .action[aria-pressed="true"] { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
-  .action[aria-pressed="true"] .a-req { color: var(--on-woad); opacity: .85; }
+  .action[aria-pressed="true"],
+  .action[aria-pressed="true"]:hover:not(:disabled) { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
+  .action[aria-pressed="true"] .a-name,
+  .action[aria-pressed="true"] .a-req { color: var(--on-woad); opacity: 1; }
   .a-name { font: 500 var(--t-sm)/1.1 var(--f-body); }
   .a-req { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; }
 </style>

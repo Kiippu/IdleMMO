@@ -121,11 +121,6 @@ async function handle(req: Req): Promise<unknown> {
       E.setRaidRules(state, req.rules);
       E.save(state);
       return undefined;
-    case 'runRaid': {
-      const res = E.runRaid(state);
-      E.save(state);
-      return res;
-    }
     case 'buyListing': {
       const res = E.buy(state, req.listingId, req.qty);
       E.save(state);

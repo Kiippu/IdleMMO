@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
 
@@ -8,9 +9,12 @@
 
   let members = $derived<any[]>(view?.crewMembers ?? []);
   let jobs = $derived<any[]>(view?.crewJobs ?? []);
-  let treasury = $derived<{ gold: number; log: any[] }>(
+  let treasury = $derived<{ gold: number; escrow?: number; log: any[] }>(
     snap?.crew?.treasury ?? { gold: 0, log: [] },
   );
+  let crewGold = $derived(Math.floor((treasury.gold ?? 0) + (treasury.escrow ?? 0)));
+  const itemsMap: Record<string, { name?: string }> = (DATA as any).items;
+  const itemName = (id: string) => itemsMap[id]?.name ?? id;
 
   function fmtDuration(sec: number): string {
     if (!isFinite(sec) || sec <= 0) return 'now';
@@ -52,7 +56,7 @@
             <div class="row">
               <div>
                 <span class="name">{m.name}</span>
-                {#if m.isYou}<span class="meta">you</span>{/if}
+                {#if m.isYou && m.name?.trim().toLowerCase() !== 'you'}<span class="meta grade">you</span>{/if}
               </div>
               <span class="meta rank">{m.rankName}</span>
             </div>
@@ -103,7 +107,8 @@
     <h3>Treasury</h3>
     <article class="treasury">
       <div class="totals">
-        <div><dt>Crew gold</dt><dd>{Math.floor(treasury.gold)}g</dd></div>
+        <div><dt>Crew gold</dt><dd>{crewGold}g</dd></div>
+        {#if treasury.escrow}<div><dt>Free / escrowed</dt><dd>{Math.floor(treasury.gold)}g / {Math.floor(treasury.escrow)}g</dd></div>{/if}
       </div>
       <p class="meta">All movements are logged below for every crewmate to see.</p>
     </article>
@@ -118,12 +123,16 @@
         {#each treasury.log as entry}
           <li>
             <div class="row">
-              <span class="name">{entry.who ?? 'Crew'}</span>
-              <span class={`delta ${entry.delta >= 0 ? 'pos' : 'neg'}`}>
-                {entry.delta >= 0 ? '+' : ''}{entry.delta}g
+              <span class="name">
+                {#if entry.itemId}{itemName(entry.itemId)} × {entry.qty ?? 1}{:else}{entry.who ?? 'Crew'}{/if}
               </span>
+              {#if entry.delta}
+                <span class={`delta ${entry.delta > 0 ? 'pos' : 'neg'}`}>
+                  {entry.delta > 0 ? '+' : ''}{entry.delta}g
+                </span>
+              {/if}
             </div>
-            <p class="meta">{fmtAt(entry.at)} · {entry.reason ?? entry.kind}</p>
+            <p class="meta">{fmtAt(entry.t ?? entry.at)} · {entry.itemId ? `${entry.who ?? 'Crew'} · ` : ''}{entry.reason ?? entry.kind}</p>
           </li>
         {/each}
       </ul>

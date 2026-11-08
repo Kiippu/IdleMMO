@@ -65,13 +65,6 @@
     try { await engineClient.setRaidRules({ eatAt: pct }); }
     catch (err) { console.error('setRaidRules failed', err); }
   }
-  async function startRaid() {
-    if (!confirm('Begin the raid now?')) return;
-    try {
-      const res = await engineClient.runRaid();
-      if (res && res.ok === false) alert(res.reason || 'Could not start the raid.');
-    } catch (err) { console.error('runRaid failed', err); }
-  }
 </script>
 
 <nav class="subs" aria-label="War Room section">
@@ -184,7 +177,7 @@
         <span class={`phase phase-${status.phase}`}>{PHASE_LABEL[status.phase] ?? status.phase}</span>
         <p class="meta">
           {#if status.phase === 'prep'}
-            Opens in {fmtDuration(status.secToStart)}.
+            Opens in {fmtDuration(status.secToStart)}. The raid runs Sat 10:00 to Sun 22:00 local.
           {:else if status.phase === 'live'}
             Closes in {fmtDuration(status.secLeft)}.
           {:else if status.phase === 'done'}
@@ -197,19 +190,11 @@
     {/if}
   </section>
 
-  <section class="group">
-    <h3>Start</h3>
-    <p class="muted">The engine's canStartNow is true: you can fight now even outside the window. The real schedule is Sat 10:00 → Sun 22:00 local.</p>
-    <button type="button" class="action-btn primary" onclick={startRaid} disabled={status?.resolved}>
-      {status?.resolved ? 'Already fought this week' : 'Start raid'}
-    </button>
-  </section>
-
   {#if snap?.raid?.last}
     <section class="group">
       <h3>Last recap</h3>
       <article class="recap">
-        <p class="meta">Week {snap.raid.last.week} · {snap.raid.last.result ?? 'result?'}</p>
+        <p class="meta">Week {snap.raid.last.week}{snap.raid.last.result ? ` · ${snap.raid.last.result}` : ''}</p>
         {#if snap.raid.last.gold}<p class="meta">Gold: {snap.raid.last.gold}g</p>{/if}
         {#if snap.raid.last.xp}<p class="meta">XP: {Math.round(snap.raid.last.xp)}</p>{/if}
       </article>
@@ -292,8 +277,6 @@
   }
   .action-btn:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
   .action-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .action-btn.primary { background: var(--woad); color: var(--on-woad); border-color: var(--woad); padding: 10px 16px; }
-  .action-btn.primary:hover:not(:disabled) { background: var(--woad); opacity: .9; }
   .ghost { background: transparent; }
   .ghost:hover { background: var(--sunk); }
 </style>

@@ -68,7 +68,6 @@ export const engineClient = {
   equipLoadout: (loadoutId: string) => rpc<void>({ id: nextId(), type: 'equipLoadout', loadoutId }),
   setRaidRules: (rules: { eatAt?: number; stance?: string; tactic?: string }) =>
     rpc<void>({ id: nextId(), type: 'setRaidRules', rules }),
-  runRaid: () => rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'runRaid' }),
   buyListing: (listingId: string, qty: number) =>
     rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'buyListing', listingId, qty }),
   listItem: (itemId: string, grade: number, qty: number, price: number) =>
