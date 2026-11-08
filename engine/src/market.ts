@@ -3,7 +3,7 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, MAX_PLAYER_LISTINGS, D, arr, num, grades, skillDefs, itemsMap, item, allActions, rand, clamp, randInt, pick, lcFirst, itemName, qtyAvg, zeros5, isStackable, nextId } from './core';
+import { E, MAX_PLAYER_LISTINGS, D, arr, num, grades, skillDefs, itemsMap, item, allActions, rand, clamp, randInt, pick, lcFirst, itemName, qtyAvg, zeros5, isStackable, nextId, fmtGold } from './core';
 import { addItem, cleanInv } from './inventory';
 import { actionTimeWith } from './actions';
 
@@ -89,10 +89,10 @@ E.buy = function (state, listingId, qty) {
   if (qty < 1) return { ok: false, reason: 'Pick at least 1.' };
   if (qty > l.qty) return { ok: false, reason: `Only ${l.qty} left in that listing.` };
   const cost = l.price * qty;
-  if (state.gold < cost) return { ok: false, reason: `That costs ${cost}g and you have ${Math.floor(state.gold)}g.` };
+  if (state.gold < cost) return { ok: false, reason: `That costs ${fmtGold(cost)} and you have ${fmtGold(Math.floor(state.gold))}.` };
   state.gold -= cost; addItem(state, l.itemId, l.grade, qty); l.qty -= qty;
   if (l.qty <= 0) state.market.listings = state.market.listings.filter((x) => x !== l);
-  E.log(state, 'market', `Bought ${qty} ${itemName(l.itemId)} from ${l.seller} for ${cost}g.`);
+  E.log(state, 'market', `Bought ${qty} ${itemName(l.itemId)} from ${l.seller} for ${fmtGold(cost)}.`);
   return { ok: true, reason: '', gold: cost };
 };
 E.list = function (state, itemId, grade, qty, price) {
@@ -108,7 +108,7 @@ E.list = function (state, itemId, grade, qty, price) {
   if (state.market.mine.length >= MAX_PLAYER_LISTINGS) return { ok: false, reason: `You can only have ${MAX_PLAYER_LISTINGS} listings at once.` };
   state.inv[itemId][grade] -= qty; cleanInv(state, itemId);
   state.market.mine.push({ id: nextId(state, 'm'), itemId, grade, qty, price });
-  E.log(state, 'market', `Listed ${qty} ${it.name} at ${price}g each.`);
+  E.log(state, 'market', `Listed ${qty} ${it.name} at ${fmtGold(price)} each.`);
   return { ok: true, reason: '' };
 };
 E.cancelListing = function (state, id) {

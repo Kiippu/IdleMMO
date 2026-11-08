@@ -3,13 +3,13 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, SLOTS, LOG_CAP, D, arr, num, cfg, skillDefs, item, action, clamp, zeros5, gradeOf, rarityDef } from './core';
+import { E, SLOTS, LOG_CAP, D, arr, num, cfg, skillDefs, item, action, clamp, zeros5, gradeOf, rarityDef, fmtGold } from './core';
 import { addItem } from './inventory';
 import { makeGear, clampHp } from './gear';
 import { isGearCraft } from './actions';
 import { makeCrew, migrateCrew } from './crew-assist';
 import { SCHEMA, V3_BOSS_HP } from './v4-helpers';
-import { mondayOf, addDays } from './clock';
+import { mondayOf, addDays, windowFor, weekStartOf } from './clock';
 import { curRecord } from './server';
 import { normRules } from './raid-rules';
 import { ensureV5 } from './crew-economy';
@@ -28,7 +28,7 @@ E.newState = function () {
     equipped: { weapon: null, offhand: null, head: null, chest: null, legs: null, ring: null },
     active: null, settings: { matPriority: 'best', useCatalyst: false, useCore: false },
     market: { listings: [], mine: [], refreshedAt: now, age: 0 },
-    raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, last: null },
+    raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, last: null, resolvedWeek: 0 },
     log: [], seq: 1
   };
   skillDefs().forEach((d) => { s.skills[d.id] = { xp: 0 }; });
@@ -47,6 +47,11 @@ E.newState = function () {
   const b = E.currentBoss(s); s.raid.bossHp = b ? Math.max(1, num(b.hp, 1)) : 0;
   E.refreshMarket(s);
   makeCrew(s);
+  // A save created after this week's raid window opened sits that raid out: it joins next week's.
+  // Without this, resolvedWeek defaulted to week-1 and the first tick resolved a raid that started
+  // before the save existed (auto-locking the new player and paying them). Marked before ensureV5 so
+  // no town contracts are posted for a raid that is already under way.
+  s.raid.resolvedWeek = ctx.now() >= windowFor(s, weekStartOf(s, s.week)).start ? s.week : s.week - 1;
   ensureV5(s);
   curRecord(s).revealedWeek = s.week;
   if (SLOTS.some((sl) => s.equipped[sl])) E.saveLoadout(s, { name: 'Starter kit', fromEquipped: true });
@@ -84,7 +89,7 @@ export function migrate(raw) {
     const name = (skillDefs().find((d) => d.id === out.spec.skillId) || { name: out.spec.skillId }).name;
     out.spec = { skillId: null, lastSwitchAt: null };
     out.gold += LEGACY_SPEC_CHARGE;
-    specNote = `Specializations now need level 70. Your ${name} specialization was cleared and ${LEGACY_SPEC_CHARGE}g refunded.`;
+    specNote = `Specializations now need level 70. Your ${name} specialization was cleared and ${fmtGold(LEGACY_SPEC_CHARGE)} refunded.`;
   }
   delete out.rep; // reputation removed
   out.mastery = raw.mastery && typeof raw.mastery === 'object' ? raw.mastery : {};

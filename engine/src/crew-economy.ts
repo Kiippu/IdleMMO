@@ -2,7 +2,7 @@
 // Ported from legacy/engine.js lines 2230-2570. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, SLOTS, D, arr, num, cfg, grades, item, allActions, bosses, rand, clamp, randInt, pick, lcFirst, itemName, isStackable, nextId } from './core';
+import { E, SLOTS, D, arr, num, cfg, grades, item, allActions, bosses, rand, clamp, randInt, pick, lcFirst, itemName, isStackable, nextId, fmtGold } from './core';
 import { addItem } from './inventory';
 import { findGear, clampHp } from './gear';
 import { SCHEMA, FEED_CAP, TREASURY_LOG_CAP, mulberry, clone, rankDefs, rankDef, invCount, invAdd, invTake, BEST, WORST } from './v4-helpers';
@@ -268,7 +268,7 @@ export function ensureCrewV5(state) {
   if (!cr.treasury || typeof cr.treasury !== 'object') {
     cr.treasury = { gold: num(cfg().crewStartTreasury, 120), escrow: 0, log: [] };
     if (!Array.isArray(cr.feed)) cr.feed = [];
-    feedPush(state, 'payout', 'Raid', `Last weekend's raid payout: ${cr.treasury.gold}g to the treasury.`);
+    feedPush(state, 'payout', 'Raid', `Last weekend's raid payout: ${fmtGold(cr.treasury.gold)} to the treasury.`);
   }
   cr.treasury.gold = Math.max(0, num(cr.treasury.gold, 0)); cr.treasury.escrow = Math.max(0, num(cr.treasury.escrow, 0));
   cr.treasury.log = normTreasuryLog(cr.treasury.log);
@@ -362,10 +362,10 @@ function addEscrow(state, k, amount) { // reserve gold for k from its payer
   k.escrow += amount;
   if (k.payer === 'player') {
     state.gold = num(state.gold, 0) - amount;
-    logTreasury(state, 'contract-escrow', 0, k.postedBy, `${k.postedBy} escrowed ${amount}g for a crew request: ${k.qty} ${itemName(k.itemId)}`, { gold: amount, paidBy: payerName(k) });
+    logTreasury(state, 'contract-escrow', 0, k.postedBy, `${k.postedBy} escrowed ${fmtGold(amount)} for a crew request: ${k.qty} ${itemName(k.itemId)}`, { gold: amount, paidBy: payerName(k) });
   } else {
     const cr = state.crew; cr.treasury.gold -= amount; cr.treasury.escrow += amount;
-    logTreasury(state, 'contract-escrow', 0, k.source === 'town' ? 'Town' : k.postedBy, `Escrowed ${amount}g for the ${itemName(k.itemId)} contract`, { escrowDelta: amount, gold: amount, paidBy: 'Treasury' });
+    logTreasury(state, 'contract-escrow', 0, k.source === 'town' ? 'Town' : k.postedBy, `Escrowed ${fmtGold(amount)} for the ${itemName(k.itemId)} contract`, { escrowDelta: amount, gold: amount, paidBy: 'Treasury' });
   }
 }
 export function postContracts(state, events) {
@@ -399,10 +399,10 @@ export function releaseContractEscrow(state, k, why) {
   k.escrow = 0;
   if (k.payer === 'player') {
     if (k.postedBy === 'You') state.gold = num(state.gold, 0) + back;
-    logTreasury(state, 'contract-release', 0, k.postedBy, `${why}: ${back}g escrow back to ${k.postedBy === 'You' ? 'you' : k.postedBy} from the ${itemName(k.itemId)} request`, { gold: back, paidBy: payerName(k) });
+    logTreasury(state, 'contract-release', 0, k.postedBy, `${why}: ${fmtGold(back)} escrow back to ${k.postedBy === 'You' ? 'you' : k.postedBy} from the ${itemName(k.itemId)} request`, { gold: back, paidBy: payerName(k) });
   } else {
     const cr = state.crew; cr.treasury.escrow = Math.max(0, cr.treasury.escrow - back); cr.treasury.gold += back;
-    logTreasury(state, 'contract-release', 0, 'Town', `${why}: ${back}g escrow back from the ${itemName(k.itemId)} contract`, { escrowDelta: -back, gold: back, paidBy: 'Treasury' });
+    logTreasury(state, 'contract-release', 0, 'Town', `${why}: ${fmtGold(back)} escrow back from the ${itemName(k.itemId)} contract`, { escrowDelta: -back, gold: back, paidBy: 'Treasury' });
   }
   return back;
 }
@@ -424,9 +424,9 @@ export function submitToContract(state, k, who, grades) {
   k.submissions.push({ who, qty: n, gold, t: nowOf(state) }); if (k.submissions.length > 40) k.submissions = k.submissions.slice(-40);
   if (gold > 0 && k.payer !== 'player') econ(state, 'reqPaid', gold);
   const treas = k.payer !== 'player';
-  logTreasury(state, 'contract', treas ? -gold : 0, who, `${who} filled ${n} ${itemName(k.itemId)} (${k.source === 'crew' ? `${k.postedBy}'s request` : 'town contract'} ${k.id}), paid ${gold}g by ${payerName(k)}`,
+  logTreasury(state, 'contract', treas ? -gold : 0, who, `${who} filled ${n} ${itemName(k.itemId)} (${k.source === 'crew' ? `${k.postedBy}'s request` : 'town contract'} ${k.id}), paid ${fmtGold(gold)} by ${payerName(k)}`,
     Object.assign({ itemId: k.itemId, qty: n, grade: grades[0] ? grades[0].grade : null, gold, paidBy: payerName(k) }, treas ? { escrowDelta: -gold } : {}));
-  feedPush(state, 'contract', who, `${who} filled ${n} ${itemName(k.itemId)} for the crew, +${gold}g.`);
+  feedPush(state, 'contract', who, `${who} filled ${n} ${itemName(k.itemId)} for the crew, +${fmtGold(gold)}.`);
   if (k.filled >= k.qty) { k.status = 'filled'; releaseContractEscrow(state, k, 'Contract filled'); feedPush(state, 'contract', 'Crew', `The ${itemName(k.itemId)} ${k.source === 'crew' ? 'request' : 'contract'} is filled.`); }
   else if (contractCapacity(k) < 1) { k.status = 'closed'; releaseContractEscrow(state, k, 'Escrow ran out'); feedPush(state, 'contract', 'Crew', `The ${itemName(k.itemId)} ${k.source === 'crew' ? 'request' : 'contract'} ran out of gold and closed.`); }
   return gold;
@@ -453,7 +453,7 @@ E.fillContract = function (state, contractId, qty) {
   const n = taken.reduce((a, t) => a + t.qty, 0);
   const gold = submitToContract(state, k, 'You', taken);
   state.gold = num(state.gold, 0) + gold;
-  E.log(state, 'info', `Filled ${n} ${itemName(k.itemId)} for the crew's stock and earned ${gold}g.`);
+  E.log(state, 'info', `Filled ${n} ${itemName(k.itemId)} for the crew's stock and earned ${fmtGold(gold)}.`);
   return { ok: true, reason: '', accepted: n, gold, partial: n < qty, status: k.status };
 };
 // A player posts a request on the crew board, paying from their own gold (escrowed now, refunded on cancel).
@@ -464,12 +464,12 @@ E.postCrewRequest = function (state, spec) {
   const rewardPer = Math.floor(num(spec.rewardPer, 0)); if (rewardPer < 1) return { ok: false, reason: 'Pay at least 1g per item.' };
   const minGrade = clamp(Math.floor(num(spec.minGrade, 1)), 0, 4);
   const escrow = qty * rewardPer;
-  if (escrow > num(state.gold, 0)) return { ok: false, reason: `That needs ${escrow}g in escrow; you have ${Math.floor(num(state.gold, 0))}g.`, escrow };
+  if (escrow > num(state.gold, 0)) return { ok: false, reason: `That needs ${fmtGold(escrow)} in escrow; you have ${fmtGold(Math.floor(num(state.gold, 0)))}.`, escrow };
   const k = { id: nextId(state, 'K'), source: 'crew', payer: 'player', postedBy: 'You', week: state.week, check: null, itemId: spec.itemId, qty, filled: 0, minGrade, rewardPer,
     escrow: 0, paid: 0, status: 'open', postedAt: nowOf(state), note: String(spec.note || '').slice(0, 120) || `Wanted: ${qty} ${it.name}`, submissions: [] };
   addEscrow(state, k, escrow);
   state.crew.contracts.unshift(k); trimContracts(state);
-  feedPush(state, 'contract', 'You', `Posted a crew request: ${qty} ${it.name} at ${rewardPer}g each (${escrow}g escrowed).`);
+  feedPush(state, 'contract', 'You', `Posted a crew request: ${qty} ${it.name} at ${fmtGold(rewardPer)} each (${fmtGold(escrow)} escrowed).`);
   return { ok: true, reason: '', contract: clone(k), escrow };
 };
 E.cancelCrewRequest = function (state, contractId) {
@@ -478,7 +478,7 @@ E.cancelCrewRequest = function (state, contractId) {
   if (k.status !== 'open') return { ok: false, reason: 'That request is already closed.', refunded: 0 };
   k.status = 'cancelled';
   const refunded = releaseContractEscrow(state, k, 'Request cancelled');
-  feedPush(state, 'contract', 'You', `Cancelled the ${itemName(k.itemId)} request${refunded ? `; ${refunded}g refunded` : ''}.`);
+  feedPush(state, 'contract', 'You', `Cancelled the ${itemName(k.itemId)} request${refunded ? `; ${fmtGold(refunded)} refunded` : ''}.`);
   return { ok: true, reason: '', refunded };
 };
 E.listContracts = function (state) {
@@ -529,7 +529,7 @@ export function migrateRequisitions(state) {
   const releaseT = (r, why) => {
     const back = Math.max(0, num(r.escrow, 0)); if (!back) return;
     t.escrow = Math.max(0, t.escrow - back); t.gold += back;
-    logTreasury(state, 'release', 0, 'Crew', `${why}: ${back}g escrow released (${itemName(r.itemId)})`, { escrowDelta: -back, gold: back, paidBy: 'Treasury' });
+    logTreasury(state, 'release', 0, 'Crew', `${why}: ${fmtGold(back)} escrow released (${itemName(r.itemId)})`, { escrowDelta: -back, gold: back, paidBy: 'Treasury' });
   };
   arr(cr.requisitions).filter((r) => r && r.id && item(r.itemId) && r.status === 'open').forEach((r) => {
     if (r.source === 'leader' || r.source === 'npc-request') { releaseT(r, 'Retired NPC requisition'); return; }

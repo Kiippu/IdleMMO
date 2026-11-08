@@ -3,7 +3,7 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, rand, clamp, randInt, pick, shuffle, nextId, gradeOf, rarityIdx, rarityDef, logq } from './core';
+import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, rand, clamp, randInt, pick, shuffle, nextId, gradeOf, rarityIdx, rarityDef, logq, fmtGold } from './core';
 import { addXp } from './skills';
 import { rarityOdds } from './actions';
 import { schedule } from './clock';
@@ -104,7 +104,7 @@ export function finishJob(state, job, act, events) {
   if (job.assisted > 0) {
     state.gold += tip;
     events.push({ type: 'jobDone', jobId: job.id, owner: job.owner, actionId: act.id, tip, assisted: job.assisted });
-    logq(state, 'info', `${job.owner}'s ${act.name} job is finished. You helped with ${job.assisted} and got a ${tip}g tip.`);
+    logq(state, 'info', `${job.owner}'s ${act.name} job is finished. You helped with ${job.assisted} and got a ${fmtGold(tip)} tip.`);
   }
   if (state.active && state.active.jobId === job.id) { state.active = null; events.push({ type: 'stopped', reason: 'Job finished.' }); }
 }
