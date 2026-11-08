@@ -82,12 +82,22 @@ Art and UI
 6. Launch (move to Workers Paid, payments, quality pass).
 Also: remove dev-only tools before players see them (devSetClock / Raid "next week" button, crew "Testing" panel).
 
-## Phase 2.5 (2026-11-08) — rules fixes on `rebuild/phase-2.5` (not merged)
-Plan: `docs/phase-2.5-plan.md`. Done: town contracts (Crew → Contracts; gold from escrow then reputation; items to
-crew vault only), spec switch (XP kept, effective cap 70, 3,000g, 1-week cooldown shown "Xd Yh"), full treasury log
-(game-clock `t`, items × qty, gear, escrow, raid stock, payouts), core odds without tokens, vault stock used in raids
-credits the member's contribution, `speedFactor: 1` with `E.actionTime` used by list + active card, dev raid start
-removed, cuts (farm raids, view-as-member, NPC-posted requisitions). Save schema v6. Engine 74 tests, client 15.
+## Phase 2.5 (2026-11-08) — rules fixes, merged to `main`
+Plan: `docs/phase-2.5-plan.md`, plus owner decisions the same day (see Settled decisions). Done:
+- Contracts: one Crew → Contracts board with Town contracts (raid needs, paid from treasury escrow) and player-posted
+  Crew requests (paid from the poster's escrow). Gold only, 1.1x item value; a contract closes when its gold runs out.
+  Items go to crew vault only. NPC stand-ins fill <=50%, Friday until the raid opens.
+- Specialization: profession skills level to 70 freely; pick a spec only at 70+ (first pick free); switch costs 3 H
+  (44,000g) with a 1-week cooldown shown "Xd Yh"; old skill back to effective 70, XP kept. Combat skills never capped.
+- Treasury log covers every movement (game-clock `t`, items x qty, gear, escrow, raid stock, payouts, who paid).
+- Raids: core odds without tokens, tiered pity; vault stock used on a member credits their contribution; players get
+  raid gold (1.5 H at full contribution, x1.25 per boss tier), 2.5% of the pool to the treasury.
+- Economy constants in `H`/`ECON` (engine data.ts), H = median level-40 income (~14,820g/h); `speedFactor: 1`;
+  `E.actionTime` used by Workshop list + active card; early game matches the prototype.
+- Removed: dev raid start, reputation, farm raids, view-as-member, NPC-posted requisitions, old requisition verbs.
+- Save schema v6; fixtures v4 (prototype), v5 (phase 2), v6 (pre-decision phase 2.5) all load.
+- Tests: engine 87, client 18, server 3. Live tunnel checked at 400px light + dark.
+Open for the UI/UX pass: pixel-font digits (5 reads as 9), sparse raid recap card, plus the list in the plan's "Next".
 
 ## Current state (2026-11-07) — phase 2 feature-complete on `rebuild/phase-2`
 Phase 1 is merged to `main` (`445cb69`); `rebuild/phase-2` is cut from there and pushed, 12 commits on top.
@@ -172,6 +182,6 @@ Not verified on this Windows checkout: `wrangler dev` + `/api/health` + `--test-
 in Linux VM during phase 0). Pick up when a server change lands.
 `.npmrc` still sets `legacy-peer-deps=true` to dodge an npm 10.9 vitest install crash.
 
-Next: merge `rebuild/phase-2` → `main` via PR, then phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
+Next (after 2.5): UI/UX review (see `docs/phase-2.5-plan.md` "Next"), then phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
 art pack (DawnBringer 32 remap), LPC hero layer composite driven by equipped slots in SceneStrip (the
 placeholder goes away), per-action animation variety, `art/CREDITS.md` + in-game credits screen.
