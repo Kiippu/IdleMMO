@@ -28,8 +28,10 @@ The legacy single-file prototype is `index.html` at the repo root. It is the beh
 Game design
 - Currency is "gold", written "g" in prices (e.g. 6g). Never "coin".
 - No premium currency. The bond token ($5, 14 days of membership) is the only bridge between cash and gold.
-- Town contracts list what the raid needs and pay gold or reputation. The gold comes from the crew/guild treasury
-  and can be spent anywhere.
+- Town contracts list what the raid needs and pay gold only (reputation removed 2026-11-08). The gold comes from the
+  crew/guild treasury and can be spent anywhere. Player-posted crew requests share the same Contracts board.
+- Specialization: every profession skill levels to 70 without specialising; a spec is picked only once a skill hits 70
+  and lets that skill go past 70. First pick is free.
 - Resources submitted through contracts go only to crew/guild stock and are used in raids to heal and buff members,
   which raises their contribution.
 - Every gold and resource movement in a treasury is logged; all crew/guild members can see the log.
@@ -38,7 +40,10 @@ Game design
   (floor) and contribution tier; retune the core-draw odds.
 - One idle action slot per player. Helping a crewmate uses it.
 - Specialization switch: allowed for free players, old skill drops to the level-70 cap with no XP lost,
-  costs about 3,000 gold, one-week cooldown.
+  costs about 3 hours of level-40 income, one-week cooldown.
+- Speed: `speedFactor: 1` (prototype pace). Prefer income too high over too low; price things in hours of play.
+- Core-draw pity scales with contribution tier (3 / 4 / 5 / 6 empty kills, top tier to none).
+- NPC crewmates (stand-ins) fill at most 50% of a contract, only from Friday until the raid opens.
 - Navigation: Workshop, Stores (Mine/Crew), Market, War Room (Loadout/Hunt/Raid), Crew. The log opens as a sheet.
 - Name stays Guildwright.
 Tech
