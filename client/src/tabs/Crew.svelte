@@ -2,7 +2,8 @@
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
   import { DATA, H } from '@guildwright/engine';
-  import { fmtG } from '../format';
+  import { fmtG, fmtN } from '../format';
+  import { confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
 
   let sub = $state<'roster' | 'jobs' | 'contracts' | 'treasury'>('roster');
   let snap = $derived(engine.snapshot);
@@ -57,7 +58,12 @@
   async function doSwitch() {
     if (!pickSkill || !spec) return;
     const first = spec.firstPickFree;
-    if (!confirm(`Specialize in ${skillName(pickSkill)} ${first ? 'for free' : `for ${fmtG(spec.cost)}`}? ${spec.skillId ? `${skillName(spec.skillId)} drops to level ${spec.capLevel} (XP kept). ` : ''}You can't switch again for a week.`)) return;
+    const ok = await confirmSheet({
+      title: `Specialize in ${skillName(pickSkill)}?`,
+      body: `${first ? 'Free.' : `Costs ${fmtG(spec.cost)}.`} ${spec.skillId ? `${skillName(spec.skillId)} drops to level ${spec.capLevel} (XP kept). ` : ''}You can't switch again for a week.`,
+      confirmLabel: first ? 'Specialize' : `Pay ${fmtG(spec.cost)}`,
+    });
+    if (!ok) return;
     try {
       const res = await engineClient.switchSpec(pickSkill);
       msg = res && res.ok === false ? (res.reason || 'Could not switch.') : `Specialized in ${skillName(pickSkill)}.`;
@@ -97,7 +103,7 @@
   async function assist(jobId: string) {
     try {
       const res = await engineClient.assistJob(jobId);
-      if (res && res.ok === false) alert(res.reason || 'Could not assist.');
+      if (res && res.ok === false) await noticeSheet('Could not assist', res.reason);
     } catch (err) { console.error('assist failed', err); }
   }
 </script>
@@ -145,15 +151,15 @@
           <p class="meta">Reach level {spec.capLevel} in a skill to specialise.</p>
         {:else}
           <p class="meta">
-            {#if spec.firstPickFree}First pick is free.{:else}Switching costs <span class="brass">{fmtG(spec.cost)}</span>{H > 0 ? ` (about ${Math.round(spec.cost / H)} h of work)` : ''}; your old skill is capped at level {spec.capLevel} and keeps its XP.{/if}
-            {cooldown.ready ? '' : `Next switch in ${cooldown.text}.`} You have <span class="brass">{fmtG(gold)}</span>.
+            {#if spec.firstPickFree}First pick is free.{:else}Switching costs <span class="brass num">{fmtG(spec.cost)}</span>{H > 0 ? ` (about ${Math.round(spec.cost / H)} h of work)` : ''}; your old skill is capped at level {spec.capLevel} and keeps its XP.{/if}
+            {cooldown.ready ? '' : `Next switch in ${cooldown.text}.`} You have <span class="brass num">{fmtG(gold)}</span>.
           </p>
           <div class="row sub">
             <select bind:value={pickSkill} aria-label="New specialization" disabled={(spec.eligible ?? []).length === 0}>
               <option value="">{(spec.eligible ?? []).length === 0 ? 'No other skill at level ' + spec.capLevel : 'Choose a skill'}</option>
               {#each spec.eligible as id (id)}<option value={id}>{skillName(id)}</option>{/each}
             </select>
-            <button type="button" class="action-btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
+            <button type="button" class="btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
           </div>
           {#if (spec.eligible ?? []).length === 0}<p class="meta">Reach level {spec.capLevel} in another skill to switch.</p>{/if}
         {/if}
@@ -175,13 +181,13 @@
                 <span class="name">{j.action?.name ?? j.actionId}</span>
                 <span class="meta grade">{j.owner}</span>
               </div>
-              <span class="meta">{j.done}/{j.qty}</span>
+              <span class="meta num">{j.done}/{j.qty}</span>
             </div>
             <div class="row sub">
-              <span class="meta">ETA {fmtDuration(j.etaSec)}{j.station ? ` · ${j.station}` : ''}</span>
+              <span class="meta">ETA <span class="num">{fmtDuration(j.etaSec)}</span>{j.station ? ` · ${j.station}` : ''}</span>
               <button
                 type="button"
-                class="action-btn"
+                class="btn"
                 aria-pressed={j.assisting}
                 disabled={!j.canAssist?.ok}
                 onclick={() => assist(j.id)}
@@ -217,24 +223,24 @@
           <li>
             <div class="row">
               <span class="name">{c.itemName ?? itemName(c.itemId)}{c.minGrade ? ` (${GRADES[c.minGrade] ?? `grade ${c.minGrade}+`})` : ''}</span>
-              <span class="meta">{c.filled}/{c.qty}</span>
+              <span class="meta num">{c.filled}/{c.qty}</span>
             </div>
             <p class="meta">
               <span class="tag">{c.source === 'town' ? 'Town' : 'Crew'}</span>
-              {fmtG(c.rewardPer)} each · paid by {c.paidBy}
-              · You have {c.have}{c.vaultHas ? ` · Crew has ${c.vaultHas}` : ''}
+              <span class="num">{fmtG(c.rewardPer)}</span> each · paid by {c.paidBy}
+              · You have <span class="num">{fmtN(c.have)}</span>{#if c.vaultHas} · Crew has <span class="num">{fmtN(c.vaultHas)}</span>{/if}
             </p>
             {#if c.note}<p class="meta">{c.note}</p>{/if}
             {#if c.status === 'open' && c.mine}
               <div class="row sub">
-                <span class="meta">Yours · {fmtG(c.escrow)} in escrow</span>
-                {#if c.canCancel}<button type="button" class="action-btn" onclick={() => cancelRequest(c)}>Cancel</button>{/if}
+                <span class="meta">Yours · <span class="num">{fmtG(c.escrow)}</span> in escrow</span>
+                {#if c.canCancel}<button type="button" class="btn" onclick={() => cancelRequest(c)}>Cancel</button>{/if}
               </div>
             {:else if c.status === 'open'}
               <div class="row sub">
                 <input type="number" min="1" max={mx || 1} value={qtyFor(c)} disabled={!c.canFill?.ok || mx < 1}
                   oninput={(e) => (fillQty[c.id] = Number((e.target as HTMLInputElement).value))} aria-label="Quantity" />
-                <button type="button" class="action-btn" disabled={!c.canFill?.ok || mx < 1} title={c.canFill?.reason ?? ''} onclick={() => fill(c)}>Fill</button>
+                <button type="button" class="btn" disabled={!c.canFill?.ok || mx < 1} title={c.canFill?.reason ?? ''} onclick={() => fill(c)}>Fill</button>
               </div>
               {#if !c.canFill?.ok && c.canFill?.reason}<p class="meta">{c.canFill.reason}</p>{/if}
             {:else}
@@ -261,8 +267,8 @@
         <label>Qty (1-500)<input type="number" min="1" max="500" bind:value={reqQty} /></label>
         <label>Reward each (g)<input type="number" min="1" bind:value={reqReward} /></label>
       </div>
-      <p class="meta">Escrow: <span class="brass">{fmtG(reqEscrow)}</span> from your {fmtG(gold)}. Cancel any time for a refund of what is left.</p>
-      <button type="button" class="action-btn" disabled={!reqValid} onclick={postRequest}>Post request</button>
+      <p class="meta">Escrow: <span class="brass num">{fmtG(reqEscrow)}</span> from your <span class="num">{fmtG(gold)}</span>. Cancel any time for a refund of what is left.</p>
+      <button type="button" class="btn" disabled={!reqValid} onclick={postRequest}>Post request</button>
     </article>
   </section>
 {:else}
@@ -303,16 +309,6 @@
 {/if}
 
 <style>
-  .subs {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    margin: 0 0 16px; border: 1px solid var(--rule); background: var(--paper);
-  }
-  .subs button {
-    padding: 10px; border: 0; background: transparent;
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .subs button[aria-current="page"] { background: var(--woad-soft); color: var(--woad); }
 
   .group + .group { margin-top: 16px; }
   .group h3 {
@@ -340,32 +336,20 @@
     margin: 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
     letter-spacing: .04em; text-transform: uppercase;
   }
-  .totals dd { margin: 0; font: 600 var(--t-md)/1 var(--f-display); color: var(--brass); }
+  .totals dd { margin: 0; font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--brass); }
 
   .brass { color: var(--brass); font: inherit; }
   .tag { display: inline-block; margin-right: 6px; padding: 1px 5px; border: 1px solid var(--rule); background: var(--sunk); font: 400 var(--t-xs)/1.3 var(--f-label); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
   .delta.plain { color: var(--ink-2); }
   .form { display: grid; gap: 10px; }
-  .form label { display: grid; gap: 4px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; min-width: 0; }
-  .form .fields { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; }
+  .form label { display: grid; gap: 4px; align-content: start; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; min-width: 0; }
+  .form .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .form input[type="number"] { width: 100%; }
   .meta.first { margin-top: 0; }
-  select, input[type="number"] {
-    min-width: 0; padding: 6px 8px; border: 1px solid var(--rule); background: var(--sunk); color: var(--ink);
-    font: 400 var(--t-sm)/1.2 var(--f-body);
-  }
   select { flex: 1; }
-  input[type="number"] { width: 80px; }
-  .delta { font: 600 var(--t-sm)/1 var(--f-display); }
+  .row.sub input[type="number"] { width: 96px; }
+  .delta { font-weight: 700; font-size: var(--t-sm); line-height: 1; }
   .delta.pos { color: var(--ok); }
   .delta.neg { color: var(--bad); }
 
-  .action-btn {
-    padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .action-btn:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
-  .action-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .action-btn[aria-pressed="true"] { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
 </style>

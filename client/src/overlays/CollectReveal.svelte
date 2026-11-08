@@ -5,6 +5,7 @@
   // on the main thread; the next resume with >60s will set it again.
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
+  import { fmtG, fmtN } from '../format';
 
   const items: Record<string, { id?: string; name?: string }> = (DATA as any).items;
   const skills: Array<{ id: string; name: string }> = (DATA as any).skills;
@@ -37,16 +38,16 @@
     <header>
       <h2>While you were away</h2>
       {#if summary.weeks}
-        <p class="sub">{summary.weeks} {summary.weeks === 1 ? 'week' : 'weeks'} passed on the calendar.</p>
+        <p class="sub"><span class="num">{summary.weeks}</span> {summary.weeks === 1 ? 'week' : 'weeks'} passed on the calendar.</p>
       {/if}
     </header>
 
     {#if hasAny}
       <dl class="totals">
-        {#if summary.gold}<div><dt>Gold</dt><dd>{summary.gold}g</dd></div>{/if}
-        {#if summary.kills}<div><dt>Kills</dt><dd>{summary.kills}</dd></div>{/if}
-        {#if summary.assisted}<div><dt>Crew assists</dt><dd>{summary.assisted}</dd></div>{/if}
-        {#if summary.tips}<div><dt>Crew tips</dt><dd>{summary.tips}g</dd></div>{/if}
+        {#if summary.gold}<div><dt>Gold</dt><dd>{fmtG(summary.gold)}</dd></div>{/if}
+        {#if summary.kills}<div><dt>Kills</dt><dd>{fmtN(summary.kills)}</dd></div>{/if}
+        {#if summary.assisted}<div><dt>Crew assists</dt><dd>{fmtN(summary.assisted)}</dd></div>{/if}
+        {#if summary.tips}<div><dt>Crew tips</dt><dd>{fmtG(summary.tips)}</dd></div>{/if}
       </dl>
 
       {#if itemsList.length}
@@ -54,7 +55,7 @@
           <h3>Items</h3>
           <ul>
             {#each itemsList as [id, qty]}
-              <li><span>{itemName(id)}</span><strong>×{qty}</strong></li>
+              <li><span>{itemName(id)}</span><strong class="num">×{fmtN(qty)}</strong></li>
             {/each}
           </ul>
         </section>
@@ -65,7 +66,7 @@
           <h3>XP gained</h3>
           <ul>
             {#each xpList as [id, xp]}
-              <li><span>{skillName(id)}</span><strong>{Math.round(xp as number)}</strong></li>
+              <li><span>{skillName(id)}</span><strong class="num">{fmtN(Math.round(xp as number))}</strong></li>
             {/each}
           </ul>
         </section>
@@ -76,7 +77,7 @@
           <h3>Crafts by rarity</h3>
           <ul>
             {#each craftsList as [rarity, n]}
-              <li><span>{rarity}</span><strong>×{n}</strong></li>
+              <li><span>{rarity}</span><strong class="num">×{fmtN(n as number)}</strong></li>
             {/each}
           </ul>
         </section>
@@ -89,7 +90,7 @@
       <p class="stopped">{summary.stoppedReason}</p>
     {/if}
 
-    <button type="button" onclick={dismiss}>Got it</button>
+    <button type="button" class="btn primary" style="justify-self:end" onclick={dismiss}>Got it</button>
   </aside>
 {/if}
 
@@ -114,7 +115,7 @@
     margin: 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
     letter-spacing: .04em; text-transform: uppercase;
   }
-  .totals dd { margin: 0; font: 600 var(--t-md)/1 var(--f-display); color: var(--ink); }
+  .totals dd { margin: 0; font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--ink); }
 
   section h3 {
     margin: 0 0 6px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
@@ -130,8 +131,4 @@
 
   .stopped { margin: 0; padding: 8px; background: var(--sunk); border: 1px solid var(--rule); color: var(--warn); font-size: var(--t-sm); }
 
-  .reveal > button {
-    justify-self: end; padding: 8px 16px; border: 1px solid var(--woad); background: var(--woad);
-    color: var(--on-woad); font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-  }
 </style>

@@ -2,6 +2,7 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
+  import { fmtN } from '../format';
   import SceneStrip from '../scene/SceneStrip.svelte';
 
   type Skill = { id: string; name: string; tier: string; blurb: string };
@@ -65,14 +66,14 @@
         <span class="kind">{activeAction.kind}</span>
         <h2>{activeAction.name}</h2>
       </div>
-      <button class="stop" type="button" onclick={stop}>Stop</button>
+      <button class="btn primary" type="button" onclick={stop}>Stop</button>
     </div>
     <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
       <div class="fill" style="width: {Math.round(progress * 100)}%"></div>
     </div>
     <p class="sub">
-      {activeTime ? `${activeTime.toFixed(1)}s per rep` : '—'}
-      {#if activeAction.xp}· {activeAction.xp} XP{/if}
+      <span class="num">{activeTime ? `${activeTime.toFixed(1)}s` : '—'}</span> per rep
+      {#if activeAction.xp}· <span class="num">{fmtN(activeAction.xp)}</span> XP{/if}
     </p>
   </section>
 {:else}
@@ -91,7 +92,7 @@
         <article class="skill">
           <header>
             <span class="skill-name">{skill.name}</span>
-            <span class="skill-lvl">Lv {lvl}{capNote(skill.id)}</span>
+            <span class="skill-lvl">Lv <span class="num">{lvl}</span>{capNote(skill.id)}</span>
           </header>
           <p class="blurb">{skill.blurb}</p>
           <ul class="actions">
@@ -141,10 +142,6 @@
     height: 100%; background: var(--woad);
     transition: width 200ms linear;
   }
-  .active-card .stop {
-    padding: 8px 14px; border: 1px solid var(--woad); background: var(--woad); color: var(--on-woad);
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-  }
 
   .idle-card h2 { margin: 0 0 6px; font: 600 var(--t-lg)/1.1 var(--f-display); }
   .idle-card p { margin: 0; color: var(--ink-2); }
@@ -160,7 +157,7 @@
     display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
   }
   .skill-name { font: 600 var(--t-md)/1.1 var(--f-display); color: var(--ink); }
-  .skill-lvl { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); }
+  .skill-lvl { font: 700 var(--t-sm)/1 var(--f-body); color: var(--ink-3); }
   .blurb { margin: 4px 0 10px; color: var(--ink-2); font-size: var(--t-sm); }
 
   .actions { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -178,5 +175,5 @@
   .action[aria-pressed="true"] .a-name,
   .action[aria-pressed="true"] .a-req { color: var(--on-woad); opacity: 1; }
   .a-name { font: 500 var(--t-sm)/1.1 var(--f-body); }
-  .a-req { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; }
+  .a-req { font: 700 var(--t-sm)/1 var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink-3); }
 </style>

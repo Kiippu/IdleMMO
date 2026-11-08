@@ -2,6 +2,8 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
+  import { fmtG } from '../format';
+  import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
 
   type Item = { id: string; name: string; kind?: string; slot?: string };
 
@@ -41,19 +43,23 @@
   let formPrice = $state(1);
   let formError = $state<string | null>(null);
 
-  async function buy(listingId: string, maxQty: number) {
-    const input = prompt(`How many? (1–${maxQty})`, '1');
-    if (input == null) return;
-    const qty = Math.max(1, Math.min(maxQty, Math.floor(Number(input))));
-    if (!isFinite(qty) || qty < 1) return;
+  async function buy(l: any) {
+    const maxQty = Math.max(1, Math.min(l.qty, l.price > 0 ? Math.floor(gold / l.price) : l.qty));
+    const qty = await askNumber({
+      title: `Buy ${itemName(l.itemId)}`,
+      body: `${fmtG(l.price)} each. You have ${fmtG(gold)}.`,
+      number: { min: 1, max: maxQty, value: 1, label: 'How many?' },
+      confirmLabel: 'Buy',
+    });
+    if (qty == null) return;
     try {
-      const res = await engineClient.buyListing(listingId, qty);
-      if (res && res.ok === false) alert(res.reason || 'Could not buy.');
+      const res = await engineClient.buyListing(l.id, qty);
+      if (res && res.ok === false) await noticeSheet('Could not buy', res.reason);
     } catch (err) { console.error('buy failed', err); }
   }
 
   async function cancel(listingId: string) {
-    if (!confirm('Cancel this listing? The items go back into your bag.')) return;
+    if (!(await confirmSheet({ title: 'Cancel this listing?', body: 'The items go back into your bag.', confirmLabel: 'Cancel listing', cancelLabel: 'Keep it', danger: true }))) return;
     try { await engineClient.cancelListing(listingId); }
     catch (err) { console.error('cancel failed', err); }
   }
@@ -86,7 +92,7 @@
   <section class="group">
     <h3>For sale</h3>
     <p class="meta">
-      You have {gold}g on hand. Sales are taxed at {Math.round(tax * 100)}%.
+      You have <span class="num">{fmtG(gold)}</span> on hand. Sales are taxed at <span class="num">{Math.round(tax * 100)}%</span>.
     </p>
     {#if listings.length === 0}
       <p class="muted">The board is empty. Listings refresh on their own.</p>
@@ -100,11 +106,11 @@
                 <span class="name">{itemName(l.itemId)}</span>
                 <span class="meta grade">{gradeNameFor(l.itemId, l.grade)}</span>
               </div>
-              <span class="price">{l.price}g</span>
+              <span class="price">{fmtG(l.price)}</span>
             </div>
             <div class="row sub">
-              <span class="meta">×{l.qty} · {l.seller ?? 'town'}</span>
-              <button type="button" class="action-btn" disabled={!canAfford} onclick={() => buy(l.id, l.qty)}>
+              <span class="meta"><span class="num">×{l.qty}</span> · {l.seller ?? 'town'}</span>
+              <button type="button" class="btn" disabled={!canAfford} onclick={() => buy(l)}>
                 {canAfford ? 'Buy' : 'Not enough gold'}
               </button>
             </div>
@@ -127,11 +133,11 @@
                 <span class="name">{itemName(l.itemId)}</span>
                 <span class="meta grade">{gradeNameFor(l.itemId, l.grade)}</span>
               </div>
-              <span class="price">{l.price}g</span>
+              <span class="price">{fmtG(l.price)}</span>
             </div>
             <div class="row sub">
-              <span class="meta">×{l.qty}</span>
-              <button type="button" class="ghost" onclick={() => cancel(l.id)}>Cancel</button>
+              <span class="meta num">×{l.qty}</span>
+              <button type="button" class="btn ghost" onclick={() => cancel(l.id)}>Cancel</button>
             </div>
           </li>
         {/each}
@@ -177,25 +183,15 @@
 
         {#if formError}<p class="bad">{formError}</p>{/if}
         <p class="meta">
-          After tax you'd net ≈ {Math.round(formPrice * formQty * (1 - tax))}g if it all sells.
+          After tax you'd net ≈ <span class="num">{fmtG(formPrice * formQty * (1 - tax))}</span> if it all sells.
         </p>
-        <button type="submit" class="action-btn primary">List</button>
+        <button type="submit" class="btn primary">List</button>
       </form>
     {/if}
   </section>
 {/if}
 
 <style>
-  .subs {
-    display: grid; grid-template-columns: 1fr 1fr;
-    margin: 0 0 16px; border: 1px solid var(--rule); background: var(--paper);
-  }
-  .subs button {
-    padding: 10px; border: 0; background: transparent;
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .subs button[aria-current="page"] { background: var(--woad-soft); color: var(--woad); }
 
   .group + .group { margin-top: 16px; }
   .group h3 {
@@ -212,7 +208,7 @@
   .row.sub { margin-top: 6px; }
   .name { font: 500 var(--t-sm)/1.1 var(--f-body); color: var(--ink); }
   .grade { display: inline-block; margin-left: 6px; }
-  .price { font: 600 var(--t-sm)/1 var(--f-display); color: var(--brass); }
+  .price { font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--brass); }
 
   .form { display: grid; gap: 10px; padding: 12px; background: var(--paper); border: 1px solid var(--rule); }
   .form label { display: grid; gap: 4px; }
@@ -220,19 +216,5 @@
     font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
     letter-spacing: .04em; text-transform: uppercase;
   }
-  .form select, .form input {
-    padding: 8px 10px; font: 400 var(--t-sm)/1 var(--f-body);
-    border: 1px solid var(--rule); background: var(--sunk); color: var(--ink);
-  }
 
-  .action-btn, .ghost {
-    padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .action-btn:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
-  .action-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .action-btn.primary { background: var(--woad); color: var(--on-woad); border-color: var(--woad); padding: 10px 16px; justify-self: end; }
-  .ghost { background: transparent; }
-  .ghost:hover { background: var(--sunk); }
 </style>

@@ -10,6 +10,7 @@
   import Crew from './tabs/Crew.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
   import SaveMenu from './overlays/SaveMenu.svelte';
+  import ConfirmSheet from './overlays/ConfirmSheet.svelte';
 
   const tabs = ['Workshop', 'Stores', 'Market', 'War Room', 'Crew'] as const;
   type Tab = (typeof tabs)[number];
@@ -65,7 +66,7 @@
         <span class="gold">{fmtG(engine.snapshot.gold)}</span>
       {/if}
       {#if engine.ready}
-        <button type="button" class="save-btn" onclick={() => (saveMenuOpen = true)} aria-label="Open save menu">Save</button>
+        <button type="button" class="btn" onclick={() => (saveMenuOpen = true)} aria-label="Open save menu">Save</button>
       {/if}
     </div>
   </header>
@@ -73,7 +74,7 @@
   {#if updateReady}
     <div class="update">
       <p>A new version is ready.</p>
-      <button type="button" onclick={updateReady}>Restart</button>
+      <button type="button" class="btn primary" onclick={updateReady}>Restart</button>
     </div>
   {/if}
 
@@ -100,6 +101,8 @@
     {/if}
   </main>
 </div>
+
+<ConfirmSheet />
 
 {#if saveMenuOpen}
   <SaveMenu onClose={() => (saveMenuOpen = false)} />

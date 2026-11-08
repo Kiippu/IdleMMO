@@ -1,6 +1,7 @@
 <script lang="ts">
   import { DATA } from '@guildwright/engine';
-  import { fmtG, hasPayout } from '../format';
+  import { fmtG, fmtN, hasPayout } from '../format';
+  import { askText, confirmSheet } from '../overlays/confirm.svelte';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
 
@@ -45,9 +46,14 @@
   }
 
   async function saveCurrentGear() {
-    const name = prompt('Loadout name?', `Loadout ${loadouts.length + 1}`);
+    const name = await askText({
+      title: 'Save current gear',
+      body: 'Give this loadout a name so you can swap back to it in one tap.',
+      text: { value: `Loadout ${loadouts.length + 1}`, label: 'Loadout name', maxLength: 30 },
+      confirmLabel: 'Save',
+    });
     if (name == null) return;
-    try { await engineClient.saveLoadout(name.trim() || undefined); }
+    try { await engineClient.saveLoadout(name || undefined); }
     catch (err) { console.error('saveLoadout failed', err); }
   }
   async function equipLoadout(id: string) {
@@ -55,7 +61,7 @@
     catch (err) { console.error('equipLoadout failed', err); }
   }
   async function deleteLoadout(id: string, name: string) {
-    if (!confirm(`Delete loadout "${name}"?`)) return;
+    if (!(await confirmSheet({ title: `Delete "${name}"?`, body: 'This loadout is removed. Your worn gear is not affected.', confirmLabel: 'Delete', danger: true }))) return;
     try { await engineClient.deleteLoadout(id); }
     catch (err) { console.error('deleteLoadout failed', err); }
   }
@@ -84,7 +90,7 @@
   <section class="group">
     <div class="group-head">
       <h3>Saved loadouts</h3>
-      <button type="button" class="action-btn" onclick={saveCurrentGear}>Save current gear</button>
+      <button type="button" class="btn" onclick={saveCurrentGear}>Save current gear</button>
     </div>
     {#if loadouts.length === 0}
       <p class="muted">No loadouts yet. Save your current gear to make a one-tap swap for later.</p>
@@ -94,11 +100,11 @@
           <li>
             <div class="row">
               <span class="name">{l.name}</span>
-              <span class="meta">{SLOT_ORDER.filter((s) => l.slots?.[s]).length}/6 pieces</span>
+              <span class="meta"><span class="num">{SLOT_ORDER.filter((s) => l.slots?.[s]).length}/6</span> pieces</span>
             </div>
             <div class="row actions">
-              <button type="button" class="action-btn" onclick={() => equipLoadout(l.id)}>Equip</button>
-              <button type="button" class="ghost" onclick={() => deleteLoadout(l.id, l.name)}>Delete</button>
+              <button type="button" class="btn" onclick={() => equipLoadout(l.id)}>Equip</button>
+              <button type="button" class="btn ghost" onclick={() => deleteLoadout(l.id, l.name)}>Delete</button>
             </div>
           </li>
         {/each}
@@ -118,9 +124,9 @@
           <div class="fill" style="width: {Math.round((boss.hpPct ?? 0) * 100)}%"></div>
         </div>
         <p class="meta">
-          HP {Math.max(0, Math.floor(boss.hpLeft))} / {Math.floor(boss.maxHp)}
+          HP <span class="num">{fmtN(Math.max(0, boss.hpLeft))} / {fmtN(boss.maxHp)}</span>
           {#if boss.weakTo} · Weak to {boss.weakTo}{/if}
-          {#if boss.reqPower} · Req power {Math.round(boss.reqPower)}{/if}
+          {#if boss.reqPower} · Req power <span class="num">{fmtN(Math.round(boss.reqPower))}</span>{/if}
         </p>
       </article>
     {:else}
@@ -132,10 +138,10 @@
     <h3>Your readiness</h3>
     {#if stats}
       <dl class="stats">
-        <div><dt>HP</dt><dd>{Math.floor(hp)} / {Math.floor(stats.maxHp)}</dd></div>
-        <div><dt>Attack</dt><dd>{Math.round(stats.atk)}</dd></div>
-        <div><dt>Defence</dt><dd>{Math.round(stats.def)}</dd></div>
-        <div><dt>Heal</dt><dd>{Math.round(stats.heal)}</dd></div>
+        <div><dt>HP</dt><dd>{fmtN(hp)} / {fmtN(stats.maxHp)}</dd></div>
+        <div><dt>Attack</dt><dd>{fmtN(Math.round(stats.atk))}</dd></div>
+        <div><dt>Defence</dt><dd>{fmtN(Math.round(stats.def))}</dd></div>
+        <div><dt>Heal</dt><dd>{fmtN(Math.round(stats.heal))}</dd></div>
       </dl>
     {/if}
   </section>
@@ -172,8 +178,8 @@
     <h3>Eat threshold</h3>
     <p class="meta">Pull food from the pouch when HP drops below this.</p>
     <div class="slider">
-      <input type="range" min="30" max="80" step="5" value={Math.round(rules.eatAt * 100)} oninput={pickEatAt} />
-      <span class="slider-val">{Math.round(rules.eatAt * 100)}%</span>
+      <input type="range" aria-label="Eat threshold" min="30" max="80" step="5" value={Math.round(rules.eatAt * 100)} oninput={pickEatAt} />
+      <span class="slider-val num">{Math.round(rules.eatAt * 100)}%</span>
     </div>
   </section>
 {:else}
@@ -184,12 +190,12 @@
         <span class={`phase phase-${status.phase}`}>{PHASE_LABEL[status.phase] ?? status.phase}</span>
         <p class="meta">
           {#if status.phase === 'prep'}
-            Opens in {fmtDuration(status.secToStart)}. The raid runs Sat 10:00 to Sun 22:00 local.
+            Opens in <span class="num">{fmtDuration(status.secToStart)}</span>. The raid runs Sat 10:00 to Sun 22:00 local.
           {:else if status.phase === 'live'}
-            Closes in {fmtDuration(status.secLeft)}.
+            Closes in <span class="num">{fmtDuration(status.secLeft)}</span>.
             {#if status.sittingOut}
               <br />You joined after this raid opened. You'll join next weekend's raid.
-              {#if status.nextRaidAt}<br />Next raid opens in {fmtDuration((status.nextRaidAt - Date.now()) / 1000)}.{/if}
+              {#if status.nextRaidAt}<br />Next raid opens in <span class="num">{fmtDuration((status.nextRaidAt - Date.now()) / 1000)}</span>.{/if}
             {/if}
           {:else if status.phase === 'done'}
             This week's raid is settled.
@@ -205,32 +211,32 @@
     <section class="group">
       <h3>Last recap</h3>
       <article class="recap">
-        <p class="meta">Week {snap.raid.last.week}{snap.raid.last.result ? ` · ${snap.raid.last.result}` : ''}</p>
+        <p class="meta">Week <span class="num">{snap.raid.last.week}</span>{snap.raid.last.result ? ` · ${snap.raid.last.result}` : ''}</p>
         {#if hasPayout(pay)}
-          <p class="yourgold">Your gold: <span class="brass">+{fmtG(pay.gold ?? 0)}</span></p>
+          <p class="yourgold">Your gold: <span class="brass num">+{fmtG(pay.gold ?? 0)}</span></p>
           <p class="meta">
-            Pool {fmtG(pay.pool)} · turnout {pct(pay.turnout)} · your contribution {pct(pay.contribution)}{pay.capped ? ' · crew cap reached' : ''}
+            Pool <span class="num">{fmtG(pay.pool)}</span> · turnout <span class="num">{pct(pay.turnout)}</span> · your contribution <span class="num">{pct(pay.contribution)}</span>{pay.capped ? ' · crew cap reached' : ''}
           </p>
         {:else if snap.raid.last.gold}
-          <p class="meta">Gold: {fmtG(snap.raid.last.gold)}</p>
+          <p class="meta">Gold: <span class="num">{fmtG(snap.raid.last.gold)}</span></p>
         {/if}
-        {#if snap.raid.last.xp}<p class="meta">XP: {Math.round(snap.raid.last.xp)}</p>{/if}
+        {#if snap.raid.last.xp}<p class="meta">XP: <span class="num">{fmtN(Math.round(snap.raid.last.xp))}</span></p>{/if}
         {#if snap.raid.last.crewStock}
           {@const cs = snap.raid.last.crewStock}
           <h4>Crew stock used</h4>
           {#if Object.keys(cs.used ?? {}).length === 0}
             <p class="meta">Nothing was drawn from the crew stock.</p>
           {:else}
-            <p class="meta">{Object.entries(cs.used).map(([id, q]) => `${itemName(id)} × ${q}`).join(', ')}</p>
+            <p class="meta">{Object.entries(cs.used).map(([id, q]) => `${itemName(id)} × ${fmtN(q as number)}`).join(', ')}</p>
             <ul class="stock">
               {#each cs.byMember ?? [] as m}
                 <li>
                   <span>{m.name ?? m.who}</span>
-                  <span class="meta">healed {Math.round(m.healed ?? 0)} · buffed {Math.round(m.buffed ?? 0)} · +{Math.round(m.credit ?? 0)} credit</span>
+                  <span class="meta">healed <span class="num">{fmtN(Math.round(m.healed ?? 0))}</span> · buffed <span class="num">{fmtN(Math.round(m.buffed ?? 0))}</span> · <span class="num">+{fmtN(Math.round(m.credit ?? 0))}</span> credit</span>
                 </li>
               {/each}
             </ul>
-            <p class="meta">Your contribution credit from stock: +{cs.yourCredit ?? 0}</p>
+            <p class="meta">Your contribution credit from stock: <span class="num">+{fmtN(cs.yourCredit ?? 0)}</span></p>
           {/if}
         {/if}
       </article>
@@ -239,16 +245,6 @@
 {/if}
 
 <style>
-  .subs {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    margin: 0 0 16px; border: 1px solid var(--rule); background: var(--paper);
-  }
-  .subs button {
-    padding: 10px; border: 0; background: transparent;
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .subs button[aria-current="page"] { background: var(--woad-soft); color: var(--woad); }
 
   .group + .group { margin-top: 16px; }
   .group h3 {
@@ -273,18 +269,18 @@
   .bar .fill { height: 100%; background: var(--hp); transition: width 200ms linear; }
 
   .stats {
-    margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px;
+    margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px;
   }
   .stats div { padding: 8px; background: var(--sunk); border: 1px solid var(--rule); display: grid; gap: 2px; }
   .stats dt {
     margin: 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
     letter-spacing: .04em; text-transform: uppercase;
   }
-  .stats dd { margin: 0; font: 600 var(--t-md)/1 var(--f-display); color: var(--ink); }
+  .stats dd { margin: 0; font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--ink); }
 
   .picker { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .picker button {
-    width: 100%; padding: 10px 12px; text-align: left; display: grid; gap: 2px;
+    width: 100%; min-height: 44px; padding: 10px 12px; text-align: left; display: grid; gap: 2px;
     border: 1px solid var(--rule); background: var(--sunk);
   }
   .picker button:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
@@ -294,30 +290,22 @@
   .pick-blurb { font: 400 var(--t-xs)/1.2 var(--f-body); color: var(--ink-3); }
 
   .slider { display: flex; align-items: center; gap: 12px; }
-  .slider input { flex: 1; }
-  .slider-val { font: 500 var(--t-sm)/1 var(--f-display); color: var(--ink); min-width: 48px; text-align: right; }
+  .slider input { flex: 1; min-height: 44px; }
+  .slider-val { font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--ink); min-width: 48px; text-align: right; }
 
   .status { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); }
-  .phase { font: 500 var(--t-sm)/1.1 var(--f-body); }
-  .phase-live { color: var(--hp); }
+  .phase { font: 700 var(--t-sm)/1.1 var(--f-body); }
+  .phase-live { color: var(--woad); }
   .phase-locked { color: var(--brass); }
   .phase-done { color: var(--ok); }
   .phase-prep { color: var(--ink-2); }
 
-  .yourgold { margin: 6px 0 0; font: 600 var(--t-lg)/1.2 var(--f-display); color: var(--ink); }
+  .yourgold { margin: 6px 0 0; font: 700 var(--t-lg)/1.2 var(--f-body); color: var(--ink); }
+  .yourgold .num { font-weight: 700; }
   .brass { color: var(--brass); }
   .recap h4 { margin: 12px 0 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
   .stock { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; font-size: var(--t-sm); }
   .stock li { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .recap { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); }
 
-  .action-btn, .ghost {
-    padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .action-btn:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
-  .action-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .ghost { background: transparent; }
-  .ghost:hover { background: var(--sunk); }
 </style>

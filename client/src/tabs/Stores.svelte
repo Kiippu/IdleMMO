@@ -84,9 +84,9 @@
           {#if g}
             <div class="slot-row">
               <span class="gear-name">{view?.gearNames[g.uid] ?? itemName(g.itemId)}</span>
-              <button type="button" class="ghost" onclick={() => unequip(slot)}>Unequip</button>
+              <button type="button" class="btn ghost" onclick={() => unequip(slot)}>Unequip</button>
             </div>
-            <p class="meta">Dur {Math.round(g.dur)}/{g.maxDur} · Q{Math.round(g.quality)}</p>
+            <p class="meta">Dur <span class="num">{Math.round(g.dur)}/{g.maxDur}</span> · Q<span class="num">{Math.round(g.quality)}</span></p>
           {:else}
             <p class="meta empty">Empty</p>
           {/if}
@@ -111,9 +111,9 @@
               <span class={`r ${RARITY_CLASS[g.rarity] ?? ''}`}>{g.rarity}</span>
             </div>
             <div class="gear-row sub">
-              <span class="meta">{SLOT_LABEL[slot ?? ''] ?? '—'} · Dur {Math.round(g.dur)}/{g.maxDur} · Q{Math.round(g.quality)}</span>
+              <span class="meta">{SLOT_LABEL[slot ?? ''] ?? '—'} · Dur <span class="num">{Math.round(g.dur)}/{g.maxDur}</span> · Q<span class="num">{Math.round(g.quality)}</span></span>
               {#if slot}
-                <button type="button" class="action-btn" disabled={alreadyEquipped} onclick={() => equip(g.uid)}>
+                <button type="button" class="btn" disabled={alreadyEquipped} onclick={() => equip(g.uid)}>
                   {alreadyEquipped ? 'Equipped' : 'Equip'}
                 </button>
               {/if}
@@ -132,8 +132,8 @@
       <ul class="inv-list">
         {#each mineRows as row (row.id)}
           <li>
-            <div class="inv-row"><span>{row.name}</span><strong>×{row.total}</strong></div>
-            <p class="meta">{gradeHint(row.grades)}</p>
+            <div class="inv-row"><span>{row.name}</span><strong class="num">×{row.total.toLocaleString('en-US')}</strong></div>
+            <p class="meta"><span class="num">{gradeHint(row.grades)}</span></p>
           </li>
         {/each}
       </ul>
@@ -152,7 +152,7 @@
               <span class="gear-name">{view?.gearNames[g.uid] ?? itemName(g.itemId)}</span>
               <span class={`r ${RARITY_CLASS[g.rarity] ?? ''}`}>{g.rarity}</span>
             </div>
-            <p class="meta">Dur {Math.round(g.dur)}/{g.maxDur} · Q{Math.round(g.quality)}</p>
+            <p class="meta">Dur <span class="num">{Math.round(g.dur)}/{g.maxDur}</span> · Q<span class="num">{Math.round(g.quality)}</span></p>
           </li>
         {/each}
       </ul>
@@ -167,8 +167,8 @@
       <ul class="inv-list">
         {#each vaultRows as row (row.id)}
           <li>
-            <div class="inv-row"><span>{row.name}</span><strong>×{row.total}</strong></div>
-            <p class="meta">{gradeHint(row.grades)}</p>
+            <div class="inv-row"><span>{row.name}</span><strong class="num">×{row.total.toLocaleString('en-US')}</strong></div>
+            <p class="meta"><span class="num">{gradeHint(row.grades)}</span></p>
           </li>
         {/each}
       </ul>
@@ -177,16 +177,6 @@
 {/if}
 
 <style>
-  .subs {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
-    margin: 0 0 16px; border: 1px solid var(--rule); background: var(--paper);
-  }
-  .subs button {
-    padding: 10px; border: 0; background: transparent;
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .subs button[aria-current="page"] { background: var(--woad-soft); color: var(--woad); }
 
   .group + .group { margin-top: 16px; }
   .group h3 {
@@ -206,7 +196,7 @@
   .slot-name { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
   .gear-name { font: 500 var(--t-sm)/1.1 var(--f-body); color: var(--ink); }
   .inv-row span { font: 500 var(--t-sm)/1.1 var(--f-body); color: var(--ink); }
-  .inv-row strong { font: 600 var(--t-sm)/1 var(--f-display); color: var(--ink); }
+  .inv-row strong { font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--ink); }
   .meta { margin: 4px 0 0; color: var(--ink-3); font-size: var(--t-xs); }
   .empty { color: var(--ink-3); font-style: italic; }
 
@@ -220,13 +210,4 @@
   .r-legendary { color: var(--r-legendary); }
   .r-mythic { color: var(--r-mythic); }
 
-  .action-btn, .ghost {
-    padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .action-btn:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
-  .action-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .ghost { background: transparent; }
-  .ghost:hover { background: var(--sunk); }
 </style>
