@@ -195,6 +195,7 @@ export function resolveRaid(state, opts, events) {
     tier, tierWeek, tierBasis: rec.joinedWeekends > 1 ? 'carried' : 'weekend', tierLabel: TIER_NAME[tier] + (rec.joinedWeekends > 1 ? ' (carried over)' : ''),
     contribution: { points: rec.myPoints, weekPoints: sim.weekPoints, totalPoints: rec.totalPoints, weekShare, share, fairShare: 1 / Math.max(1, rec.pop), cumulativeTier: cumTier, weekends: rec.joinedWeekends },
     foodEaten: { total: foodTotal, items: sim.eaten },
+    stockRanOut: arr(sim.stockShortfall).length > 0, stockShortfall: arr(sim.stockShortfall), stockOutAt: sim.stockOutFrame == null ? null : sim.stockOutFrame / Math.max(1, sim.timeline.length - 1),
     crewStock: { used: Object.assign({}, sim.vaultConsumed), byMember: arr(sim.vaultUse).map((u) => Object.assign({}, u, { items: Object.assign({}, u.items) })), yourCredit: Math.round(num(sim.vaultCredit && sim.vaultCredit.you, 0)) }, potionsUsed: sim.potionsUsed, pouchLeft: sim.pouchLeft, pouchStart: sim.pouchStart, supplyDelivered: sim.supplyDelivered, tiers: tiersSnap,
     faints: sim.faints, reviveCost: { food: sim.reviveFood, durability: sim.faints * num(c.reviveDurability, 2) },
     checks: sim.waves.map((w) => ({ wave: w.wave, phase: w.phase, phaseName: w.phaseName, check: w.check, label: w.label, result: w.result, overtime: w.overtime,

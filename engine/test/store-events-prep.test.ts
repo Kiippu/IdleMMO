@@ -255,3 +255,48 @@ describe('player event log', () => {
     expect(E.events(s)[0].id).toBeGreaterThan(E.events(s)[1].id);
   });
 });
+
+describe('raid: crew stock shortfall and live contribution', () => {
+  it('recap flags when vault stock runs out, per member', async () => {
+    const h = await freshEngine(5);
+    const { E } = h;
+    const s = E.newState();
+    s.crew.vault.inv = { bread: [0, 1, 0, 0, 0], fury_draught: [0, 1, 0, 0, 0] }; // tiny stock: will run out
+    s.crew.members.forEach((m: any) => { m.food = 0; m.potions = 0; });
+    E.setRaidPlan(s, { role: 'striker' }); E.lockIn(s);
+    const { recap } = resolveRaidByClock(h, s);
+    expect(recap.stockRanOut).toBe(true);
+    expect(recap.stockShortfall.length).toBeGreaterThan(0);
+    recap.stockShortfall.forEach((u: any) => { expect(u.heal + u.buff).toBeGreaterThan(0); expect(typeof u.name).toBe('string'); });
+    expect(recap.stockOutAt).toBeGreaterThanOrEqual(0); expect(recap.stockOutAt).toBeLessThanOrEqual(1);
+
+    const h2 = await freshEngine(5);
+    const t = h2.E.newState(); t.crew.vault.inv = {}; // nothing stocked: nothing "ran out"
+    h2.E.lockIn(t);
+    const r2 = resolveRaidByClock(h2, t).recap;
+    expect(r2.stockRanOut).toBe(false); expect(r2.stockShortfall).toEqual([]); expect(r2.stockOutAt).toBeNull();
+  });
+
+  it('raidStatus.liveContribution grows through the live replay and ends at the recap share', async () => {
+    const h = await freshEngine();
+    const { E } = h;
+    const s = E.newState();
+    expect(E.raidStatus(s).liveContribution).toBeNull();
+    E.lockIn(s);
+    const { recap } = resolveRaidByClock(h, s);
+    const w = E.raidWindow(s);
+    const a = E.raidStatus(s).liveContribution;
+    expect(a).not.toBeNull();
+    h.setNow(w.start + (w.end - w.start) / 3);
+    const b = E.raidStatus(s).liveContribution;
+    expect(b.points).toBeGreaterThanOrEqual(a.points);
+    expect(b.pct).toBeGreaterThan(a.pct);
+    expect(['none', 'bronze', 'silver', 'gold']).toContain(b.tier);
+    h.setNow(w.start + 10 * HOUR - 1000);
+    const c = E.raidStatus(s).liveContribution;
+    expect(c.points).toBeCloseTo(recap.contribution.weekPoints, 1);
+    expect(c.share).toBeCloseTo(recap.contribution.weekShare, 4);
+    h.setNow(w.end + 1000);
+    expect(E.raidStatus(s).liveContribution).toBeNull();
+  });
+});

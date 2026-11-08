@@ -69,6 +69,20 @@ export function simulateFight(state, ctx) {
     u.items[id] = (u.items[id] || 0) + 1; if (how === 'buff') u.buffed++; else u.healed++;
     return t[0].grade;
   };
+  // Stock ran out: a member needed food / a healing potion / a role buff, the vault started the fight
+  // with some of that kind, and none was left. Counted per member (stockShortfall on the recap).
+  const startHad = { food: false, potion: false, buff: {} };
+  Object.keys(vstock).forEach((id) => { const it = item(id); if (!it || invCount(vstock, id) <= 0) return;
+    if (it.kind === 'food') startHad.food = true; else if (isHeal(id)) startHad.potion = true;
+    if (it.buff && it.buff.stat) startHad.buff[it.buff.stat] = true; });
+  const shortfall: any = {}; let stockOutFrame = null; let curFrame = 0;
+  const vaultMiss = (whoId, whoName, kind) => {
+    const had = kind === 'food' ? startHad.food : kind === 'potion' ? startHad.potion : !!startHad.buff[kind];
+    if (!had) return;
+    const u = shortfall[whoId] || (shortfall[whoId] = { who: whoId, name: whoName, heal: 0, buff: 0 });
+    if (kind === 'food' || kind === 'potion') u.heal++; else u.buff++;
+    if (stockOutFrame == null) stockOutFrame = curFrame;
+  };
   const vaultCreditOf = (id, g) => Math.max(4, healOfAny(id, g)) * num(c.vaultCreditMult, 1);
   const vaultFind = (pred, needHp?) => { // smallest heal that covers needHp, else the biggest
     let best = null, biggest = null;
@@ -84,10 +98,10 @@ export function simulateFight(state, ctx) {
   // buffs: one potion per member for their role's stat, only if they don't already have one
   if (role && role !== 'supply') {
     const stat = CHECK_STAT[ROLE_CHECK[role]];
-    if (stat && !(buffs[stat] > 0)) { const b = vaultBuffFor(stat); if (b) { vaultTake('you', 'You', b.id, 'buff'); buffs[stat] = clamp(b.pct * (counters(b.id) ? 1.5 : 1), 0, 1); events0.push({ kind: 'eat', value: 0, text: `Crew stock ${item(b.id).name}: +${Math.round(buffs[stat] * 100)}% ${stat}` }); } }
+    if (stat && !(buffs[stat] > 0)) { const b = vaultBuffFor(stat); if (!b) vaultMiss('you', 'You', stat); if (b) { vaultTake('you', 'You', b.id, 'buff'); buffs[stat] = clamp(b.pct * (counters(b.id) ? 1.5 : 1), 0, 1); events0.push({ kind: 'eat', value: 0, text: `Crew stock ${item(b.id).name}: +${Math.round(buffs[stat] * 100)}% ${stat}` }); } }
   }
   const crewBuff = crew.map((m) => {
-    const stat = CHECK_STAT[ROLE_CHECK[m.role]]; const b = stat ? vaultBuffFor(stat) : null; if (!b) return 0;
+    const stat = CHECK_STAT[ROLE_CHECK[m.role]]; const b = stat ? vaultBuffFor(stat) : null; if (!b) { if (stat) vaultMiss(m.id, m.name, stat); return 0; }
     vaultTake(m.id, m.name, b.id, 'buff'); return b.pct * (counters(b.id) ? 1.5 : 1);
   });
   let crewFood = crew.reduce((a, m) => a + m.food, 0), crewFoodAcc = 0, foodOutWave = null, foodOutFrame = null, crewFoodShort = 0;
@@ -128,7 +142,9 @@ export function simulateFight(state, ctx) {
     });
     return best || biggest;
   };
+  let cumYour = 0, cumTot = 0; // contribution points of finished waves (for the live view)
   for (let i = 0; i < N; i++) {
+    curFrame = i;
     const check = phases[phase].check; const ev = i === 0 ? events0.slice() : [];
     if (pf === 0) ev.push({ kind: 'phase', text: `Phase ${phase + 1}: ${phases[phase].name}` });
     const over = pf >= nominal; const spike = over && check !== 'damage' ? 1.6 : 1;
@@ -146,14 +162,14 @@ export function simulateFight(state, ctx) {
           const fid = vaultFind((id) => (item(id) || {}).kind === 'food');
           const g = fid ? vaultTake(m.id, m.name, fid, 'heal') : -1;
           if (g >= 0) { fed = true; credit += vaultCreditOf(fid, g); }
-          else { fed = false; crewFoodShort++; if (foodOutWave == null) { foodOutWave = wave; foodOutFrame = i; } }
+          else { fed = false; crewFoodShort++; vaultMiss(m.id, m.name, 'food'); if (foodOutWave == null) { foodOutWave = wave; foodOutFrame = i; } }
         }
       }
       const pFaint = 0.015 * weak * weak * spike * (fed ? 1 : 2.5);
       if (rng() < pFaint) {
         const pid = vaultFind((id) => isHeal(id) && (item(id) || {}).kind === 'potion');
         const g = pid ? vaultTake(m.id, m.name, pid, 'heal') : -1;
-        if (g < 0) { crewDown[k] = num(c.faintFrames, 3); downNow++; return; }
+        if (g < 0) { vaultMiss(m.id, m.name, 'potion'); crewDown[k] = num(c.faintFrames, 3); downNow++; return; }
         credit += vaultCreditOf(pid, g); // a stock potion kept them on their feet
       }
       CHECKS.forEach((ck) => { crewOut[ck] += m.pf * fair * (ROLE_CHECK[m.role] === ck ? 1 + crewBuff[k] : OFF_ROLE); });
@@ -178,7 +194,7 @@ export function simulateFight(state, ctx) {
           const vg = vfid ? vaultTake('you', 'You', vfid, 'heal') : -1;
           if (fid) { takeOne(fid); eaten[fid] = (eaten[fid] || 0) + 1; reviveFood++; hp = Math.round(maxHp * 0.6); }
           else if (vg >= 0) { reviveFood++; hp = Math.round(maxHp * 0.6); frameCredit += vaultCreditOf(vfid, vg); }
-          else { hp = Math.round(maxHp * 0.35); }
+          else { vaultMiss('you', 'You', 'food'); hp = Math.round(maxHp * 0.35); }
           ev.push({ kind: 'heal', value: hp, text: 'Back from camp' });
           moments.push({ frame: i, kind: 'revive', text: 'Back on your feet after camp', value: hp, score: 1 });
         }
@@ -186,6 +202,7 @@ export function simulateFight(state, ctx) {
         if (hp < rules.eatAt * maxHp) {
           const ch = chooseHeal(rules.eatAt * maxHp - hp);
           const vid = ch ? null : vaultFind(isHeal, rules.eatAt * maxHp - hp);
+          if (!ch && !vid) vaultMiss('you', 'You', 'potion');
           if (!ch && vid) { const g = vaultTake('you', 'You', vid, 'heal'); const before = hp; hp = Math.min(maxHp, hp + healOfAny(vid, g)); frameCredit += vaultCreditOf(vid, g); ev.push({ kind: 'eat', value: Math.round(hp - before), text: `Crew stock ${lcFirst(item(vid).name)}` }); }
           if (ch) { const g = takeOne(ch.id); const it = item(ch.id); if (it.kind === 'food') eaten[ch.id] = (eaten[ch.id] || 0) + 1; else potionsUsed[ch.id] = (potionsUsed[ch.id] || 0) + 1; const before = hp; hp = Math.min(maxHp, hp + healOfAny(ch.id, g)); ev.push({ kind: 'eat', value: Math.round(hp - before), text: it.name }); if (before < maxHp * 0.2) moments.push({ frame: i, kind: 'clutch', text: `Clutch ${lcFirst(it.name)} at ${Math.round(before / maxHp * 100)}% HP`, value: Math.round(hp - before), score: 2 }); }
         }
@@ -247,7 +264,7 @@ export function simulateFight(state, ctx) {
       w.auraLoss = Math.round(waveLossSum / Math.max(1, pf) * 1000) / 1000; // average aura strength lost to faints over the wave
       void stArr;
       w.yourText = 'you filled ' + (w.yourShare * 100 < 0.1 ? (w.yourShare * 100).toFixed(3) : (w.yourShare * 100).toFixed(2)) + '%';
-      waves.push(w);
+      waves.push(w); cumYour += w.yourPoints; cumTot += w.points;
       if (w.auraWeakened && auraWeakenedWave == null) auraWeakenedWave = w.wave;
       if (ended !== 'unfinished') ev.push({ kind: 'phase', text: ended === 'passed' ? `${cap1(check)} check passed: the raid surges.` : ended === 'late' ? `${cap1(check)} check filled late.` : `${cap1(check)} check failed: ${boss.name} rages.` });
       if (yourFill > 0 && ended !== 'missed') moments.push({ frame: i, kind: 'check', text: `Wave ${wave}: ${lcFirst(CHECK_LABEL[check])} check ${ended === 'late' ? 'filled late' : 'passed'} (${w.yourText})`, value: w.yourShare, score: 1.5 + w.yourShare * 1000 });
@@ -258,7 +275,10 @@ export function simulateFight(state, ctx) {
     timeline.push({ t: 0, phase: waves.length && ended ? waves[waves.length - 1].phase : phase, wave: ended ? wave - 1 : wave, check, bossHpPct: bossHp / bossMax, playerHpPct: ctx.joined && role !== 'supply' ? clamp(hp / maxHp, 0, 1) : 1,
       fainted: down > 0 || (ctx.joined && role !== 'supply' && hp <= 0), checkPct: ended ? 1 : clamp(fill / need, 0, 1), yourShare: ended ? waves[waves.length - 1].yourShare : yourFill / Math.max(1e-9, fill),
       checks: { mitigation: check === 'mitigation' ? (ended ? 1 : clamp(fill / need, 0, 1)) : 0, healing: check === 'healing' ? (ended ? 1 : clamp(fill / need, 0, 1)) : 0, damage: check === 'damage' ? (ended ? 1 : clamp(fill / need, 0, 1)) : 0 },
-      auras: auraList.filter((a) => a.tier > 0).map((a) => ({ guild: a.guild, aura: a.type, tier: a.tier, mine: a.mine })), crewDown: downNow, auraTier: myTier, events: ev, taken: Math.round(taken) });
+      auras: auraList.filter((a) => a.tier > 0).map((a) => ({ guild: a.guild, aura: a.type, tier: a.tier, mine: a.mine })), crewDown: downNow, auraTier: myTier, events: ev, taken: Math.round(taken),
+      // running contribution (finished waves + the open wave's progress) so the live view can show it
+      yourPoints: Math.round((cumYour + (ended ? 0 : 100 * clamp(fill / need, 0, 1) * (yourFill / Math.max(1e-9, fill)))) * 1000) / 1000,
+      totalPoints: Math.round((cumTot + (ended ? 0 : 100 * clamp(fill / need, 0, 1))) * 1000) / 1000 });
     if (killedAt >= 0) break;
   }
   timeline.forEach((f, k) => { f.t = timeline.length > 1 ? k / (timeline.length - 1) : 1; });
@@ -269,7 +289,8 @@ export function simulateFight(state, ctx) {
     crewFoodStart: crew.reduce((a, m) => a + m.food, 0) + vaultStart.food, crewFoodLeft: crewFood, foodOutWave, foodOutFrame, crewFoodShort, crewPotions, auraWeakenedWave, maxCrewDown,
     auras: npc.concat(myAuraType ? [{ guild: crewName, type: myAuraType, tier: startTier, mine: true }] : []), myAuraType, startTier,
     totals: { damage: pDmg, healing: pHeal, mitigation: pMit }, crewTot, powers: pw, role, fair,
-    vaultConsumed, vaultUse: Object.keys(vaultUse).map((k) => { const u = vaultUse[k]; return Object.assign({}, u, { credit: Math.round(u.credit) }); }), vaultCredit: { you: youCredit } };
+    vaultConsumed, vaultUse: Object.keys(vaultUse).map((k) => { const u = vaultUse[k]; return Object.assign({}, u, { credit: Math.round(u.credit) }); }), vaultCredit: { you: youCredit },
+    stockShortfall: Object.keys(shortfall).map((k) => Object.assign({}, shortfall[k])), stockOutFrame };
 }
 export function fightCtx(state, lock, rng, joined) {
   const rec = curRecord(state);

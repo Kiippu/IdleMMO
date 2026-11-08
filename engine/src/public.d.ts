@@ -104,6 +104,35 @@ export interface RaidStatus {
   /** true while the raid is live: equip/unequip/equipLoadout/setRaidRules/setRaidPlan refuse with prepReason */
   prepLocked: boolean;
   prepReason: string;
+  /** while live: your contribution at the replay's current point (null when not live or not joined) */
+  liveContribution: LiveContribution | null;
+}
+export type ContributionTier = 'none' | 'bronze' | 'silver' | 'gold';
+export interface LiveContribution {
+  /** how far through the fight the replay is, 0..1 (= fightPct) */
+  pct: number;
+  /** your check points so far / all check points so far this weekend */
+  points: number; totalPoints: number;
+  /** points / totalPoints */
+  share: number;
+  /** tier that share reaches so far (E.tierThresholds) and its label ('No tier', 'Bronze', ...) */
+  tier: ContributionTier; tierLabel: string;
+}
+/** Recap fields (E.lastRecap(state)), added 2026-11-08 */
+export interface RecapStockShortfall {
+  /** 'you' or the crewmate's id */
+  who: string; name: string;
+  /** times the crew vault had no food / healing potion left when this member needed one */
+  heal: number;
+  /** times it had no role buff left for them */
+  buff: number;
+}
+export interface RecapStockFields {
+  /** crew vault healing/buff stock ran out during the fight (a need went unmet for a kind the vault started with) */
+  stockRanOut: boolean;
+  stockShortfall: RecapStockShortfall[];
+  /** fight progress 0..1 when stock first ran out, or null */
+  stockOutAt: number | null;
 }
 
 // ---- 2026-11-08 additions (save schema stays v6; state.events / state.eventSeq / state.store are additive)
