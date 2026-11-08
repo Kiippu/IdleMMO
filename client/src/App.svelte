@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { fmtG } from './format';
+    import TopStrip from './TopStrip.svelte';
+  import LogSheet from './overlays/LogSheet.svelte';
   import { engine } from './engine/store.svelte';
   import { initEngineClient, engineClient } from './engine/client';
   import { registerServiceWorker } from './pwa';
@@ -19,6 +20,7 @@
   let bootError = $state<string | null>(null);
   let updateReady = $state<null | (() => void)>(null);
   let saveMenuOpen = $state(false);
+  let logOpen = $state(false);
   let seeded = false;
 
   $effect(() => {
@@ -34,6 +36,21 @@
       seeded = true;
       if (engine.defaultTab === 'raid') active = 'War Room';
     }
+  });
+
+  // Tab badges from existing snapshot/derived data only.
+  let badges = $derived.by(() => {
+    const out: Partial<Record<Tab, string>> = {};
+    if (!engine.ready) return out;
+    if (!engine.snapshot?.active) out['Workshop'] = 'Nothing is running';
+    const r = engine.derived?.raidStatus;
+    if (r) {
+      if (r.phase === 'live' && !r.sittingOut) out['War Room'] = 'Raid is live';
+      else if (r.phase === 'prep' && r.secToStart <= 86400) out['War Room'] = 'Raid opens within a day and you are not locked in';
+    }
+    const n = (engine.derived?.contracts ?? []).filter((c: any) => c.status === 'open' && !c.mine && c.canFill?.ok && Math.min(c.remaining ?? 0, c.have ?? 0, c.capacity ?? Infinity) >= 1).length;
+    if (n > 0) out['Crew'] = `${n} ${n === 1 ? 'contract' : 'contracts'} you can fill`;
+    return out;
   });
 
   // Visibility: when the tab goes away, pause the worker (also flushes the
@@ -59,17 +76,9 @@
 </script>
 
 <div class="shell">
-  <header class="topbar">
-    <span class="brand">Guildwright</span>
-    <div class="top-right">
-      {#if engine.snapshot}
-        <span class="gold">{fmtG(engine.snapshot.gold)}</span>
-      {/if}
-      {#if engine.ready}
-        <button type="button" class="btn" onclick={() => (saveMenuOpen = true)} aria-label="Open save menu">Save</button>
-      {/if}
-    </div>
-  </header>
+  {#if engine.ready}
+    <TopStrip onLog={() => (logOpen = true)} onSave={() => (saveMenuOpen = true)} onStart={() => (active = 'Workshop')} />
+  {/if}
 
   {#if updateReady}
     <div class="update">
@@ -104,6 +113,10 @@
 
 <ConfirmSheet />
 
+{#if logOpen}
+  <LogSheet onClose={() => (logOpen = false)} />
+{/if}
+
 {#if saveMenuOpen}
   <SaveMenu onClose={() => (saveMenuOpen = false)} />
 {/if}
@@ -113,7 +126,7 @@
     <div class="row">
       {#each tabs as tab}
         <button type="button" aria-current={active === tab ? 'page' : undefined} onclick={() => (active = tab)}>
-          {tab}
+          {tab}{#if badges[tab]}<span class="dot" aria-hidden="true"></span><span class="sr">{badges[tab]}</span>{/if}
         </button>
       {/each}
     </div>

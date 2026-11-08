@@ -14,3 +14,13 @@ describe('format', () => {
     expect(hasPayout({ pool: 85409, gold: 16654, turnout: 1, contribution: 0.75 })).toBe(true);
   });
 });
+
+import { fmtDuration } from './format';
+describe('fmtDuration', () => {
+  it('never shows seconds', () => {
+    expect(fmtDuration(2 * 86400 + 4 * 3600 + 5)).toBe('2d 4h');
+    expect(fmtDuration(5340)).toBe('1h 29m');
+    expect(fmtDuration(30)).toBe('<1m');
+    expect(fmtDuration(0)).toBe('now');
+  });
+});

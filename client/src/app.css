@@ -119,6 +119,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   min-width: 0; min-height: 44px; padding: 0 2px; border: 0; background: none; color: var(--ink-2);
   font: 700 12px/1.2 var(--f-body); letter-spacing: 0; overflow-wrap: anywhere;
 }
+.tabbar button { position: relative; }
+.tabbar .dot { position: absolute; top: 8px; right: 10%; width: 8px; height: 8px; border-radius: 50%; background: var(--brass-fill); border: 1px solid var(--paper); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .tabbar button[aria-current="page"] { color: var(--woad); background: var(--woad-soft); }
 
 /* ---------- numbers ---------- */

@@ -3,7 +3,6 @@
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
   import { fmtN } from '../format';
-  import SceneStrip from '../scene/SceneStrip.svelte';
 
   type Skill = { id: string; name: string; tier: string; blurb: string };
   type Action = { id: string; skill: string; kind: string; name: string; level?: number; sec?: number; xp?: number };
@@ -31,13 +30,7 @@
   let state = $derived(engine.snapshot);
   let view = $derived(engine.derived);
   let active = $derived(state?.active ?? null);
-  let activeAction = $derived(active ? actionsAll.find((a) => a.id === active.actionId) ?? null : null);
-  let activeTime = $derived(view?.activeTime ?? null);
   const fmtSec = (s: number | undefined) => (s && isFinite(s) ? `${s.toFixed(1)}s` : '—');
-  let progress = $derived.by(() => {
-    if (!active || !activeTime || activeTime <= 0) return 0;
-    return Math.max(0, Math.min(1, active.progress / activeTime));
-  });
 
   function levelOf(skillId: string): number {
     return view?.skillLevels?.[skillId] ?? 0;
@@ -51,37 +44,7 @@
     try { await engineClient.start(id); }
     catch (err) { console.error('start failed', err); }
   }
-  async function stop() {
-    try { await engineClient.stop(); }
-    catch (err) { console.error('stop failed', err); }
-  }
 </script>
-
-<SceneStrip />
-
-{#if active && activeAction}
-  <section class="active-card">
-    <div class="row">
-      <div class="meta">
-        <span class="kind">{activeAction.kind}</span>
-        <h2>{activeAction.name}</h2>
-      </div>
-      <button class="btn primary" type="button" onclick={stop}>Stop</button>
-    </div>
-    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
-      <div class="fill" style="width: {Math.round(progress * 100)}%"></div>
-    </div>
-    <p class="sub">
-      <span class="num">{activeTime ? `${activeTime.toFixed(1)}s` : '—'}</span> per rep
-      {#if activeAction.xp}· <span class="num">{fmtN(activeAction.xp)}</span> XP{/if}
-    </p>
-  </section>
-{:else}
-  <section class="idle-card">
-    <h2>Pick something to work on.</h2>
-    <p>Guildwright is an idle game. Start an action and leave it; your save catches up when you come back.</p>
-  </section>
-{/if}
 
 {#each tierOrder as tier}
   {#if skillsByTier[tier]?.length}
@@ -124,27 +87,6 @@
 <style>
   /* Local layout; tokens from app.css. */
   section + section { margin-top: 20px; }
-
-  .active-card, .idle-card {
-    padding: 14px; background: var(--paper); border: 1px solid var(--rule);
-  }
-  .active-card .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .active-card .kind {
-    font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
-    letter-spacing: .04em; text-transform: uppercase;
-  }
-  .active-card h2 { margin: 2px 0 0; font: 600 var(--t-lg)/1.1 var(--f-display); }
-  .active-card .sub { margin: 10px 0 0; color: var(--ink-3); font-size: var(--t-xs); }
-  .active-card .bar {
-    height: 10px; margin-top: 12px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden;
-  }
-  .active-card .fill {
-    height: 100%; background: var(--woad);
-    transition: width 200ms linear;
-  }
-
-  .idle-card h2 { margin: 0 0 6px; font: 600 var(--t-lg)/1.1 var(--f-display); }
-  .idle-card p { margin: 0; color: var(--ink-2); }
 
   .tier h3 {
     margin: 0 0 10px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);

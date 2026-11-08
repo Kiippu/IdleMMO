@@ -1,6 +1,6 @@
 <script lang="ts">
   import { DATA } from '@guildwright/engine';
-  import { fmtG, fmtN, hasPayout } from '../format';
+  import { fmtG, fmtN, fmtDuration, hasPayout } from '../format';
   import { askText, confirmSheet } from '../overlays/confirm.svelte';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
@@ -35,15 +35,6 @@
   let pay = $derived<any>(recap?.payout ?? null);
   const pct = (x: number) => `${Math.round((x ?? 0) * 100)}%`;
   let hp = $derived<number>(snap?.hp ?? 0);
-
-  function fmtDuration(sec: number): string {
-    if (!isFinite(sec) || sec <= 0) return 'now';
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
-    if (h) return `${h}h ${m}m`;
-    return `${m}m`;
-  }
 
   async function saveCurrentGear() {
     const name = await askText({

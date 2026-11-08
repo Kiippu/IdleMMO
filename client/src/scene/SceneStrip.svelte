@@ -93,9 +93,8 @@
 <style>
   canvas {
     display: block;
-    width: 100%;
-    aspect-ratio: 160 / 64;
-    margin: 0 0 16px;
+    width: 120px; height: 48px;
+    margin: 0;
     image-rendering: pixelated;
     border: 1px solid var(--rule);
     background: var(--sunk);
