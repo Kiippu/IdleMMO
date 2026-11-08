@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
 
@@ -13,6 +14,8 @@
     { id: 'interrupt', label: 'Interrupt', blurb: 'Break casts; less sustained damage.' },
     { id: 'endure', label: 'Endure', blurb: 'Weather mechanics; slow and steady.' },
   ];
+  const itemsMap: Record<string, { name?: string }> = (DATA as any).items;
+  const itemName = (id: string) => itemsMap[id]?.name ?? id;
   const PHASE_LABEL: Record<string, string> = {
     prep: 'Preparing', locked: 'Locked in', live: 'Raid is live', done: 'Fought',
   };
@@ -197,6 +200,24 @@
         <p class="meta">Week {snap.raid.last.week}{snap.raid.last.result ? ` · ${snap.raid.last.result}` : ''}</p>
         {#if snap.raid.last.gold}<p class="meta">Gold: {snap.raid.last.gold}g</p>{/if}
         {#if snap.raid.last.xp}<p class="meta">XP: {Math.round(snap.raid.last.xp)}</p>{/if}
+        {#if snap.raid.last.crewStock}
+          {@const cs = snap.raid.last.crewStock}
+          <h4>Crew stock used</h4>
+          {#if Object.keys(cs.used ?? {}).length === 0}
+            <p class="meta">Nothing was drawn from the crew stock.</p>
+          {:else}
+            <p class="meta">{Object.entries(cs.used).map(([id, q]) => `${itemName(id)} × ${q}`).join(', ')}</p>
+            <ul class="stock">
+              {#each cs.byMember ?? [] as m}
+                <li>
+                  <span>{m.name ?? m.who}</span>
+                  <span class="meta">healed {Math.round(m.healed ?? 0)} · buffed {Math.round(m.buffed ?? 0)} · +{Math.round(m.credit ?? 0)} credit</span>
+                </li>
+              {/each}
+            </ul>
+            <p class="meta">Your contribution credit from stock: +{cs.yourCredit ?? 0}</p>
+          {/if}
+        {/if}
       </article>
     </section>
   {/if}
@@ -268,6 +289,9 @@
   .phase-done { color: var(--ok); }
   .phase-prep { color: var(--ink-2); }
 
+  .recap h4 { margin: 12px 0 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
+  .stock { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; font-size: var(--t-sm); }
+  .stock li { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .recap { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); }
 
   .action-btn, .ghost {

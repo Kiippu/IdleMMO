@@ -32,6 +32,7 @@
   let active = $derived(state?.active ?? null);
   let activeAction = $derived(active ? actionsAll.find((a) => a.id === active.actionId) ?? null : null);
   let activeTime = $derived(view?.activeTime ?? null);
+  const fmtSec = (s: number | undefined) => (s && isFinite(s) ? `${s.toFixed(1)}s` : '—');
   let progress = $derived.by(() => {
     if (!active || !activeTime || activeTime <= 0) return 0;
     return Math.max(0, Math.min(1, active.progress / activeTime));
@@ -39,6 +40,10 @@
 
   function levelOf(skillId: string): number {
     return view?.skillLevels?.[skillId] ?? 0;
+  }
+  function capNote(skillId: string): string {
+    const p = view?.skillProgress?.[skillId];
+    return p?.capped ? ` (raw ${p.rawLevel})` : '';
   }
 
   async function start(id: string) {
@@ -86,7 +91,7 @@
         <article class="skill">
           <header>
             <span class="skill-name">{skill.name}</span>
-            <span class="skill-lvl">Lv {lvl}</span>
+            <span class="skill-lvl">Lv {lvl}{capNote(skill.id)}</span>
           </header>
           <p class="blurb">{skill.blurb}</p>
           <ul class="actions">
@@ -103,7 +108,7 @@
                 >
                   <span class="a-name">{act.name}</span>
                   <span class="a-req">
-                    {#if locked}Lv {act.level}{:else}{act.sec ?? 3}s{/if}
+                    {#if locked}Lv {act.level}{:else}{fmtSec(view?.actionTimes?.[act.id])}{/if}
                   </span>
                 </button>
               </li>
