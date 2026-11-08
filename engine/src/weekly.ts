@@ -64,7 +64,12 @@ E.raidStatus = function (state) {
   const chargeMs = num(cfg().raidChargeHours, 10) * 3600000;
   return { week: state.week, phase, locked: lockedNow(state), lock: state.raid.lock, windowStart: w.start, windowEnd: w.end,
     secToStart: Math.max(0, (w.start - now) / 1000), secLeft: live ? (w.end - now) / 1000 : 0, resolved, recapId: cur ? cur.recapId : null,
-    fightPct: cur ? (cur.instant && !live ? 1 : clamp((now - cur.startedAt) / chargeMs, 0, 1)) : 0 };
+    fightPct: cur ? (cur.instant && !live ? 1 : clamp((now - cur.startedAt) / chargeMs, 0, 1)) : 0,
+    // true when the player takes no part in this week's raid (a save created after it opened)
+    sittingOut: num(state.raid.satOutWeek, 0) === state.week,
+    // game-clock ms of the start of the next raid the player can take part in (this week's window
+    // while it is still to be fought, else next week's)
+    nextRaidAt: !resolved && now < w.end ? w.start : windowFor(state, addDays(mondayOf(now), 7)).start };
 };
 E.readinessFlags = function (state) {
   const now = nowOf(state); const w = windowFor(state, now); const secTo = (w.start - now) / 1000;
