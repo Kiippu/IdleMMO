@@ -24,3 +24,14 @@ describe('fmtDuration', () => {
     expect(fmtDuration(0)).toBe('now');
   });
 });
+
+import { fmtAgo, rarityRank } from './format';
+describe('fmtAgo / rarityRank', () => {
+  it('relative times', () => {
+    const now = Date.UTC(2026, 10, 8, 12, 0, 0);
+    expect(fmtAgo(now - 10_000, now)).toBe('just now');
+    expect(fmtAgo(now - 5 * 60_000, now)).toBe('5m ago');
+    expect(fmtAgo(now - 2 * 3600_000, now)).toBe('2h ago');
+  });
+  it('ranks rarity', () => { expect(rarityRank('rare')).toBe(2); expect(rarityRank(undefined)).toBe(0); });
+});

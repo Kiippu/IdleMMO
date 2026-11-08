@@ -38,6 +38,10 @@ export interface Derived {
   /** E.spec(state) plus E.specCooldown(state). */
   spec: any;
   specCooldown: { ms: number; text: string; ready: boolean };
+  /** Game-clock ms (E.now) at the time of this snapshot; events[].t is on the same clock. */
+  now: number;
+  /** E.derivedExtras(state): {store, events (last 50, newest first), raidPrep, gatherSecs}. */
+  extras: { store: any; events: any[]; raidPrep: any; gatherSecs: Record<string, number | null> } | null;
 }
 
 export interface OfflineSummary {
@@ -51,6 +55,8 @@ export interface OfflineSummary {
   tips: number;
   raids: string[];
   weeks: number;
+  /** Real seconds the player was away (added by the worker). */
+  awaySec?: number;
 }
 
 export type Req =

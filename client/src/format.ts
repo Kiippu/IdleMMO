@@ -16,3 +16,18 @@ export function fmtDuration(sec: number): string {
   if (h) return `${h}h ${m % 60}m`;
   return m ? `${m}m` : '<1m';
 }
+
+/** Game-clock timestamp relative to now: "just now", "5m ago", "2h ago", else "Sat 14:05". */
+export function fmtAgo(t: number, now: number): string {
+  const sec = (now - t) / 1000;
+  if (!isFinite(sec) || sec < 60) return 'just now';
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
+  const d = new Date(t);
+  const wd = d.toLocaleDateString('en-GB', { weekday: 'short' });
+  return `${wd} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** Rarity index (common 0 .. mythic 5) for sorting. */
+export const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
+export const rarityRank = (r: string | undefined): number => Math.max(0, RARITY_ORDER.indexOf(r as any));
