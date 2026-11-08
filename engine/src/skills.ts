@@ -3,7 +3,7 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, num, arr, cfg, skillDefs, clamp, logq } from './core';
+import { E, num, arr, cfg, skillDefs, clamp, logq, fmtGold } from './core';
 import { WEEK_MS } from './v4-helpers';
 import { nowOf } from './clock';
 
@@ -109,13 +109,13 @@ E.switchSpec = function (state, newSkillId) {
     if (left > 0) return { ok: false, reason: `You can switch specialization again in ${fmtDaysHours(left)}.`, cooldownMs: left, cooldownText: fmtDaysHours(left) };
   }
   const cost = first ? 0 : specSwitchCost();
-  if (num(state.gold, 0) < cost) return { ok: false, reason: `Needs ${cost}g; you have ${Math.floor(num(state.gold, 0))}g.` };
+  if (num(state.gold, 0) < cost) return { ok: false, reason: `Needs ${fmtGold(cost)}; you have ${fmtGold(Math.floor(num(state.gold, 0)))}.` };
   const old = spec.skillId;
   state.gold = num(state.gold, 0) - cost;
   spec.skillId = newSkillId;
   if (!first) spec.lastSwitchAt = nowOf(state); // the first pick starts no cooldown
   const oldName = old ? (skillDefs().find((d) => d.id === old) || { name: old }).name : '';
-  logq(state, 'info', first ? `Specialized in ${def.name}.` : `Switched specialization to ${def.name} for ${cost}g. ${oldName} is held at level ${SPEC_CAP_LEVEL} (XP kept).`);
+  logq(state, 'info', first ? `Specialized in ${def.name}.` : `Switched specialization to ${def.name} for ${fmtGold(cost)}. ${oldName} is held at level ${SPEC_CAP_LEVEL} (XP kept).`);
   return { ok: true, reason: '', cost, first };
 };
 

@@ -130,6 +130,12 @@ E.log = function (state, kind, text) {
 };
 export const logq = (state, kind, text) => { if (!flags.quiet) E.log(state, kind, text); };
 
+/** Gold for player-facing engine text: rounded, thousands separators, "g" suffix ("1,908g", "-12g"). */
+export function fmtGold(n) {
+  const v = Math.round(Number(n) || 0);
+  return (v < 0 ? '-' : '') + String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'g';
+}
+E.fmtGold = fmtGold;
 E.fmt = function (n) {
   n = Number(n);
   if (!isFinite(n)) return n > 0 ? '∞' : (n < 0 ? '-∞' : '0');

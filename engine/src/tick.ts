@@ -2,7 +2,7 @@
 // Ported from legacy/engine.js lines 852-906. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, TICK_MAX_COMPLETIONS, MARKET_REFRESH_SEC, arr, num, cfg, grades, action, rand, clamp, itemName, logq } from './core';
+import { E, TICK_MAX_COMPLETIONS, MARKET_REFRESH_SEC, arr, num, cfg, grades, action, rand, clamp, itemName, logq, fmtGold } from './core';
 import { pouchBlock, completeOnce } from './actions';
 import { crewStep } from './crew-assist';
 import { processClock } from './weekly';
@@ -37,7 +37,7 @@ export function marketFills(state, dt, events) {
     const gold = Math.round(l.price * units * (1 - tax));
     l.qty -= units; state.gold += gold;
     events.push({ type: 'sold', itemId: l.itemId, grade: l.grade, qty: units, gold });
-    logq(state, 'market', `Sold ${units} ${itemName(l.itemId)} (${(grades()[l.grade] || {}).name || 'Standard'}) for ${gold}g after tax.`);
+    logq(state, 'market', `Sold ${units} ${itemName(l.itemId)} (${(grades()[l.grade] || {}).name || 'Standard'}) for ${fmtGold(gold)} after tax.`);
     if (l.qty <= 0) mine.splice(i, 1);
   }
 }

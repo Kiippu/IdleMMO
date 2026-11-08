@@ -2,7 +2,7 @@
 // Ported from legacy/engine.js lines 1817-2027. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, itemName, nextId } from './core';
+import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, itemName, nextId, fmtGold } from './core';
 import { addItem } from './inventory';
 import { findGear } from './gear';
 import { CHECK_LABEL, TIER_NAME, ROLE_MIX, mulberry, clone, roleDef, invTake, WORST } from './v4-helpers';
@@ -149,8 +149,8 @@ export function resolveRaid(state, opts, events) {
   const crewGold = pay.treasury;
   if (state.crew && state.crew.treasury) {
     state.crew.treasury.gold += crewGold;
-    feedPush(state, 'payout', 'Raid', `Raid payout: ${pay.pool}g pool, ${crewGold}g to the treasury, ${pay.perAttendee}g each (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution).`);
-    logTreasury(state, 'payout', +crewGold, 'Raid', `Raid payout: ${crewGold}g of a ${pay.pool}g pool (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution)`);
+    feedPush(state, 'payout', 'Raid', `Raid payout: ${fmtGold(pay.pool)} pool, ${fmtGold(crewGold)} to the treasury, ${fmtGold(pay.perAttendee)} each (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution).`);
+    logTreasury(state, 'payout', +crewGold, 'Raid', `Raid payout: ${fmtGold(crewGold)} of a ${fmtGold(pay.pool)} pool (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution)`);
     econ(state, 'raidGold', crewGold);
   }
   if (pay.player > 0) state.gold = num(state.gold, 0) + pay.player;

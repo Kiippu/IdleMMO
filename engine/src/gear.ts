@@ -2,7 +2,7 @@
 // Ported from legacy/engine.js lines 242-405. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, SLOTS, arr, num, rarities, elements, item, allActions, affixDefs, rand, clamp, randInt, shuffle, lcFirst, article, itemName, nextId, gradeOf, gradeMult, rarityDef } from './core';
+import { E, SLOTS, arr, num, rarities, elements, item, allActions, affixDefs, rand, clamp, randInt, shuffle, lcFirst, article, itemName, nextId, gradeOf, gradeMult, rarityDef, fmtGold } from './core';
 import { addItem, consume, lowestGrade } from './inventory';
 import { statsFor } from './stats';
 
@@ -90,9 +90,9 @@ E.repair = function (state, uid) {
   const c = E.repairCost(state, uid);
   if (g.dur >= g.maxDur) return { ok: false, reason: 'It is already in perfect condition.' };
   if (g.dur >= c.newMaxDur) return { ok: false, reason: `Still at ${Math.round(g.dur)} durability; repairing now would only lower its maximum to ${c.newMaxDur}.` };
-  if (state.gold < c.gold) return { ok: false, reason: `Repairing costs ${c.gold}g and you have ${Math.floor(state.gold)}g.` };
+  if (state.gold < c.gold) return { ok: false, reason: `Repairing costs ${fmtGold(c.gold)} and you have ${fmtGold(Math.floor(state.gold))}.` };
   state.gold -= c.gold; g.dur = c.newMaxDur; g.maxDur = c.newMaxDur;
-  E.log(state, 'info', `Repaired your ${E.gearName(g)} for ${c.gold}g (max durability now ${c.newMaxDur}).`);
+  E.log(state, 'info', `Repaired your ${E.gearName(g)} for ${fmtGold(c.gold)} (max durability now ${c.newMaxDur}).`);
   return { ok: true, gold: c.gold };
 };
 export function recipeFor(itemId) {

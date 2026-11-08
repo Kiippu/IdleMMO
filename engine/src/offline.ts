@@ -3,7 +3,7 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, OFFLINE_MAX_COMPLETIONS, MARKET_REFRESH_SEC, num, cfg, action, clamp, flags } from './core';
+import { E, OFFLINE_MAX_COMPLETIONS, MARKET_REFRESH_SEC, num, cfg, action, clamp, flags, fmtGold } from './core';
 import { completeOnce } from './actions';
 import { crewStep } from './crew-assist';
 import { marketFills } from './tick';
@@ -76,6 +76,6 @@ E.applyOffline = function (state, nowMs) {
   Object.keys(state.skills).forEach((k) => { const d = num(state.skills[k].xp, 0) - num(xp0[k], 0); if (d > 0) summary.xp[k] = d; });
   const nItems = Object.values(summary.items).reduce((x: number, y: any) => x + num(y, 0), 0);
   const xpTot = Object.values(summary.xp).reduce((x: number, y: any) => x + num(y, 0), 0);
-  E.log(state, 'info', `While you were away (${E.fmtTime(seconds)}): ${E.fmt(nItems)} items, ${E.fmt(xpTot)} XP, ${E.fmt(summary.gold)}g${summary.kills ? `, ${summary.kills} kills` : ''}${summary.assisted ? `, helped your crew with ${summary.assisted} crafts` : ''}.${summary.stoppedReason ? ' ' + summary.stoppedReason : ''}`);
+  E.log(state, 'info', `While you were away (${E.fmtTime(seconds)}): ${E.fmt(nItems)} items, ${E.fmt(xpTot)} XP, ${fmtGold(summary.gold)}${summary.kills ? `, ${summary.kills} kills` : ''}${summary.assisted ? `, helped your crew with ${summary.assisted} crafts` : ''}.${summary.stoppedReason ? ' ' + summary.stoppedReason : ''}`);
   return { seconds: Math.floor(seconds), summary };
 };
