@@ -19,7 +19,7 @@ E.newState = function () {
   const c = cfg(); const now = ctx.now();
   const s = {
     v: SCHEMA, createdAt: now, lastSeen: now, gold: num(c.startingGold, 150), week: 1, hp: 1, focus: 0,
-    spec: { skillId: null, lastSwitchAt: null },
+    spec: { skillId: null, lastSwitchAt: null, capped: [] }, rep: 0,
     skills: {}, mastery: {}, pity: {}, inv: {}, gear: [],
     equipped: { weapon: null, offhand: null, head: null, chest: null, legs: null, ring: null },
     active: null, settings: { matPriority: 'best', useCatalyst: false, useCore: false },
@@ -51,8 +51,11 @@ E.newState = function () {
 };
 export function migrate(raw) {
   if (!raw || typeof raw !== 'object' || typeof raw.skills !== 'object' || !raw.skills) return null;
-  // Accepted: v5 (current), v4, v1, and null (implicit v3 from the prototype).
-  if (raw.v != null && raw.v !== 1 && raw.v !== 4 && raw.v !== SCHEMA) return null;
+  // Accepted: v6 (current), v5 (phase 2), v4, v1, and null (implicit v3 from the prototype).
+  // v4/v5 → v6 adds: state.rep, spec.capped, crew.contracts (+ contractSimIn), treasury log `at` → `t`;
+  // and strips cut features: crew.viewAsMember, raid.farm, open NPC-posted requisitions (escrow released).
+  if (raw.v != null && raw.v !== 1 && raw.v !== 4 && raw.v !== 5 && raw.v !== SCHEMA) return null;
+  try { raw = JSON.parse(JSON.stringify(raw)); } catch (e) { return null; } // never mutate the caller's object
   // v3 and earlier predate clock/server/economy/loadouts and the v4 raid shape.
   const legacyV3 = raw.v == null || raw.v === 1;
   const s = E.newState(); const fresh = s;
@@ -66,7 +69,9 @@ export function migrate(raw) {
   out.spec = {
     skillId: specSkillOk ? rawSpec.skillId : null,
     lastSwitchAt: (isFinite(rawSpec.lastSwitchAt) && rawSpec.lastSwitchAt > 0) ? Math.floor(rawSpec.lastSwitchAt) : null,
+    capped: arr(rawSpec.capped).filter((id) => typeof id === 'string' && skillDefs().some((d) => d.id === id)),
   };
+  out.rep = Math.max(0, num(raw.rep, 0));
   out.mastery = raw.mastery && typeof raw.mastery === 'object' ? raw.mastery : {};
   out.pity = raw.pity && typeof raw.pity === 'object' ? raw.pity : {};
   out.inv = {};
@@ -106,8 +111,7 @@ export function migrate(raw) {
   // v5: raid tokens removed. Hoarded tokens on v4 saves are discarded; stale rec.tokens
   // on per-boss records is left as dead data (nothing reads it after the raid-payouts rewrite).
   delete out.tokens;
-  ensureV5(out);
-  // v5: coin → gold on the crew treasury and the economy ledger. ensureV5 above already
+  // v5: coin → gold on the crew treasury and the economy ledger. migrateCrew already
   // normalised out.crew.treasury.gold to 0 if the raw save only had .coin; fold the legacy
   // value in and drop it. Same for state.economy.raidCoin (incl. per-week entries).
   if (out.crew && out.crew.treasury && 'coin' in out.crew.treasury) {
@@ -123,6 +127,7 @@ export function migrate(raw) {
       if (w && 'raidCoin' in w) { w.raidGold = num(w.raidGold, 0) + num(w.raidCoin, 0); delete w.raidCoin; }
     });
   }
+  ensureV5(out);
   if (legacyV3) {
     const rec = curRecord(out); const v3max = num(V3_BOSS_HP[out.raid.ladder], 0);
     const pctLeft = v3max > 0 && isFinite(rr.bossHp) && rr.bossHp > 0 ? clamp(rr.bossHp / v3max, 0.05, 1) : 1;

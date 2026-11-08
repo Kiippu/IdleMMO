@@ -195,7 +195,7 @@ export function migrateCrew(out, rc) {
       }),
       nextPostIn: clamp(num(rc.nextPostIn, 60), 0, 600)
     };
-    ['playerRank', 'viewAsMember', 'vault', 'treasury', 'requisitions', 'withdrawRequests', 'feed', 'withdrawn', 'schedule', 'seenReqIds', 'reqSimIn', 'npcReqIn'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
+    ['playerRank', 'vault', 'treasury', 'requisitions', 'contracts', 'withdrawRequests', 'feed', 'withdrawn', 'schedule', 'seenReqIds', 'reqSimIn', 'npcReqIn', 'contractSimIn'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
     ensureCrewV5(out);
   } else makeCrew(out);
 }

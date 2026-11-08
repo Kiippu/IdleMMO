@@ -30,9 +30,9 @@ export function actionTimeWith(state, act, ps) {
     const power = num((act.enemy || {}).power, 1);
     t *= clamp(power / Math.max(1, roleStatOf(act, ps)), 0.5, 3);
   }
-  // Phase 1 real-speed tuning: cfg.speedFactor stretches every action to the design doc's
-  // ~1000g/hr anchor at level 40. Combat at level 40 (sec=9, gold ~25) under the current
-  // factor of 10 produces ~1000g/hr, matching the design.
+  // cfg.speedFactor stretches every action (1 since phase 2.5 = prototype pace). E.actionTime is THE
+  // time-per-rep function: the action list, the active card and crew jobs must all read it
+  // (E.activeInfo already does) so they never disagree.
   t *= Math.max(1, num(cfg().speedFactor, 1));
   return Math.max(0.25, t * (1 - clamp(num(ps.speed, 0), 0, 50) / 100));
 }

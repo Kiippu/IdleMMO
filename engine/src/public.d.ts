@@ -21,6 +21,52 @@ export interface EngineContext {
   data: any;
 }
 
+// ---- Phase 2.5 shapes (save schema v6). Engine methods stay `any`-typed; these interfaces
+// describe what the new verbs return so the client can annotate its derived bundle.
+// Verbs: E.listContracts(state) → Contract[]; E.fillContract(state, contractId, qty) → FillContractResult;
+// E.crewGold(state) → CrewGold; E.treasury(state) → TreasuryView; E.treasuryLog(state) → TreasuryLogEntry[];
+// E.spec(state) → SpecInfo; E.specCooldown(state) → SpecCooldown; E.switchSpec(state, skillId);
+// E.skillProgress(state, skillId) → SkillProgress; E.actionTime(state, actionId) → seconds per rep.
+// Removed in 2.5: startRaidNow, runRaid, raidStatus().canStartNow, farmRaids, runFarmRaid, setViewAsMember.
+
+export type ContractPays = 'gold' | 'mixed' | 'reputation';
+export interface Contract {
+  id: string; week: number; check: string; itemId: string; itemName: string;
+  qty: number; filled: number; remaining: number; minGrade: number;
+  rewardPer: number; repPer: number; escrow: number; paid: number; repPaid: number;
+  goldUnitsLeft: number; repUnits: number; pays: ContractPays;
+  status: 'open' | 'filled' | 'closed'; postedAt: number; note: string;
+  have: number; vaultHas: number; recipeActionId: string | null;
+  canFill: { ok: boolean; reason: string };
+  submissions: { who: string; qty: number; gold: number; rep: number; t: number }[];
+}
+export interface FillContractResult {
+  ok: boolean; reason: string; accepted: number; gold: number; rep: number;
+  partial?: boolean; status?: Contract['status'];
+}
+export interface CrewGold { free: number; escrowed: number; total: number }
+export type TreasuryLogKind = 'payout' | 'contract' | 'contract-escrow' | 'contract-release' | 'fill' | 'escrow'
+  | 'release' | 'deposit' | 'withdraw' | 'raid-stock';
+export interface TreasuryLogEntry {
+  /** time in ms (legacy `at` is normalised to `t` on load) */
+  t: number; week: number; kind: TreasuryLogKind | string; who: string; reason: string;
+  /** change in total crew gold (free + escrowed) */
+  delta: number;
+  /** change in escrowed gold; free-gold change = delta - escrowDelta */
+  escrowDelta?: number;
+  /** item rows: signed qty (+ into the vault, - out) */
+  itemId?: string; qty?: number; grade?: number;
+  /** gear rows */
+  uid?: string; gear?: boolean;
+}
+export interface TreasuryView extends CrewGold { gold: number; escrow: number; log: TreasuryLogEntry[]; history: any[] }
+export interface SpecCooldown { ms: number; /** "Xd Yh", never seconds */ text: string; ready: boolean }
+export interface SpecInfo {
+  skillId: string | null; lastSwitchAt: number | null; cooldownMs: number; cooldownText: string;
+  cost: number; capLevel: number; /** skills held at the level-70 effective cap (XP kept) */ capped: string[];
+}
+export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
+
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */
 export const Engine: any;
 

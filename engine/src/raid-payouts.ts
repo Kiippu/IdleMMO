@@ -10,7 +10,7 @@ import { nowOf, weekStartOf, windowFor } from './clock';
 import { ensureRecord, curRecord } from './server';
 import { autoLock, tierFor } from './raid-rules';
 import { simulateFight, fightCtx } from './raid-sim';
-import { feedPush, econ, logTreasury } from './crew-economy';
+import { feedPush, econ, logTreasury, closeContracts } from './crew-economy';
 
 // ================================================================ v4: payouts + resolution
 export function pickLootItem(state, b, kind) {
@@ -119,17 +119,20 @@ export function resolveRaid(state, opts, events) {
     sim.cpHit.forEach((at) => { const ci = []; grant(state, ci, boss.bossMat, 2, 1); grant(state, ci, boss.floorItem || 'coal', 1, randInt(3, 6)); grant(state, ci, pickLootItem(state, boss, 'buff'), 1, 1); chests.push({ at, items: ci }); });
   }
   sim.cpHit.forEach((at) => { if (!rec.checkpointsPaid.includes(at)) rec.checkpointsPaid.push(at); });
-  // Crew vault stock submitted via town contracts is consumed during the raid; the fight
-  // simulation applied food/heal survival and buff-potion check bonuses (see raid-sim.fightCtx).
-  // Decrement the vault here and log each item move so members can audit what the raid cost.
+  // Crew vault stock (filled through town contracts) used in the raid. The sim drew only what
+  // members needed (see raid-sim vaultTake) and credited each unit to the member it healed or
+  // buffed. Remove exactly that from the real vault and log every item so members can audit it.
   if (state.crew && state.crew.vault && state.crew.vault.inv && sim.vaultConsumed) {
     Object.keys(sim.vaultConsumed).forEach((id) => {
       const qty = num(sim.vaultConsumed[id], 0); if (!(qty > 0)) return;
-      const taken = invTake(state.crew.vault.inv, id, qty, WORST, 0);
-      const totalTaken = taken.reduce((a, t) => a + t.qty, 0);
-      if (totalTaken > 0) logTreasury(state, 'vault', 0, 'Raid', `${totalTaken} ${itemName(id)} used in raid`, { itemId: id, qty: -totalTaken });
+      const users = arr(sim.vaultUse).filter((u) => u.items[id] > 0).map((u) => `${u.name} ${u.items[id]}`);
+      invTake(state.crew.vault.inv, id, qty, WORST, 0).forEach((t) => {
+        logTreasury(state, 'raid-stock', 0, 'Raid', `${t.qty} ${itemName(id)} used in the raid (${users.join(', ')})`, { itemId: id, qty: -t.qty, grade: t.grade });
+      });
     });
   }
+  // the raid has happened: this week's contracts close and any unspent escrow goes back
+  closeContracts(state, 'Raid over');
   // Crew treasury gold by turnout AND contribution (never by boss HP).
   // avgContribution = crew's filled share of expected-per-attendee work, clamped 0..1.
   // crewHave aggregates the crew's actual check fill across waves; crewNeed is the fair-share
@@ -186,7 +189,8 @@ export function resolveRaid(state, opts, events) {
     bossMaxHp: rec.maxHp, hpBefore: Math.round(hpBefore), hpAfter: rec.hpLeft, hpPctBefore: hpBefore / rec.maxHp, hpPctAfter: rec.hpLeft / rec.maxHp, damageDealtPct: (hpBefore - rec.hpLeft) / rec.maxHp,
     tier, tierWeek, tierBasis: rec.joinedWeekends > 1 ? 'carried' : 'weekend', tierLabel: TIER_NAME[tier] + (rec.joinedWeekends > 1 ? ' (carried over)' : ''),
     contribution: { points: rec.myPoints, weekPoints: sim.weekPoints, totalPoints: rec.totalPoints, weekShare, share, fairShare: 1 / Math.max(1, rec.pop), cumulativeTier: cumTier, weekends: rec.joinedWeekends },
-    foodEaten: { total: foodTotal, items: sim.eaten }, potionsUsed: sim.potionsUsed, pouchLeft: sim.pouchLeft, pouchStart: sim.pouchStart, supplyDelivered: sim.supplyDelivered, tiers: tiersSnap,
+    foodEaten: { total: foodTotal, items: sim.eaten },
+    crewStock: { used: Object.assign({}, sim.vaultConsumed), byMember: arr(sim.vaultUse).map((u) => Object.assign({}, u, { items: Object.assign({}, u.items) })), yourCredit: Math.round(num(sim.vaultCredit && sim.vaultCredit.you, 0)) }, potionsUsed: sim.potionsUsed, pouchLeft: sim.pouchLeft, pouchStart: sim.pouchStart, supplyDelivered: sim.supplyDelivered, tiers: tiersSnap,
     faints: sim.faints, reviveCost: { food: sim.reviveFood, durability: sim.faints * num(c.reviveDurability, 2) },
     checks: sim.waves.map((w) => ({ wave: w.wave, phase: w.phase, phaseName: w.phaseName, check: w.check, label: w.label, result: w.result, overtime: w.overtime,
       yourShare: w.yourShare, yourText: w.yourText, your: Math.round(w.your), total: Math.round(w.total), need: Math.round(w.need), crewHave: Math.round(w.crewHave), crewNeed: Math.round(w.crewNeed), helped: w.your > 0,
@@ -223,13 +227,16 @@ export function coreOddsFor(state, rec, boss, cumTier) {
   const breakdown = { floor: rec.joinedWeekends > 0 ? num(tk.floor, 1) : 0, tier: num(tk[cumTier], 0) };
   const tickets = breakdown.floor + breakdown.tier;
   const pity = num(state.raid.corePity, 0); const pityMax = num(cfg().corePityMax, 3);
+  // Phase 2.5: raid tokens are gone, so the old +0.8 token share is dropped. Every participant
+  // holds the floor ticket plus, on average, cfg.serverAvgTierTickets from their tier.
   const parts = Math.round(num(state.server.pop, 1200) * num(cfg().serverTurnout, 0.85));
-  const serverTickets = parts * (num(tk.floor, 1) + 2.6 + 0.8);
+  const serverTickets = parts * serverTicketsPerPlayer();
   const cores = num(boss.cores, 20);
   const eff = tickets * (1 + pity);
   const chance = tickets <= 0 ? 0 : pity >= pityMax ? 1 : clamp(1 - Math.pow(1 - eff / (serverTickets + eff), cores), 0, 1);
   return { tickets, breakdown, tier: cumTier, serverTickets: Math.round(serverTickets), cores, chance, pity, pityMax, guaranteed: tickets > 0 && pity >= pityMax, coreItemId: boss.coreItem || null };
 }
+export function serverTicketsPerPlayer() { const tk = cfg().tierTickets || { floor: 1 }; return num(tk.floor, 1) + num(cfg().serverAvgTierTickets, 2.6); }
 E.coreOdds = function (state) {
   const boss = E.currentBoss(state); const rec = curRecord(state);
   const share = rec.myPoints / Math.max(1e-9, rec.totalPoints);

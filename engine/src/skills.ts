@@ -3,7 +3,7 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, num, cfg, skillDefs, clamp, logq } from './core';
+import { E, num, arr, cfg, skillDefs, clamp, logq } from './core';
 import { WEEK_MS } from './v4-helpers';
 
 // ---------------------------------------------------------------- skills / XP
@@ -25,25 +25,38 @@ E.levelFor = function (xp) {
   while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (E.xpForLevel(mid) <= xp) lo = mid; else hi = mid - 1; }
   return lo;
 };
-E.skillLevel = function (state, skillId) {
+// Raw level from XP (ignores the specialization cap).
+export function rawSkillLevel(state, skillId) {
   const s = state && state.skills && state.skills[skillId];
   return E.levelFor(s ? s.xp : 0);
+}
+// Effective level: a skill you specialized in and then switched away from is capped at
+// SPEC_CAP_LEVEL. Its XP is kept; switching back lifts the cap and restores the full level.
+export function isSpecCapped(state, skillId) {
+  const sp = state && state.spec;
+  return !!(sp && Array.isArray(sp.capped) && sp.capped.includes(skillId) && sp.skillId !== skillId);
+}
+E.skillLevel = function (state, skillId) {
+  const raw = rawSkillLevel(state, skillId);
+  return isSpecCapped(state, skillId) ? Math.min(raw, SPEC_CAP_LEVEL) : raw;
 };
 E.skillProgress = function (state, skillId) {
   const s = state && state.skills && state.skills[skillId];
   const xp = s ? num(s.xp, 0) : 0;
-  const level = E.levelFor(xp); const max = num(cfg().maxLevel, 99);
+  const rawLevel = E.levelFor(xp); const capped = isSpecCapped(state, skillId) && rawLevel > SPEC_CAP_LEVEL;
+  const level = capped ? SPEC_CAP_LEVEL : rawLevel;
+  const max = capped ? SPEC_CAP_LEVEL : num(cfg().maxLevel, 99);
   const cur = E.xpForLevel(level); const next = level >= max ? cur : E.xpForLevel(level + 1);
   const pct = level >= max ? 1 : clamp((xp - cur) / Math.max(1, next - cur), 0, 1);
-  return { level, xp, cur, next, pct };
+  return { level, rawLevel, capped, xp, cur, next, pct };
 };
 export function addXp(state, skillId, amount, events) {
   if (!skillId || !(amount > 0)) return 0;
   if (!state.skills[skillId]) state.skills[skillId] = { xp: 0 };
   const s = state.skills[skillId];
-  const before = E.levelFor(s.xp);
-  s.xp = num(s.xp, 0) + amount;
-  const after = E.levelFor(s.xp);
+  const before = E.skillLevel(state, skillId);
+  s.xp = num(s.xp, 0) + amount; // XP keeps accruing even while the spec cap holds the level
+  const after = E.skillLevel(state, skillId);
   if (after > before) {
     events.push({ type: 'levelup', skill: skillId, level: after });
     const def = skillDefs().find((d) => d.id === skillId);
@@ -52,44 +65,52 @@ export function addXp(state, skillId, amount, events) {
   return amount;
 }
 
-// Specialization switch (CLAUDE.md "Settled decisions"):
-// - costs ~3000 gold (cfg.specSwitchCost, default 3000)
-// - one-week cooldown
-// - the OLD spec skill's XP is clamped to the level-70 cap on switch (no XP lost,
-//   just capped — members in a later phase lift the cap for their chosen spec)
-// Free/member tier isn't modelled in the engine yet; for now the switch is open to
-// anyone and the 70-cap is applied only on switch-out, matching the design doc.
+// Specialization switch (CLAUDE.md "Settled decisions"; phase 2.5 rules):
+// - open to everyone (free players included); costs cfg.specSwitchCost (3000g)
+// - one-week cooldown on the game clock (ctx.now)
+// - the OLD spec skill's EFFECTIVE level is capped at 70; its XP is kept, and switching
+//   back to it lifts the cap (full level restored). state.spec.capped lists capped skills.
 export const SPEC_COOLDOWN_MS = WEEK_MS;
 export const SPEC_CAP_LEVEL = 70;
+const HOUR_MS = 3600000, DAY_MS_ = 86400000;
+
+/** "Xd Yh" for a cooldown; hours round up so it never shows 0h while time is left. Never seconds. */
+export function fmtDaysHours(ms) {
+  ms = Math.max(0, num(ms, 0));
+  let d = Math.floor(ms / DAY_MS_); let h = Math.ceil((ms - d * DAY_MS_) / HOUR_MS);
+  if (h >= 24) { d += 1; h -= 24; }
+  return `${d}d ${h}h`;
+}
+export function specCooldownMs(state) {
+  const sp = state && state.spec; const at = sp && sp.lastSwitchAt;
+  return at ? Math.max(0, SPEC_COOLDOWN_MS - (ctx.now() - at)) : 0;
+}
+E.specCooldown = function (state) { const ms = specCooldownMs(state); return { ms, text: fmtDaysHours(ms), ready: ms <= 0 }; };
+export const specCost = () => Math.max(0, Math.floor(num(cfg().specSwitchCost, 3000)));
 
 E.switchSpec = function (state, newSkillId) {
   const def = skillDefs().find((d) => d.id === newSkillId);
   if (!def) return { ok: false, reason: 'Unknown skill.' };
-  const spec = state.spec || (state.spec = { skillId: null, lastSwitchAt: null });
+  const spec = state.spec || (state.spec = { skillId: null, lastSwitchAt: null, capped: [] });
+  if (!Array.isArray(spec.capped)) spec.capped = [];
   if (spec.skillId === newSkillId) return { ok: false, reason: `Already specialized in ${def.name}.` };
-  const now = ctx.now();
-  if (spec.lastSwitchAt && now - spec.lastSwitchAt < SPEC_COOLDOWN_MS) {
-    const left = Math.ceil((SPEC_COOLDOWN_MS - (now - spec.lastSwitchAt)) / 1000);
-    return { ok: false, reason: `Specialization switch is on cooldown for ${left} more seconds.` };
-  }
-  const cost = Math.max(0, Math.floor(num(cfg().specSwitchCost, 3000)));
+  const left = specCooldownMs(state);
+  if (left > 0) return { ok: false, reason: `You can switch specialization again in ${fmtDaysHours(left)}.`, cooldownMs: left, cooldownText: fmtDaysHours(left) };
+  const cost = specCost();
   if (num(state.gold, 0) < cost) return { ok: false, reason: `Needs ${cost}g; you have ${Math.floor(num(state.gold, 0))}g.` };
-  // Clamp the OLD spec skill's XP to the level-70 cap. No clamp for the FIRST pick
-  // (spec.skillId === null) since there's no "old" spec to cap.
-  if (spec.skillId && state.skills[spec.skillId]) {
-    const cap = E.xpForLevel(SPEC_CAP_LEVEL);
-    state.skills[spec.skillId].xp = Math.min(num(state.skills[spec.skillId].xp, 0), cap);
-  }
+  const old = spec.skillId;
+  if (old && !spec.capped.includes(old)) spec.capped.push(old);
+  spec.capped = spec.capped.filter((id) => id !== newSkillId); // switching back lifts the cap
   state.gold = num(state.gold, 0) - cost;
   spec.skillId = newSkillId;
-  spec.lastSwitchAt = now;
-  logq(state, 'info', `Specialized in ${def.name} for ${cost}g.`);
+  spec.lastSwitchAt = ctx.now();
+  logq(state, 'info', `Specialized in ${def.name} for ${cost}g.${old ? ` ${(skillDefs().find((d) => d.id === old) || { name: old }).name} is now capped at level ${SPEC_CAP_LEVEL} (XP kept).` : ''}`);
   return { ok: true, reason: '', cost };
 };
 
 E.spec = function (state) {
-  const spec = state.spec || { skillId: null, lastSwitchAt: null };
-  const now = ctx.now();
-  const cooldownMs = spec.lastSwitchAt ? Math.max(0, SPEC_COOLDOWN_MS - (now - spec.lastSwitchAt)) : 0;
-  return { skillId: spec.skillId, lastSwitchAt: spec.lastSwitchAt, cooldownMs, cost: Math.max(0, Math.floor(num(cfg().specSwitchCost, 3000))) };
+  const spec = state.spec || { skillId: null, lastSwitchAt: null, capped: [] };
+  const cooldownMs = specCooldownMs(state);
+  return { skillId: spec.skillId, lastSwitchAt: spec.lastSwitchAt, cooldownMs, cooldownText: fmtDaysHours(cooldownMs),
+    cost: specCost(), capLevel: SPEC_CAP_LEVEL, capped: arr(spec.capped).filter((id) => id !== spec.skillId) };
 };

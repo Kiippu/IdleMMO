@@ -53,7 +53,7 @@ describe('specialization switch', () => {
     expect(s.gold).toBe(10);
   });
 
-  it('clamps the OLD spec skill XP to the level-70 cap when swapped out', async () => {
+  it('caps the OLD spec skill EFFECTIVE level at 70, keeps its XP, and restores it on switching back', async () => {
     const { E } = await freshEngine();
     const s = E.newState();
     s.gold = 20000;
@@ -65,9 +65,22 @@ describe('specialization switch', () => {
     const r = E.switchSpec(s, 'woodcutting');
     expect(r.ok).toBe(true);
     expect(s.spec.skillId).toBe('woodcutting');
-    expect(s.skills.mining.xp).toBe(E.xpForLevel(70));
+    // XP is kept; only the effective level is capped.
+    expect(s.skills.mining.xp).toBe(E.xpForLevel(99));
+    expect(E.skillLevel(s, 'mining')).toBe(70);
+    const prog = E.skillProgress(s, 'mining');
+    expect(prog.level).toBe(70); expect(prog.rawLevel).toBe(99); expect(prog.capped).toBe(true);
+    expect(E.spec(s).capped).toEqual(['mining']);
+    // XP earned while capped is kept too, but the level stays at 70.
+    s.skills.mining.xp += 1000;
+    expect(E.skillLevel(s, 'mining')).toBe(70);
     // The new spec's skill is untouched.
     expect(s.skills.woodcutting.xp).toBe(0);
+    // Switch back after another week: the cap lifts and the full level returns.
+    s.spec.lastSwitchAt = START - (7 * DAY + 1000);
+    expect(E.switchSpec(s, 'mining').ok).toBe(true);
+    expect(E.skillLevel(s, 'mining')).toBe(99);
+    expect(E.spec(s).capped).toEqual(['woodcutting']);
   });
 
   it('enforces a one-week cooldown', async () => {
@@ -78,11 +91,18 @@ describe('specialization switch', () => {
     // Try to switch immediately: blocked.
     const r1 = E.switchSpec(s, 'woodcutting');
     expect(r1.ok).toBe(false);
-    expect(r1.reason.toLowerCase()).toMatch(/cooldown/);
+    // Cooldown text is days + hours, never seconds.
+    expect(r1.reason).toMatch(/7d 0h/);
+    expect(r1.reason).not.toMatch(/second/);
+    expect(E.specCooldown(s)).toEqual({ ms: 7 * DAY, text: '7d 0h', ready: false });
     // Advance a day short of a week: still blocked.
     advance(6 * DAY);
     const r2 = E.switchSpec(s, 'woodcutting');
     expect(r2.ok).toBe(false);
+    expect(r2.cooldownText).toBe('1d 0h');
+    advance(23 * 3600000 + 30 * 60000); // 30 min left: rounds up to 1h, never shows seconds
+    expect(E.specCooldown(s).text).toBe('0d 1h');
+    advance(-(23 * 3600000 + 30 * 60000));
     // Advance past a full week from the original switch: now allowed.
     advance(2 * DAY);
     const r3 = E.switchSpec(s, 'woodcutting');
@@ -101,7 +121,7 @@ describe('specialization switch', () => {
   });
 });
 
-describe('v4 → v5 spec field defaults', () => {
+describe('v4/v5 → v6 spec field defaults', () => {
   it('v4 save with no spec field migrates to spec: { skillId: null, lastSwitchAt: null }', async () => {
     const { E } = await freshEngine();
     const base = E.newState();
@@ -109,7 +129,7 @@ describe('v4 → v5 spec field defaults', () => {
     delete raw.spec;
     const out = E.migrate(raw);
     expect(out).not.toBeNull();
-    expect(out.spec).toEqual({ skillId: null, lastSwitchAt: null });
+    expect(out.spec).toEqual({ skillId: null, lastSwitchAt: null, capped: [] });
   });
 
   it('v5 save with a valid spec round-trips', async () => {
@@ -127,6 +147,15 @@ describe('v4 → v5 spec field defaults', () => {
     const base = E.newState();
     const raw = JSON.parse(JSON.stringify(Object.assign({}, base, { spec: { skillId: 'bogus', lastSwitchAt: 'not a number' } })));
     const out = E.migrate(raw);
-    expect(out.spec).toEqual({ skillId: null, lastSwitchAt: null });
+    expect(out.spec).toEqual({ skillId: null, lastSwitchAt: null, capped: [] });
+  });
+
+  it('a free player (no membership modelled) can switch; the fresh-state spec has an empty cap list', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    expect(s.spec.capped).toEqual([]);
+    s.gold = 3000;
+    expect(E.switchSpec(s, 'fishing').ok).toBe(true);
+    expect(s.gold).toBe(0);
   });
 });

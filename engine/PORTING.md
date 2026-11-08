@@ -47,7 +47,6 @@ the prototype.
 | `tick.ts` | Live tick: active action → completeOnce in a loop, crewStep, market. | 852-906 |
 | `offline.ts` | Catch-up: capped seconds, 5s steps for crew/market, weekly rollover, summary. | 907-976 |
 | `market.ts` | Buyer listings, tier cap, refresh, player listings, fills. | 977-1086 |
-| `supply.ts` | Weekly supply board (donations), counter items, quote, tokens. (Dropped in phase 1 design; kept for parity.) | 1087-1151 |
 | `v4-helpers.ts` | Save schema constants, `migrate` v1/v3 shapes, rank defs, ROLE_CHECK/MIX, mulberry fast RNG, inv helpers. | 1152-1182 and various |
 | `clock.ts` | Week-start maths, raid window, `E.clock`, `defaultTab`. | 1183-1230 |
 | `server.ts` | Server-wide record (hpLeft, participants, pendingBuff) and avg pop. | 1231-1283 |
@@ -56,26 +55,55 @@ the prototype.
 | `raid-rules.ts` | Normalising rules, lock-in, warnings, pouch sealing. | 1467-1595 |
 | `raid-sim.ts` | Pure wave-by-wave fight simulation, timeline, moments. | 1596-1816 |
 | `raid-payouts.ts` | Payouts, chests, core odds, debrief, gap drafts, resolveRaid. | 1817-2027 |
-| `weekly.ts` | processClock, weekRollover, dev clock, raid status, readiness, farm raids. | 2028-2229 |
-| `crew-economy.ts` | Vault, treasury, requisitions, feed, withdrawal flow, officer answers, crewEconomyStep, lock sim. | 2230-2570 |
+| `weekly.ts` | processClock, weekRollover, raid status, readiness, badges. (Dev clock, start-raid-now and farm raids removed.) | 2028-2229 |
+| `crew-economy.ts` | Vault, treasury + audit log, town contracts, player requisitions, feed, withdrawal flow, officer answers, crewEconomyStep, lock sim. | 2230-2570 |
 | `state.ts` | Fresh state, save/load, `migrate` dispatch, clamp HP. | 2571-2694 |
 | `selftest.ts` | `E._test` (the prototype's headless smoke run, used by `test/legacy-selftest.test.ts` indirectly via the legacy vm). | 2695-3048 |
 | `index.ts` | Public entry. Imports modules in the legacy source order so side-effect `E.*` assignments happen in the same order; exports `createEngine`, `mulberry32`, `memoryStorage`, `DATA`. | (new) |
 
-## 2. What is NOT ported yet / deferred
+## 2. Design changes applied since the port
 
-None of the "Settled decisions" from `CLAUDE.md` are applied in phase 0 — this
-port is strictly behavioural. Phase 1 will:
+Phase 1 (merged): gold only (`coin` renamed), supply board / server war chest / raid
+tokens dropped (there is no `supply.ts` any more; v4 `state.supply` and `state.tokens`
+are stripped on load), one idle action slot, NPC crewmates, first treasury log.
 
-- Rename `coin` to `gold` end-to-end; today both tokens and supply board still
-  exist and are tested for parity.
-- Drop the supply board, server war-chest, raid tokens, server market tier cap.
-- Add the treasury log (every gold/resource movement visible to crew).
-- Collapse the two idle slots so helping a crewmate uses the same slot.
-- Specialization switch at level 70 with gold + weekly cooldown.
-- Real-speed tuning (prototype actions are ~60x faster than designed).
-- Remove dev-only hooks still shipped in the prototype: `E.devSetClock` and the
-  "Testing" crew panel in the single-file UI.
+Phase 2.5 (save schema **v6**):
+- **Town contracts** (`crew-economy.ts`): each Monday (and on a fresh/migrated save
+  with none for the current week) `postContracts` turns raid needs into contracts:
+  food + healing potions from `E.crewReadiness`, plus buff potions for last weekend's
+  debrief gaps (or the crew's weakest check). Reward = item value x
+  `contractRewardMult`, escrowed from free treasury gold up to `contractBudgetShare`;
+  units past the escrow pay `contractRepPer` reputation (`state.rep`). Items go to the
+  crew vault only. The raid closes the week's contracts and releases unspent escrow.
+  NPCs fill at most `contractNpcShare` of each contract, every 30-60 min.
+  Verbs: `E.listContracts`, `E.fillContract(state, id, qty)` (partial fills allowed).
+- **NPC auto-posted requisitions cut**: `crewWeekly` no longer posts them; open ones
+  on old saves are cancelled and their escrow released (logged). Player-posted
+  requisitions remain (open question: merge with contracts?).
+- **Treasury log** covers every movement: contract fills/escrow/release, requisition
+  escrow/fill/release, vault item and gear deposits/withdrawals (incl. approved
+  crewmate requests), raid stock used, raid payouts. Entries use `t`; legacy `at` is
+  normalised on load. `delta` = change in total crew gold, `escrowDelta` = change in
+  escrow, item rows carry `itemId` + signed `qty`. Cap raised to 200. `E.crewGold`
+  returns `{ free, escrowed, total }`.
+- **Specialization**: XP is no longer clamped. `state.spec.capped` lists former spec
+  skills; `E.skillLevel` caps their effective level at 70 and switching back lifts it.
+  `E.specCooldown` gives `{ ms, text: "Xd Yh" }`.
+- **Raid stock** (`raid-sim.ts`): the sim draws vault food/potions one unit at a time
+  when a member needs it (own food gone, about to faint, player below eat-at with an
+  empty pouch, revive) plus one buff potion per member for their role. Each unit
+  credits that member's contribution on the running check. `resolveRaid` removes
+  exactly `sim.vaultConsumed` and logs `raid-stock` rows; the recap has `crewStock`.
+- **Core odds**: the +0.8 token share is gone from `serverTickets`; per-participant
+  tickets = floor + `serverAvgTierTickets` (2.6).
+- **Speed**: `speedFactor: 1` (prototype pace); offline stays 12 h at 10%.
+  `E.actionTime` is the one time-per-rep function (the active card reads it too).
+- **Removed**: `startRaidNow`, `runRaid`, `raidStatus().canStartNow`, farm raids
+  (`farmRaids`, `runFarmRaid`, `state.raid.farm`, `farm*` config), the "view as member"
+  toggle (`setViewAsMember`, `crew.viewAsMember`). There is no dev clock setter; tests
+  move the injected `ctx.now` (see `test/engine-helpers.ts`).
+- Save fixtures: `test/fixtures/v4-save.json` (written by the legacy prototype) and
+  `test/fixtures/v5-phase2-save.json` (phase-2 TS engine) must keep loading.
 
 Everything in `data.ts` (items, recipes, bosses, raid roles, affixes, etc.) is
 left alone until the design updates land; adding or renaming items would break
@@ -128,12 +156,12 @@ Numeric / data quirks
   `setDate`). `vitest.config.ts` pins `TZ=UTC` so this stays deterministic.
 
 State and migration
-- `migrate()` only knows v1 and v3 → v4 upgrades (there is no v2 in the
-  legacy code). State has `clock`, `raid`, `crew`, `server`, `economy`,
-  `supply`, `market`, `loadouts`, `pity`, `mastery`, `skills`, `inv`, `gear`,
-  `equipped`, `focus`, `hp`, `gold`, `tokens`, `week`, `lastSeen`, `seq`,
-  `settings`, `log` — every field has a legacy default. Any new field added
-  during phase 1 must gate on a schema bump (v5), not land silently.
+- `migrate()` accepts v1, v3 (no `v`), v4, v5 and v6 (current); there is no v2.
+  It deep-copies its input. State has `clock`, `raid`, `crew`, `server`, `economy`,
+  `market`, `loadouts`, `pity`, `mastery`, `skills`, `inv`, `gear`, `equipped`,
+  `focus`, `hp`, `gold`, `rep`, `spec`, `week`, `lastSeen`, `seq`, `settings`, `log`
+  (`supply` and `tokens` are stripped) — every field has a default. Any new field added
+  must gate on a schema bump (v5 in phase 1, v6 in phase 2.5), not land silently.
 - `state.gold` is always a number but the legacy code writes `state.gold +=`
   with occasional non-integer values (market fees). Kept as-is; UI formats.
 - `state.focus` is reset to 0 at the start of offline catch-up (the legacy

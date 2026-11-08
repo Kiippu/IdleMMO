@@ -22,19 +22,34 @@ export function feedPush(state, kind, who, text) {
   cr.feed.unshift(e); if (cr.feed.length > FEED_CAP) cr.feed.length = FEED_CAP;
   return e;
 }
-// Treasury audit log: gold entries record a change in total treasury (gold + escrow); escrow-only
-// rebalances (post / cancel requisitions) don't land here because the total is unchanged and the
-// live requisition list already tells members which gold is reserved. Item entries (vault stock
-// consumed in the raid) carry delta=0 and `item` = {id, qty}. Gold entries with delta=0 are
-// silently dropped so the log stays signal-only.
+// Treasury audit log (phase 2.5: EVERY gold and vault movement lands here; all members see it).
+// Entry: { t, week, kind, who, reason, delta, escrowDelta?, itemId?, qty?, grade?, uid?, gear? }
+//   t           time (ms). Legacy entries written with `at` are normalised to `t` on load.
+//   delta       change in TOTAL crew gold (free + escrowed). Free-gold change = delta - escrowDelta.
+//   escrowDelta change in escrowed gold (omitted when 0).
+//   itemId/qty  vault item movement; qty is signed (+ into the vault, - out). Gear rows carry uid + gear:true.
+// kinds: payout, contract, contract-escrow, contract-release, fill, escrow, release, deposit, withdraw,
+//        raid-stock. Entries with no gold and no item movement are dropped.
 export function logTreasury(state, kind, delta, who, reason, extras?) {
   const cr = state.crew; if (!cr || !cr.treasury) return null;
-  if (!delta && !(extras && extras.itemId)) return null;
+  extras = extras || {};
+  const esc = num(extras.escrowDelta, 0);
+  if (!delta && !esc && !extras.itemId) return null;
   if (!Array.isArray(cr.treasury.log)) cr.treasury.log = [];
   const e: any = { t: ctx.now(), week: num(state.week, 1), kind, who: who || 'You', delta: num(delta, 0), reason };
-  if (extras && extras.itemId) { e.itemId = extras.itemId; if (extras.qty != null) e.qty = extras.qty; if (extras.grade != null) e.grade = extras.grade; }
+  if (esc) e.escrowDelta = esc;
+  if (extras.itemId) { e.itemId = extras.itemId; if (extras.qty != null) e.qty = extras.qty; if (extras.grade != null) e.grade = extras.grade; if (extras.uid) { e.uid = extras.uid; e.gear = true; } }
   cr.treasury.log.unshift(e); if (cr.treasury.log.length > TREASURY_LOG_CAP) cr.treasury.log.length = TREASURY_LOG_CAP;
   return e;
+}
+export function normTreasuryLog(log) {
+  return arr(log).filter((e) => e && typeof e === 'object').map((e) => {
+    const o = Object.assign({}, e);
+    if (!isFinite(o.t) && isFinite(o.at)) o.t = o.at;
+    delete o.at;
+    o.t = num(o.t, 0); o.delta = num(o.delta, 0);
+    return o;
+  }).slice(0, TREASURY_LOG_CAP);
 }
 export function econ(state, key, v) {
   const ec = state.economy || (state.economy = { raidGold: 0, reqPaid: 0, weeks: [] });
@@ -44,14 +59,13 @@ export function econ(state, key, v) {
 }
 E.economy = (state) => clone(state.economy || { raidGold: 0, reqPaid: 0, weeks: [] });
 E.crewRanks = () => rankDefs().slice();
-E.playerRank = (state) => (state.crew && state.crew.viewAsMember ? 'member' : (state.crew && state.crew.playerRank) || 'officer');
+E.playerRank = (state) => (state.crew && state.crew.playerRank) || 'officer';
 export const PERM_TEXT = { viewVault: 'view the vault', deposit: 'deposit', withdraw: 'withdraw from the vault', postRequisitions: 'post requisitions', setSchedule: 'set the raid schedule', marketList: 'list on the market for the crew', manageRoles: 'manage roles' };
 E.can = function (state, perm) {
   const rk = rankDef(E.playerRank(state));
   const ok = !!(rk.perms && rk.perms[perm]);
   return { ok, reason: ok ? '' : `${rk.name}s can't ${PERM_TEXT[perm] || perm}. Ask an officer.` };
 };
-E.setViewAsMember = function (state, on) { if (state.crew) state.crew.viewAsMember = !!on; return { ok: true, reason: '' }; };
 E.crewMembers = function (state) {
   const cr = state.crew || {};
   const you: any = { id: 'you', name: 'You', rank: E.playerRank(state), rankName: rankDef(E.playerRank(state)).name, skill: null, isYou: true };
@@ -85,7 +99,7 @@ E.vaultDeposit = function (state, a, grade, qty) {
   const order = grade == null ? WORST : [clamp(Math.floor(grade), 0, 4)];
   const have = order.reduce((s, g) => s + num((state.inv[a] || [])[g], 0), 0);
   if (have < qty) return { ok: false, reason: `You only have ${have} ${lcFirst(it.name)}${grade == null ? '' : ' of that grade'}.` };
-  invTake(state.inv, a, qty, order, 0).forEach((t) => invAdd(state.crew.vault.inv, a, t.grade, t.qty));
+  invTake(state.inv, a, qty, order, 0).forEach((t) => { invAdd(state.crew.vault.inv, a, t.grade, t.qty); logTreasury(state, 'deposit', 0, 'You', `Deposited ${t.qty} ${it.name}`, { itemId: a, qty: t.qty, grade: t.grade }); });
   feedPush(state, 'vault', 'You', `Deposited ${qty} ${it.name}.`);
   return { ok: true, reason: '' };
 };
@@ -94,6 +108,7 @@ E.vaultDepositGear = function (state, uid) {
   const g = findGear(state, uid); if (!g) return { ok: false, reason: 'That item is no longer in your bag.', loadoutsAffected: [] };
   SLOTS.forEach((s) => { if (state.equipped[s] === uid) state.equipped[s] = null; });
   state.gear = state.gear.filter((x) => x !== g); state.crew.vault.gear.push(g); clampHp(state);
+  logTreasury(state, 'deposit', 0, 'You', `Deposited ${E.gearName(g)}`, { itemId: g.itemId, qty: 1, uid: g.uid });
   const affected = arr(state.loadouts).filter((l) => SLOTS.some((s) => l.slots[s] === uid)).map((l) => l.id);
   feedPush(state, 'vault', 'You', `Deposited ${E.gearName(g)}.`);
   return { ok: true, reason: '', loadoutsAffected: affected };
@@ -110,7 +125,7 @@ E.vaultWithdraw = function (state, itemId, grade, qty) {
   const v = state.crew.vault.inv; const order = grade == null ? BEST : [clamp(Math.floor(grade), 0, 4)];
   const have = order.reduce((s, g) => s + num((v[itemId] || [])[g], 0), 0);
   if (have < qty) return { ok: false, reason: `The vault has ${have} ${lcFirst(itemName(itemId))}.` };
-  invTake(v, itemId, qty, order, 0).forEach((t) => addItem(state, itemId, t.grade, t.qty));
+  invTake(v, itemId, qty, order, 0).forEach((t) => { addItem(state, itemId, t.grade, t.qty); logTreasury(state, 'withdraw', 0, 'You', `Withdrew ${t.qty} ${itemName(itemId)}`, { itemId, qty: -t.qty, grade: t.grade }); });
   noteWithdraw(state, qty);
   feedPush(state, 'vault', 'You', `Withdrew ${qty} ${itemName(itemId)}.`);
   return { ok: true, reason: '' };
@@ -120,6 +135,7 @@ E.vaultWithdrawGear = function (state, uid) {
   if (E.withdrawCapLeft(state) < 1) return { ok: false, reason: 'Daily withdrawal cap reached.' };
   const g = findVaultGear(state, uid); if (!g) return { ok: false, reason: 'That item is not in the vault.' };
   state.crew.vault.gear = state.crew.vault.gear.filter((x) => x !== g); state.gear.push(g); noteWithdraw(state, 1);
+  logTreasury(state, 'withdraw', 0, 'You', `Withdrew ${E.gearName(g)}`, { itemId: g.itemId, qty: -1, uid: g.uid });
   feedPush(state, 'vault', 'You', `Withdrew ${E.gearName(g)}.`);
   return { ok: true, reason: '' };
 };
@@ -134,11 +150,19 @@ E.requestWithdrawal = function (state, spec, note) {
   return { ok: true, reason: '', request: Object.assign({}, req) };
 };
 export function moveFromVault(state, req, toPlayer) {
-  const v = state.crew.vault;
-  if (req.uid) { const g = findVaultGear(state, req.uid); if (!g) return false; if (toPlayer) { v.gear = v.gear.filter((x) => x !== g); state.gear.push(g); } else v.gear = v.gear.filter((x) => x !== g); return true; }
+  const v = state.crew.vault; const to = toPlayer ? 'You' : (req.who || 'A crewmate');
+  if (req.uid) {
+    const g = findVaultGear(state, req.uid); if (!g) return false;
+    v.gear = v.gear.filter((x) => x !== g); if (toPlayer) state.gear.push(g);
+    logTreasury(state, 'withdraw', 0, to, `Withdrew ${E.gearName(g)} (approved request)`, { itemId: g.itemId, qty: -1, uid: g.uid });
+    return true;
+  }
   const order = req.grade == null ? BEST : [req.grade];
   const have = order.reduce((s, g) => s + num((v.inv[req.itemId] || [])[g], 0), 0); if (have < req.qty) return false;
-  invTake(v.inv, req.itemId, req.qty, order, 0).forEach((t) => { if (toPlayer) addItem(state, req.itemId, t.grade, t.qty); });
+  invTake(v.inv, req.itemId, req.qty, order, 0).forEach((t) => {
+    if (toPlayer) addItem(state, req.itemId, t.grade, t.qty);
+    logTreasury(state, 'withdraw', 0, to, `Withdrew ${t.qty} ${itemName(req.itemId)} (approved request)`, { itemId: req.itemId, qty: -t.qty, grade: t.grade });
+  });
   return true;
 }
 E.resolveWithdrawal = function (state, id, approve) {
@@ -149,10 +173,22 @@ E.resolveWithdrawal = function (state, id, approve) {
   feedPush(state, 'request', 'You', `${approve ? 'Approved' : 'Denied'} ${r.who}'s request for ${r.uid ? 'gear' : r.qty + ' ' + itemName(r.itemId)}.`);
   return { ok: true, reason: '' };
 };
-E.treasury = function (state) { const t = state.crew.treasury; return { gold: t.gold, escrow: t.escrow, total: t.gold + t.escrow, history: arr(state.crew.feed).filter((f) => f.kind === 'payout' || f.kind === 'requisition').slice(0, 20) }; };
+// Crew gold = free + escrowed (escrow is gold reserved for open contract / requisition rewards).
+E.crewGold = function (state) {
+  const t = (state.crew && state.crew.treasury) || { gold: 0, escrow: 0 };
+  const free = Math.max(0, num(t.gold, 0)), escrowed = Math.max(0, num(t.escrow, 0));
+  return { free, escrowed, total: free + escrowed };
+};
+E.treasury = function (state) {
+  const t = state.crew.treasury; const g = E.crewGold(state);
+  return { gold: t.gold, escrow: t.escrow, total: g.total, free: g.free, escrowed: g.escrowed, log: normTreasuryLog(t.log),
+    history: arr(state.crew.feed).filter((f) => f.kind === 'payout' || f.kind === 'requisition').slice(0, 20) };
+};
+E.treasuryLog = (state) => normTreasuryLog(state.crew && state.crew.treasury && state.crew.treasury.log);
 export function postReq(state, d, who, source) {
   const cr = state.crew; const escrow = Math.max(0, Math.floor(d.qty * d.rewardPer));
   cr.treasury.gold -= escrow; cr.treasury.escrow += escrow;
+  if (escrow) logTreasury(state, 'escrow', 0, who, `Escrowed ${escrow}g for a ${itemName(d.itemId)} requisition`, { escrowDelta: escrow });
   const req = { id: nextId(state, 'Q'), itemId: d.itemId, qty: d.qty, rewardPer: d.rewardPer, minGrade: d.minGrade, note: d.note || '', filled: 0, escrow, paid: 0,
     postedBy: who, postedAt: ctx.now(), week: state.week, source, status: 'open', submissions: [] };
   cr.requisitions.unshift(req); cr.requisitions = cr.requisitions.slice(0, 24);
@@ -178,6 +214,7 @@ E.cancelRequisition = function (state, id) {
   const c = E.can(state, 'postRequisitions'); if (!c.ok) return c;
   const r = arr(state.crew.requisitions).find((x) => x.id === id); if (!r || r.status !== 'open') return { ok: false, reason: 'That requisition is closed.' };
   const back = r.escrow; state.crew.treasury.escrow -= back; state.crew.treasury.gold += back; r.escrow = 0; r.status = 'cancelled';
+  if (back) logTreasury(state, 'release', 0, 'You', `Cancelled the ${itemName(r.itemId)} requisition; ${back}g escrow released`, { escrowDelta: -back });
   feedPush(state, 'requisition', 'You', `Cancelled the ${itemName(r.itemId)} requisition; ${back}g back to the treasury.`);
   return { ok: true, reason: '', refunded: back };
 };
@@ -188,9 +225,13 @@ export function submitToReq(state, r, who, grades) { // grades: [{grade, qty}] a
   grades.forEach((g) => invAdd(cr.vault.inv, r.itemId, g.grade, g.qty));
   r.submissions.push({ who, qty, grade: grades[0] ? grades[0].grade : 1, paid: pay, t: ctx.now() });
   if (pay > 0) econ(state, 'reqPaid', pay);
-  logTreasury(state, 'fill', -pay, who, `Filled ${qty} ${itemName(r.itemId)}`);
+  logTreasury(state, 'fill', -pay, who, `Filled ${qty} ${itemName(r.itemId)}`, { escrowDelta: -pay, itemId: r.itemId, qty });
   feedPush(state, 'payout', who, `${who} filled ${qty} ${itemName(r.itemId)}${pay ? `, +${pay}g` : ''}`);
-  if (r.filled >= r.qty) { r.status = 'filled'; if (r.escrow > 0) { cr.treasury.escrow -= r.escrow; cr.treasury.gold += r.escrow; r.escrow = 0; } feedPush(state, 'requisition', 'Crew', `The ${itemName(r.itemId)} requisition is filled.`); }
+  if (r.filled >= r.qty) {
+    r.status = 'filled';
+    if (r.escrow > 0) { const back = r.escrow; cr.treasury.escrow -= back; cr.treasury.gold += back; r.escrow = 0; logTreasury(state, 'release', 0, 'Crew', `${itemName(r.itemId)} requisition filled; ${back}g escrow released`, { escrowDelta: -back }); }
+    feedPush(state, 'requisition', 'Crew', `The ${itemName(r.itemId)} requisition is filled.`);
+  }
   return pay;
 }
 E.fillRequisition = function (state, id, qty) {
@@ -250,7 +291,7 @@ export function crewEconomyStep(state, dt, events) {
   cr.reqSimIn = num(cr.reqSimIn, 60) - dt;
   if (cr.reqSimIn <= 0) {
     cr.reqSimIn = randInt(40, 90);
-    const open = cr.requisitions.filter((r) => r.status === 'open' && r.qty > r.filled && r.source !== 'npc-request');
+    const open = cr.requisitions.filter((r) => r.status === 'open' && r.qty > r.filled && r.source !== 'npc-request' && r.source !== 'leader');
     if (open.length && cr.members.length) {
       const r = pick(open); const m = pick(cr.members);
       const q = Math.min(r.qty - r.filled, randInt(1, Math.max(1, Math.ceil((r.qty - r.filled) / 4))));
@@ -258,6 +299,7 @@ export function crewEconomyStep(state, dt, events) {
       events.push({ type: r.status === 'filled' ? 'reqFilled' : 'reqPaid', reqId: r.id });
     }
   }
+  npcContractStep(state, dt, events);
   arr(cr.withdrawRequests).forEach((w) => {
     if (w.status !== 'pending' || !w.isYou) return;
     w.answerIn = num(w.answerIn, 60) - dt; if (w.answerIn > 0) return;
@@ -282,13 +324,10 @@ export function crewEconomyStep(state, dt, events) {
 export function crewWeekly(state, events) {
   const cr = state.crew; if (!cr) return;
   cr.members.forEach((m) => { m.pf = clamp(num(m.basePf, m.pf) * (0.92 + rand() * 0.16), 0.4, 2); m.food = randInt(3, 10); m.potions = randInt(1, 4); m.lockedWeek = 0; });
-  const leader = cr.members.find((m) => m.rank === 'leader');
-  if (leader && cr.requisitions.filter((r) => r.status === 'open').length < 3 && cr.treasury.gold >= 20) {
-    const itemId = gapItem(state, pick(['healing', 'food', 'mitigation'])); const qty = randInt(12, 30);
-    const rewardPer = Math.min(Math.max(1, Math.round(E.itemValue(itemId, 1) * 0.3)), Math.floor(cr.treasury.gold * 0.5 / qty));
-    const r = postReq(state, { itemId, qty, rewardPer: Math.max(0, rewardPer), minGrade: 1, note: 'Weekly raid stock' }, leader.name, 'leader');
-    events.push({ type: 'reqPosted', reqId: r.id });
-  }
+  // Phase 2.5: NPC leaders no longer auto-post requisitions. Town contracts for the coming raid
+  // are generated from raid needs instead.
+  closeContracts(state, 'A new week: unfilled contracts closed');
+  postContracts(state, events);
 }
 export function crewLocksStep(state) { // crewmates lock in as the week goes on
   const cr = state.crew; if (!cr) return;
@@ -318,7 +357,7 @@ export function ensureCrewV5(state) {
     m.lockedWeek = num(m.lockedWeek, 0);
   });
   if (!rankDefs().some((r) => r.id === cr.playerRank)) cr.playerRank = 'officer';
-  cr.viewAsMember = !!cr.viewAsMember;
+  delete cr.viewAsMember; // phase 2.5 cut: "view as member" rank toggle
   if (!cr.vault || typeof cr.vault !== 'object') cr.vault = {};
   if (!cr.vault.inv || typeof cr.vault.inv !== 'object') cr.vault.inv = {};
   Object.keys(cr.vault.inv).forEach((id) => { if (!item(id) || !Array.isArray(cr.vault.inv[id])) delete cr.vault.inv[id]; });
@@ -329,8 +368,17 @@ export function ensureCrewV5(state) {
     feedPush(state, 'payout', 'Raid', `Last weekend's raid payout: ${cr.treasury.gold}g to the treasury.`);
   }
   cr.treasury.gold = Math.max(0, num(cr.treasury.gold, 0)); cr.treasury.escrow = Math.max(0, num(cr.treasury.escrow, 0));
-  cr.treasury.log = arr(cr.treasury.log).slice(0, TREASURY_LOG_CAP);
+  cr.treasury.log = normTreasuryLog(cr.treasury.log);
   cr.requisitions = arr(cr.requisitions).filter((r) => r && r.id && item(r.itemId));
+  // phase 2.5 cut: NPC auto-posted requisitions. Close any still open and release their escrow.
+  cr.requisitions.forEach((r) => {
+    if ((r.source === 'leader' || r.source === 'npc-request') && r.status === 'open') {
+      const back = Math.max(0, num(r.escrow, 0)); r.escrow = 0; r.status = 'cancelled';
+      if (back) { cr.treasury.escrow = Math.max(0, cr.treasury.escrow - back); cr.treasury.gold += back; logTreasury(state, 'release', 0, 'Crew', `Retired NPC requisition for ${itemName(r.itemId)}; ${back}g escrow released`, { escrowDelta: -back }); }
+    }
+  });
+  cr.contracts = arr(cr.contracts).filter((k) => k && k.id && item(k.itemId)).map((k) => Object.assign({ filled: 0, escrow: 0, paid: 0, repPaid: 0, minGrade: 1, rewardPer: 0, repPer: 1, status: 'open', submissions: [] }, k));
+  cr.contractSimIn = num(cr.contractSimIn, 1800);
   cr.withdrawRequests = arr(cr.withdrawRequests).filter((r) => r && r.id);
   cr.feed = arr(cr.feed).filter((f) => f && f.text).slice(0, FEED_CAP);
   cr.seenReqIds = arr(cr.seenReqIds);
@@ -357,7 +405,7 @@ export function ensureV5(state) {
   r.resolvedWeek = Math.floor(num(r.resolvedWeek, num(state.week, 1) - 1));
   r.recaps = arr(r.recaps).filter((x) => x && x.id);
   r.corePity = Math.max(0, Math.floor(num(r.corePity, 0))); r.coresWon = Math.max(0, Math.floor(num(r.coresWon, 0)));
-  if (!r.farm || typeof r.farm !== 'object') r.farm = { day: '', runs: 0 };
+  delete r.farm; // phase 2.5 cut: farm raids
   if (!r.warned || typeof r.warned !== 'object') r.warned = { week: state.week, levels: [] };
   r.current = r.current || null;
   for (let i = 0; i < r.ladder; i++) { const rec = ensureRecord(state, i, state.week); if (rec.killedWeek == null) { rec.killedWeek = Math.max(0, state.week - 1); rec.hpLeft = 0; rec.revealedWeek = rec.revealedWeek == null ? 0 : rec.revealedWeek; } }
@@ -368,7 +416,135 @@ export function ensureV5(state) {
   if (!state.economy || typeof state.economy !== 'object') state.economy = { raidGold: 0, reqPaid: 0, weeks: [] };
   state.economy.weeks = arr(state.economy.weeks);
   ensureCrewV5(state);
+  if (!isFinite(state.rep)) state.rep = 0; state.rep = Math.max(0, num(state.rep, 0));
+  if (!state.spec || typeof state.spec !== 'object') state.spec = { skillId: null, lastSwitchAt: null, capped: [] };
+  state.spec.capped = arr(state.spec.capped).filter((id, i, a) => typeof id === 'string' && state.skills && state.skills[id] && a.indexOf(id) === i);
+  // every week has contracts for its raid (only before that week's raid resolved)
+  if (state.crew && !arr(state.crew.contracts).some((k) => k.week === state.week) && !raidDoneThisWeek(state)) postContracts(state, []);
   state.v = SCHEMA;
 }
 
 export function cap1(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+// ================================================================ phase 2.5: town contracts
+// A contract lists something the coming raid needs (item + qty). Filling it moves the items into
+// the crew vault (crew stock only) and pays the filler from the crew treasury: gold while the
+// contract's escrow lasts (gold leaves the treasury and is the player's to spend anywhere), then
+// reputation for the rest. Escrow is reserved from FREE treasury gold when the contract is posted,
+// so the treasury never goes negative. Contracts are generated each Monday from raid needs.
+export function contractNeeds(state) {
+  const rd = E.crewReadiness(state); const row = (id) => rd.checks.find((c) => c.id === id) || { have: 0, need: 0, pct: 1 };
+  const attending = Math.max(1, rd.attending);
+  const needs = [];
+  const food = row('food'); needs.push({ check: 'food', qty: clamp(Math.ceil(food.need - food.have), 10, 40), why: 'Food to keep the crew fighting' });
+  const pots = row('consumables'); needs.push({ check: 'consumables', qty: clamp(Math.ceil(pots.need - pots.have), 10, 40), why: 'Healing potions for the raid' });
+  // buff potions: the check last weekend's debrief flagged, else the crew's weakest check
+  const last = E.lastRecap(state);
+  const gaps = arr(last && last.debrief && last.debrief.gaps).filter((g) => ['damage', 'healing', 'mitigation'].includes(g.check));
+  const checks = gaps.length ? gaps.map((g) => g.check) : [['damage', 'healing', 'mitigation'].map((id) => row(id)).sort((a, b) => a.pct - b.pct)[0].id];
+  checks.forEach((ck) => needs.push({ check: ck, qty: clamp(attending, 5, 20), buff: true, why: `${ck === 'mitigation' ? 'Defence' : cap1(ck)} buffs for the raid` }));
+  return needs.map((n) => {
+    const itemId = n.buff ? buffItemFor(state, n.check) : gapItem(state, n.check);
+    return Object.assign(n, { itemId });
+  }).filter((n) => item(n.itemId));
+}
+export function buffItemFor(state, check) {
+  if (check === 'damage') return 'fury_draught';
+  if (check === 'mitigation') return gapItem(state, 'mitigation');
+  // healing buff potion if one exists at this tier, else the healing potion itself
+  const ids = Object.keys(D().items || {}).filter((id) => { const it = item(id); return it && it.kind === 'potion' && it.buff && it.buff.stat === 'heal'; });
+  return ids.length ? ids.sort((a, b) => num(item(a).tier, 1) - num(item(b).tier, 1))[0] : gapItem(state, 'healing');
+}
+export function postContracts(state, events) {
+  const cr = state.crew; if (!cr || !cr.treasury) return [];
+  if (!Array.isArray(cr.contracts)) cr.contracts = [];
+  const needs = contractNeeds(state);
+  const merged = [];
+  needs.forEach((n) => { const m = merged.find((x) => x.itemId === n.itemId); if (m) m.qty = Math.min(60, m.qty + n.qty); else merged.push(Object.assign({}, n)); });
+  let budget = Math.floor(Math.max(0, num(cr.treasury.gold, 0)) * clamp(num(cfg().contractBudgetShare, 0.6), 0, 1));
+  const out = merged.map((n) => {
+    const rewardPer = Math.max(1, Math.round(E.itemValue(n.itemId, 1) * num(cfg().contractRewardMult, 0.4)));
+    const units = Math.min(n.qty, Math.floor(budget / rewardPer));
+    const escrow = units * rewardPer; budget -= escrow;
+    cr.treasury.gold -= escrow; cr.treasury.escrow += escrow;
+    const k = { id: nextId(state, 'K'), week: state.week, check: n.check, itemId: n.itemId, qty: n.qty, filled: 0, minGrade: 1, rewardPer, repPer: Math.max(1, Math.floor(num(cfg().contractRepPer, 1))),
+      escrow, paid: 0, repPaid: 0, status: 'open', postedAt: ctx.now(), note: `${n.why}: ${n.qty} ${itemName(n.itemId)}`, submissions: [] };
+    if (escrow) logTreasury(state, 'contract-escrow', 0, 'Town', `Escrowed ${escrow}g for the ${itemName(n.itemId)} contract`, { escrowDelta: escrow });
+    cr.contracts.unshift(k);
+    if (events) events.push({ type: 'contractPosted', contractId: k.id });
+    return k;
+  });
+  cr.contracts = cr.contracts.slice(0, 30);
+  if (out.length) feedPush(state, 'contract', 'Town', `New town contracts for this weekend's raid: ${out.map((k) => k.qty + ' ' + itemName(k.itemId)).join(', ')}.`);
+  return out;
+}
+export function releaseContractEscrow(state, k, why) {
+  const cr = state.crew; const back = Math.max(0, num(k.escrow, 0)); if (!back) return 0;
+  k.escrow = 0; cr.treasury.escrow = Math.max(0, cr.treasury.escrow - back); cr.treasury.gold += back;
+  logTreasury(state, 'contract-release', 0, 'Town', `${why}: ${back}g escrow back from the ${itemName(k.itemId)} contract`, { escrowDelta: -back });
+  return back;
+}
+export function closeContracts(state, why) {
+  arr(state.crew && state.crew.contracts).forEach((k) => { if (k.status === 'open') { k.status = 'closed'; releaseContractEscrow(state, k, why); } });
+}
+// grades: [{grade, qty}] already removed from the filler. Returns { gold, rep }.
+export function submitToContract(state, k, who, grades) {
+  const cr = state.crew; const n = grades.reduce((a, g) => a + g.qty, 0);
+  const goldUnits = k.rewardPer > 0 ? Math.min(n, Math.floor(num(k.escrow, 0) / k.rewardPer)) : 0;
+  const gold = goldUnits * k.rewardPer; const rep = (n - goldUnits) * num(k.repPer, 1);
+  k.escrow -= gold; cr.treasury.escrow = Math.max(0, cr.treasury.escrow - gold); k.paid += gold; k.repPaid += rep; k.filled += n;
+  grades.forEach((g) => invAdd(cr.vault.inv, k.itemId, g.grade, g.qty));
+  k.submissions.push({ who, qty: n, gold, rep, t: ctx.now() }); if (k.submissions.length > 40) k.submissions = k.submissions.slice(-40);
+  if (gold > 0) econ(state, 'reqPaid', gold);
+  logTreasury(state, 'contract', -gold, who, `${who === 'You' ? 'You' : who} filled ${n} ${itemName(k.itemId)} (contract ${k.id})${gold ? `, paid ${gold}g` : ''}${rep ? `, ${rep} reputation` : ''}`, { escrowDelta: -gold, itemId: k.itemId, qty: n, grade: grades[0] ? grades[0].grade : null });
+  feedPush(state, 'contract', who, `${who} filled ${n} ${itemName(k.itemId)} for the raid${gold ? `, +${gold}g` : ''}${rep ? `, +${rep} rep` : ''}.`);
+  if (k.filled >= k.qty) { k.status = 'filled'; releaseContractEscrow(state, k, 'Contract filled'); feedPush(state, 'contract', 'Town', `The ${itemName(k.itemId)} contract is filled.`); }
+  return { gold, rep };
+}
+const haveAtGrade = (state, itemId, minGrade) => [0, 1, 2, 3, 4].filter((g) => g >= minGrade).reduce((s, g) => s + num((state.inv[itemId] || [])[g], 0), 0);
+E.fillContract = function (state, contractId, qty) {
+  const k = arr(state.crew && state.crew.contracts).find((x) => x.id === contractId);
+  const fail = (reason) => ({ ok: false, reason, accepted: 0, gold: 0, rep: 0 });
+  if (!k || k.status !== 'open') return fail('That contract is closed.');
+  if (raidDoneThisWeek(state) || k.week !== state.week) return fail('That contract has expired.');
+  const rem = k.qty - k.filled;
+  qty = Math.min(Math.floor(num(qty, rem)), rem); if (!(qty >= 1)) return fail('Submit at least 1.');
+  const have = haveAtGrade(state, k.itemId, k.minGrade);
+  if (have < 1) return fail(`You have no ${lcFirst(itemName(k.itemId))} at ${(grades()[k.minGrade] || {}).name || 'that'} grade or better.`);
+  const taken = invTake(state.inv, k.itemId, Math.min(qty, have), WORST, k.minGrade); // partial fill: hand in what you have
+  const n = taken.reduce((a, t) => a + t.qty, 0);
+  const pay = submitToContract(state, k, 'You', taken);
+  state.gold = num(state.gold, 0) + pay.gold; state.rep = num(state.rep, 0) + pay.rep;
+  E.log(state, 'info', `Filled ${n} ${itemName(k.itemId)} for the crew's raid stock${pay.gold ? `, earned ${pay.gold}g` : ''}${pay.rep ? `${pay.gold ? ' and' : ','} ${pay.rep} reputation` : ''}.`);
+  return { ok: true, reason: '', accepted: n, gold: pay.gold, rep: pay.rep, partial: n < qty, status: k.status };
+};
+E.listContracts = function (state) {
+  const cr = state.crew || {};
+  return arr(cr.contracts).map((k) => {
+    const remaining = Math.max(0, k.qty - k.filled); const have = haveAtGrade(state, k.itemId, k.minGrade);
+    const goldUnitsLeft = k.rewardPer > 0 ? Math.min(remaining, Math.floor(num(k.escrow, 0) / k.rewardPer)) : 0;
+    const open = k.status === 'open' && k.week === state.week && !raidDoneThisWeek(state);
+    const rec = allActions().find((a) => a && a.outputs && a.outputs[k.itemId] && (a.kind === 'craft' || a.kind === 'refine'));
+    return Object.assign(clone(k), { remaining, have, goldUnitsLeft, repUnits: remaining - goldUnitsLeft,
+      pays: goldUnitsLeft >= remaining ? 'gold' : goldUnitsLeft > 0 ? 'mixed' : 'reputation',
+      canFill: !open ? { ok: false, reason: k.status === 'filled' ? 'Filled.' : 'Closed.' } : have > 0 ? { ok: true, reason: '' } : { ok: false, reason: `You have no ${lcFirst(itemName(k.itemId))} at ${(grades()[k.minGrade] || {}).name || ''} grade or better.` },
+      itemName: itemName(k.itemId), vaultHas: invCount(cr.vault && cr.vault.inv, k.itemId), recipeActionId: rec ? rec.id : null });
+  }).sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.week - a.week || b.postedAt - a.postedAt);
+};
+// NPC crewmates also fill contracts, slowly, and only up to cfg.contractNpcShare of each one so
+// there is always work left for the player.
+export function npcContractStep(state, dt, events) {
+  const cr = state.crew; if (!cr || !cr.members.length || raidDoneThisWeek(state)) return;
+  cr.contractSimIn = num(cr.contractSimIn, 1800) - dt; if (cr.contractSimIn > 0) return;
+  cr.contractSimIn = randInt(1800, 3600);
+  const share = clamp(num(cfg().contractNpcShare, 0.5), 0, 1);
+  const open = arr(cr.contracts).filter((k) => k.status === 'open' && k.week === state.week && npcFilled(k) < Math.floor(k.qty * share));
+  if (!open.length) return;
+  const k = pick(open); const m = pick(cr.members);
+  const room = Math.floor(k.qty * share) - npcFilled(k);
+  const q = Math.min(room, randInt(1, Math.max(1, Math.ceil(k.qty / 6))));
+  if (q < 1) return;
+  submitToContract(state, k, m.name, [{ grade: Math.max(k.minGrade, randInt(1, 3)), qty: q }]);
+  events.push({ type: 'contractFill', contractId: k.id, who: m.name });
+}
+const npcFilled = (k) => arr(k.submissions).filter((x) => x.who !== 'You').reduce((a, x) => a + num(x.qty, 0), 0);

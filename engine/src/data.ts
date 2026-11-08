@@ -485,11 +485,11 @@ export const DATA: any = {
     startingGold: 150,
     xpMult: 4,
     offlineCapSec: 43200,
-    offlineRate: 0.1,       // prototype actions are ~60x faster than the design, so offline runs at 10% speed
+    offlineRate: 0.1,       // offline catch-up runs at 10% speed, capped at 12 h (offlineCapSec)
     maxLevel: 99,
     marketTax: 0.05,
     pityThreshold: 40,
-    speedFactor: 10,              // real-speed tuning (design: ~1000g/hr at level 40)
+    speedFactor: 1,               // phase 2.5: match the prototype's pace (owner's call, 2026-11-08)
     baseHp: 60,
     hpPerCombatLevel: 4,
     // v4 weekend raids
@@ -509,9 +509,15 @@ export const DATA: any = {
     crewGoldPerAttendee: 10,      // x boss tier
     crewGoldCap: 180,             // x boss tier
     weekBuffs: [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }, { kind: 'tax', value: 0.02, label: 'Market tax 2%' }],
-    farmRunsPerDay: 3,
-    farmLootMult: 0.35,
-    crewStartTreasury: 120
+    crewStartTreasury: 120,
+    // phase 2.5: town contracts (generated each Monday from what the coming raid needs)
+    contractBudgetShare: 0.6,     // share of free treasury gold escrowed for contract rewards
+    contractRewardMult: 0.4,      // gold per unit = item value x this
+    contractRepPer: 1,            // reputation per unit once a contract's gold escrow runs out
+    contractNpcShare: 0.5,        // NPC crewmates fill at most this share of each contract
+    specSwitchCost: 3000,
+    // core draw: average tier tickets per server participant (floor ticket is added on top)
+    serverAvgTierTickets: 2.6
   },
 
   rarities: [
