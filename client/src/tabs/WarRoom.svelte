@@ -187,6 +187,10 @@
             Opens in {fmtDuration(status.secToStart)}. The raid runs Sat 10:00 to Sun 22:00 local.
           {:else if status.phase === 'live'}
             Closes in {fmtDuration(status.secLeft)}.
+            {#if status.sittingOut}
+              <br />You joined after this raid opened. You'll join next weekend's raid.
+              {#if status.nextRaidAt}<br />Next raid opens in {fmtDuration((status.nextRaidAt - Date.now()) / 1000)}.{/if}
+            {/if}
           {:else if status.phase === 'done'}
             This week's raid is settled.
           {:else}

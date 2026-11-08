@@ -53,6 +53,30 @@ describe('new save created mid-raid', () => {
   });
 });
 
+describe('raidStatus sittingOut / nextRaidAt', () => {
+  it('a save made mid-raid is sitting out, with the next raid next Saturday', async () => {
+    const h = await freshEngine(1, SUNDAY_1845);
+    const s = h.E.newState();
+    const st = h.E.raidStatus(s);
+    expect(st.sittingOut).toBe(true);
+    expect(st.nextRaidAt).toBe(Date.UTC(2026, 10, 14, 10, 0, 0)); // Sat 14 Nov 10:00
+    h.setNow(SUNDAY_1845 + DAY); h.E.tick(s, 1); // week 2
+    expect(h.E.raidStatus(s).sittingOut).toBe(false);
+    expect(h.E.raidStatus(s).nextRaidAt).toBe(Date.UTC(2026, 10, 14, 10, 0, 0));
+  });
+
+  it('a save made early in the week is not sitting out; next raid is this Saturday, then next week after it', async () => {
+    const h = await freshEngine(1, START);
+    const s = h.E.newState();
+    const st = h.E.raidStatus(s);
+    expect(st.sittingOut).toBe(false);
+    expect(st.nextRaidAt).toBe(Date.UTC(2026, 10, 7, 10, 0, 0));
+    h.setNow(st.nextRaidAt + 60000); h.E.tick(s, 1);
+    expect(h.E.raidStatus(s).sittingOut).toBe(false);
+    expect(h.E.raidStatus(s).nextRaidAt).toBe(Date.UTC(2026, 10, 14, 10, 0, 0));
+  });
+});
+
 describe('gold formatting in engine text', () => {
   it('fmtGold adds thousands separators and the g suffix', async () => {
     const { E } = await freshEngine();

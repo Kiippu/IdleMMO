@@ -28,6 +28,7 @@ export interface EngineContext {
 // Treasury: E.crewGold(state) → CrewGold; E.treasury(state) → TreasuryView; E.treasuryLog(state) → TreasuryLogEntry[].
 // Spec: E.spec(state) → SpecInfo; E.specCooldown(state) → SpecCooldown; E.switchSpec(state, skillId) → SwitchSpecResult;
 //   E.skillProgress(state, skillId) → SkillProgress.
+// E.raidStatus(state) gains: sittingOut (boolean), nextRaidAt (game-clock ms of the next raid the player can join).
 // Raid recap payout gains: gold (player's share), pool, perAttendee, capped, turnout, contribution.
 // Pace: E.actionTime(state, actionId) → seconds per rep (THE time-per-rep function);
 //   E.incomePerHour(state, actionId) → gold/hour selling the outputs at Standard value after tax.
@@ -90,6 +91,15 @@ export interface SpecInfo {
   capped: string[];
 }
 export interface SwitchSpecResult { ok: boolean; reason: string; cost?: number; first?: boolean; cooldownMs?: number; cooldownText?: string }
+export interface RaidStatus {
+  week: number; phase: 'live' | 'done' | 'locked' | 'prep'; locked: boolean; lock: any;
+  windowStart: number; windowEnd: number; secToStart: number; secLeft: number; resolved: boolean;
+  recapId: string | null; fightPct: number;
+  /** the player takes no part in this week's raid (save created after it opened) */
+  sittingOut: boolean;
+  /** game-clock ms when the next raid the player can join starts */
+  nextRaidAt: number;
+}
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */

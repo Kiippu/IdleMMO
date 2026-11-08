@@ -28,7 +28,7 @@ E.newState = function () {
     equipped: { weapon: null, offhand: null, head: null, chest: null, legs: null, ring: null },
     active: null, settings: { matPriority: 'best', useCatalyst: false, useCore: false },
     market: { listings: [], mine: [], refreshedAt: now, age: 0 },
-    raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, last: null, resolvedWeek: 0 },
+    raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, last: null, resolvedWeek: 0, satOutWeek: 0 },
     log: [], seq: 1
   };
   skillDefs().forEach((d) => { s.skills[d.id] = { xp: 0 }; });
@@ -51,7 +51,9 @@ E.newState = function () {
   // Without this, resolvedWeek defaulted to week-1 and the first tick resolved a raid that started
   // before the save existed (auto-locking the new player and paying them). Marked before ensureV5 so
   // no town contracts are posted for a raid that is already under way.
-  s.raid.resolvedWeek = ctx.now() >= windowFor(s, weekStartOf(s, s.week)).start ? s.week : s.week - 1;
+  const sitOut = ctx.now() >= windowFor(s, weekStartOf(s, s.week)).start;
+  s.raid.resolvedWeek = sitOut ? s.week : s.week - 1;
+  if (sitOut) s.raid.satOutWeek = s.week; // E.raidStatus().sittingOut
   ensureV5(s);
   curRecord(s).revealedWeek = s.week;
   if (SLOTS.some((sl) => s.equipped[sl])) E.saveLoadout(s, { name: 'Starter kit', fromEquipped: true });
