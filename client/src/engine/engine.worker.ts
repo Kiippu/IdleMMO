@@ -134,6 +134,16 @@ async function handle(req: Req): Promise<unknown> {
       E.setRaidRules(state, req.rules);
       E.save(state);
       return undefined;
+    case 'lockIn': {
+      const res = E.lockIn(state);
+      E.save(state);
+      return res;
+    }
+    case 'unlock': {
+      const res = E.unlock(state);
+      E.save(state);
+      return res;
+    }
     case 'fillContract': {
       const res = E.fillContract(state, req.contractId, req.qty);
       E.save(state);

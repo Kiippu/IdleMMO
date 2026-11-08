@@ -71,6 +71,8 @@ export type Req =
   | { id: string; type: 'deleteLoadout'; loadoutId: string }
   | { id: string; type: 'equipLoadout'; loadoutId: string }
   | { id: string; type: 'setRaidRules'; rules: { eatAt?: number; stance?: string; tactic?: string } }
+  | { id: string; type: 'lockIn' }
+  | { id: string; type: 'unlock' }
   | { id: string; type: 'buyListing'; listingId: string; qty: number }
   | { id: string; type: 'listItem'; itemId: string; grade: number; qty: number; price: number }
   | { id: string; type: 'cancelListing'; listingId: string }

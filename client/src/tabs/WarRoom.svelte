@@ -1,7 +1,8 @@
 <script lang="ts">
   import { DATA } from '@guildwright/engine';
   import { fmtG, fmtN, fmtDuration, hasPayout } from '../format';
-  import { askText, confirmSheet } from '../overlays/confirm.svelte';
+  import { askText, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
+  import RaidRecap from '../overlays/RaidRecap.svelte';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
 
@@ -16,13 +17,9 @@
     { id: 'interrupt', label: 'Interrupt', blurb: 'Break casts; less sustained damage.' },
     { id: 'endure', label: 'Endure', blurb: 'Weather mechanics; slow and steady.' },
   ];
-  const itemsMap: Record<string, { name?: string }> = (DATA as any).items;
-  const itemName = (id: string) => itemsMap[id]?.name ?? id;
-  const PHASE_LABEL: Record<string, string> = {
-    prep: 'Preparing', locked: 'Locked in', live: 'Raid is live', done: 'Fought',
-  };
 
-  let sub = $state<'loadout' | 'hunt' | 'raid'>('loadout');
+  let sub = $state<'loadout' | 'raid'>('loadout');
+  let recapOpen = $state(false);
   let snap = $derived(engine.snapshot);
   let view = $derived(engine.derived);
 
@@ -35,6 +32,34 @@
   let pay = $derived<any>(recap?.payout ?? null);
   const pct = (x: number) => `${Math.round((x ?? 0) * 100)}%`;
   let hp = $derived<number>(snap?.hp ?? 0);
+  const BOSS_TOTAL: number = ((DATA as any).bosses ?? []).length || 6;
+  let prepPhase = $derived<'prep' | 'live' | 'recap'>(status?.prepPhase ?? 'prep');
+  let readOnly = $derived(!!status?.prepLocked);
+  let lockReason = $derived<string>(status?.prepReason ?? '');
+  let locked = $derived(!!status?.locked);
+  let bossNo = $derived((boss?.record?.index ?? 0) + 1);
+  let dealt = $derived(boss?.damageDealtPct ?? 0);
+  let cps = $derived<any[]>(boss?.checkpoints ?? []);
+  let nextCp = $derived(cps.find((c) => !c.reached) ?? null);
+  let chip = $derived.by(() => {
+    if (!status) return '';
+    if (status.phase === 'live') return `Closes in ${fmtDuration(status.secLeft)}`;
+    if (status.phase === 'done') return status.nextRaidAt ? `Next raid in ${fmtDuration((status.nextRaidAt - Date.now()) / 1000)}` : 'Settled';
+    return `Opens in ${fmtDuration(status.secToStart)}`;
+  });
+  let statMax = $derived(stats ? Math.max(1, stats.atk, stats.def, stats.heal) : 1);
+  const stanceNow = $derived(STANCES.find((x) => x.id === rules.stance));
+  const tacticNow = $derived(TACTICS.find((x) => x.id === rules.tactic));
+  async function toggleLock() {
+    try {
+      const res = locked ? await engineClient.unlock() : await engineClient.lockIn();
+      if (res && res.ok === false) await noticeSheet(locked ? 'Could not unlock' : 'Could not lock in', res.reason);
+    } catch (err) { console.error('lock failed', err); }
+  }
+  async function equipLoadout2(id: string) {
+    if (readOnly) { await noticeSheet('Gear is locked', lockReason); return; }
+    await equipLoadout(id);
+  }
 
   async function saveCurrentGear() {
     const name = await askText({
@@ -73,7 +98,6 @@
 
 <nav class="subs" aria-label="War Room section">
   <button type="button" aria-current={sub === 'loadout' ? 'page' : undefined} onclick={() => (sub = 'loadout')}>Loadout</button>
-  <button type="button" aria-current={sub === 'hunt' ? 'page' : undefined} onclick={() => (sub = 'hunt')}>Hunt</button>
   <button type="button" aria-current={sub === 'raid' ? 'page' : undefined} onclick={() => (sub = 'raid')}>Raid</button>
 </nav>
 
@@ -83,6 +107,7 @@
       <h3>Saved loadouts</h3>
       <button type="button" class="btn" onclick={saveCurrentGear}>Save current gear</button>
     </div>
+    {#if readOnly && lockReason}<p class="lock-note">{lockReason}</p>{/if}
     {#if loadouts.length === 0}
       <p class="muted">No loadouts yet. Save your current gear to make a one-tap swap for later.</p>
     {:else}
@@ -94,7 +119,7 @@
               <span class="meta"><span class="num">{SLOT_ORDER.filter((s) => l.slots?.[s]).length}/6</span> pieces</span>
             </div>
             <div class="row actions">
-              <button type="button" class="btn" onclick={() => equipLoadout(l.id)}>Equip</button>
+              <button type="button" class="btn" aria-disabled={readOnly} class:dim={readOnly} onclick={() => equipLoadout2(l.id)}>Equip</button>
               <button type="button" class="btn ghost" onclick={() => deleteLoadout(l.id, l.name)}>Delete</button>
             </div>
           </li>
@@ -102,142 +127,114 @@
       </ul>
     {/if}
   </section>
-{:else if sub === 'hunt'}
+{:else}
   <section class="group">
-    <h3>Current boss</h3>
     {#if boss}
-      <article class="boss">
-        <header>
-          <span class="boss-name">{boss.name}</span>
-          {#if boss.title}<span class="meta">{boss.title}</span>{/if}
-        </header>
-        <div class="bar" aria-label="Boss HP">
-          <div class="fill" style="width: {Math.round((boss.hpPct ?? 0) * 100)}%"></div>
+      <article class="hero">
+        <div class="hero-top">
+          <div class="portrait" aria-hidden="true">{boss.name?.[0] ?? '?'}</div>
+          <div class="hero-id">
+            <span class="boss-name">{boss.name}</span>
+            <span class="meta">Boss <span class="num">{bossNo}</span> of <span class="num">{BOSS_TOTAL}</span>{boss.title && !/^boss\s*\d/i.test(boss.title) ? ` · ${boss.title}` : ''}</span>
+            <div class="chips">
+              {#if boss.weakTo}<span class="chip">Weak to {boss.weakTo}</span>{/if}
+              {#if chip}<span class="chip pri num">{chip}</span>{/if}
+            </div>
+          </div>
         </div>
-        <p class="meta">
-          HP <span class="num">{fmtN(Math.max(0, boss.hpLeft))} / {fmtN(boss.maxHp)}</span>
-          {#if boss.weakTo} · Weak to {boss.weakTo}{/if}
-          {#if boss.reqPower} · Req power <span class="num">{fmtN(Math.round(boss.reqPower))}</span>{/if}
-        </p>
+        <div class="bar" role="progressbar" aria-label="Boss HP" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((boss.hpPct ?? 0) * 100)}>
+          <div class="fill" style="width: {Math.round((boss.hpPct ?? 0) * 100)}%"></div>
+          {#each cps as c}<i class="tick" style="left: {Math.round((1 - c.at) * 100)}%"></i>{/each}
+        </div>
+        <p class="meta">HP <span class="num">{fmtN(Math.max(0, boss.hpLeft))} / {fmtN(boss.maxHp)}</span>{#if boss.reqPower}{' '}· Req power <span class="num">{fmtN(Math.round(boss.reqPower))}</span>{/if}</p>
+        {#if cps.length}
+          <ul class="chests">
+            {#each cps as c}
+              {@const st = c.reached ? 'claimed' : c === nextCp ? 'next' : 'locked'}
+              <li class={st}>
+                <span class="num">{Math.round(c.at * 100)}%</span>
+                <small>{st === 'claimed' ? 'Claimed' : st === 'next' ? `${Math.max(1, Math.ceil((c.at - dealt) * 100))}% to go` : 'Locked'}</small>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        {#if boss.phases?.length}
+          <ol class="phases">{#each boss.phases as p}<li>{p.name}{p.label ? ` · ${p.label}` : ''}</li>{/each}</ol>
+        {/if}
+        {#if prepPhase === 'live' && status}
+          <p class="meta">Raid progress <span class="num">{pct(status.fightPct ?? 0)}</span></p>
+          {#if status.sittingOut}
+            <p class="meta">You joined after this raid opened. You'll join next weekend's raid.{#if status.nextRaidAt} Next raid opens in <span class="num">{fmtDuration((status.nextRaidAt - Date.now()) / 1000)}</span>.{/if}</p>
+          {/if}
+        {/if}
       </article>
     {:else}
       <p class="muted">No current boss.</p>
     {/if}
   </section>
 
-  <section class="group">
-    <h3>Your readiness</h3>
-    {#if stats}
-      <dl class="stats">
-        <div><dt>HP</dt><dd>{fmtN(hp)} / {fmtN(stats.maxHp)}</dd></div>
-        <div><dt>Attack</dt><dd>{fmtN(Math.round(stats.atk))}</dd></div>
-        <div><dt>Defence</dt><dd>{fmtN(Math.round(stats.def))}</dd></div>
-        <div><dt>Heal</dt><dd>{fmtN(Math.round(stats.heal))}</dd></div>
-      </dl>
-    {/if}
-  </section>
-
-  <section class="group">
-    <h3>Stance</h3>
-    <ul class="picker">
-      {#each STANCES as s (s.id)}
-        <li>
-          <button type="button" aria-pressed={rules.stance === s.id} onclick={() => pickStance(s.id)}>
-            <span class="pick-name">{s.label}</span>
-            <span class="pick-blurb">{s.blurb}</span>
-          </button>
-        </li>
-      {/each}
-    </ul>
-  </section>
-
-  <section class="group">
-    <h3>Tactic</h3>
-    <ul class="picker">
-      {#each TACTICS as t (t.id)}
-        <li>
-          <button type="button" aria-pressed={rules.tactic === t.id} onclick={() => pickTactic(t.id)}>
-            <span class="pick-name">{t.label}</span>
-            <span class="pick-blurb">{t.blurb}</span>
-          </button>
-        </li>
-      {/each}
-    </ul>
-  </section>
-
-  <section class="group">
-    <h3>Eat threshold</h3>
-    <p class="meta">Pull food from the pouch when HP drops below this.</p>
-    <div class="slider">
-      <input type="range" aria-label="Eat threshold" min="30" max="80" step="5" value={Math.round(rules.eatAt * 100)} oninput={pickEatAt} />
-      <span class="slider-val num">{Math.round(rules.eatAt * 100)}%</span>
-    </div>
-  </section>
-{:else}
-  <section class="group">
-    <h3>Status</h3>
-    {#if status}
-      <article class="status">
-        <span class={`phase phase-${status.phase}`}>{PHASE_LABEL[status.phase] ?? status.phase}</span>
-        <p class="meta">
-          {#if status.phase === 'prep'}
-            Opens in <span class="num">{fmtDuration(status.secToStart)}</span>. The raid runs Sat 10:00 to Sun 22:00 local.
-          {:else if status.phase === 'live'}
-            Closes in <span class="num">{fmtDuration(status.secLeft)}</span>.
-            {#if status.sittingOut}
-              <br />You joined after this raid opened. You'll join next weekend's raid.
-              {#if status.nextRaidAt}<br />Next raid opens in <span class="num">{fmtDuration((status.nextRaidAt - Date.now()) / 1000)}</span>.{/if}
-            {/if}
-          {:else if status.phase === 'done'}
-            This week's raid is settled.
-          {:else}
-            Locked in and waiting for the window.
-          {/if}
-        </p>
-      </article>
-    {/if}
-  </section>
-
-  {#if snap?.raid?.last}
+  {#if prepPhase === 'recap'}
     <section class="group">
-      <h3>Last recap</h3>
-      <article class="recap">
-        <p class="meta">Week <span class="num">{snap.raid.last.week}</span>{snap.raid.last.result ? ` · ${snap.raid.last.result}` : ''}</p>
-        {#if hasPayout(pay)}
-          <p class="yourgold">Your gold: <span class="brass num">+{fmtG(pay.gold ?? 0)}</span></p>
-          <p class="meta">
-            Pool <span class="num">{fmtG(pay.pool)}</span> · turnout <span class="num">{pct(pay.turnout)}</span> · your contribution <span class="num">{pct(pay.contribution)}</span>{pay.capped ? ' · crew cap reached' : ''}
-          </p>
-        {:else if snap.raid.last.gold}
-          <p class="meta">Gold: <span class="num">{fmtG(snap.raid.last.gold)}</span></p>
-        {/if}
-        {#if snap.raid.last.xp}<p class="meta">XP: <span class="num">{fmtN(Math.round(snap.raid.last.xp))}</span></p>{/if}
-        {#if snap.raid.last.crewStock}
-          {@const cs = snap.raid.last.crewStock}
-          <h4>Crew stock used</h4>
-          {#if Object.keys(cs.used ?? {}).length === 0}
-            <p class="meta">Nothing was drawn from the crew stock.</p>
-          {:else}
-            <p class="meta">{Object.entries(cs.used).map(([id, q]) => `${itemName(id)} × ${fmtN(q as number)}`).join(', ')}</p>
-            <ul class="stock">
-              {#each cs.byMember ?? [] as m}
-                <li>
-                  <span>{m.name ?? m.who}</span>
-                  <span class="meta">healed <span class="num">{fmtN(Math.round(m.healed ?? 0))}</span> · buffed <span class="num">{fmtN(Math.round(m.buffed ?? 0))}</span> · <span class="num">+{fmtN(Math.round(m.credit ?? 0))}</span> credit</span>
-                </li>
-              {/each}
-            </ul>
-            <p class="meta">Your contribution credit from stock: <span class="num">+{fmtN(cs.yourCredit ?? 0)}</span></p>
-          {/if}
-        {/if}
-      </article>
+      {#if recap}
+        <button type="button" class="btn primary wide" onclick={() => (recapOpen = true)}>See recap</button>
+      {:else}
+        <p class="muted">This week's raid is settled.</p>
+      {/if}
     </section>
+  {:else}
+    {#if readOnly}<p class="lock-note">{lockReason || 'Raid prep is locked while the raid runs.'}</p>{/if}
+    <section class="group">
+      <h3>Your readiness</h3>
+      {#if stats}
+        <dl class="stats">
+          <div><dt>HP</dt><dd>{fmtN(hp)} / {fmtN(stats.maxHp)}</dd><span class="m"><i style="width: {stats.maxHp ? Math.min(100, Math.round(hp / stats.maxHp * 100)) : 0}%"></i></span></div>
+          <div><dt>Attack</dt><dd>{fmtN(Math.round(stats.atk))}</dd><span class="m"><i style="width: {Math.round(stats.atk / statMax * 100)}%"></i></span></div>
+          <div><dt>Defence</dt><dd>{fmtN(Math.round(stats.def))}</dd><span class="m"><i style="width: {Math.round(stats.def / statMax * 100)}%"></i></span></div>
+          <div><dt>Heal</dt><dd>{fmtN(Math.round(stats.heal))}</dd><span class="m"><i style="width: {Math.round(stats.heal / statMax * 100)}%"></i></span></div>
+        </dl>
+      {/if}
+    </section>
+
+    <section class="group">
+      <h3>Stance</h3>
+      <div class="seg" role="group" aria-label="Stance">
+        {#each STANCES as s (s.id)}<button type="button" class="btn" aria-pressed={rules.stance === s.id} disabled={readOnly} onclick={() => pickStance(s.id)}>{s.label}</button>{/each}
+      </div>
+      {#if stanceNow}<p class="meta">{stanceNow.blurb}</p>{/if}
+    </section>
+
+    <section class="group">
+      <h3>Tactic</h3>
+      <div class="seg" role="group" aria-label="Tactic">
+        {#each TACTICS as t (t.id)}<button type="button" class="btn" aria-pressed={rules.tactic === t.id} disabled={readOnly} onclick={() => pickTactic(t.id)}>{t.label}</button>{/each}
+      </div>
+      {#if tacticNow}<p class="meta">{tacticNow.blurb}</p>{/if}
+    </section>
+
+    <section class="group">
+      <h3>Eat threshold</h3>
+      <p class="meta">Pull food from the pouch when HP drops below this.</p>
+      <div class="slider">
+        <input type="range" aria-label="Eat threshold" min="30" max="80" step="5" value={Math.round(rules.eatAt * 100)} disabled={readOnly} oninput={pickEatAt} />
+        <span class="slider-val num">{Math.round(rules.eatAt * 100)}%</span>
+      </div>
+    </section>
+
+    {#if prepPhase === 'prep'}
+      <button type="button" class="btn wide" class:primary={!locked} onclick={toggleLock}>{locked ? 'Locked in. Tap to unlock' : 'Lock in'}</button>
+      {#if !locked}<p class="meta center">Unlocked players are locked in automatically when the raid opens.</p>{/if}
+    {:else}
+      <p class="meta center">{locked ? 'You are locked in for this raid.' : 'You were locked in automatically.'}</p>
+    {/if}
   {/if}
 {/if}
 
-<style>
+{#if recapOpen && recap}
+  <RaidRecap {recap} onClose={() => (recapOpen = false)} />
+{/if}
 
-  .group + .group { margin-top: 16px; }
+<style>
+  .group + .group, .group + .lock-note, .lock-note + .group { margin-top: 16px; }
   .group h3 {
     margin: 0 0 8px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
     letter-spacing: .08em; text-transform: uppercase;
@@ -246,6 +243,10 @@
   .group-head h3 { margin: 0; }
   .muted { margin: 0; padding: 12px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
   .meta { margin: 4px 0 0; color: var(--ink-3); font-size: var(--t-xs); }
+  .meta.center { text-align: center; }
+  .lock-note { margin: 0 0 8px; padding: 10px 12px; background: var(--woad-soft); border: 1px solid var(--woad); color: var(--ink); font-size: var(--t-sm); }
+  .wide { width: 100%; margin-top: 12px; }
+  .btn.dim { opacity: .5; }
 
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .list li { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); }
@@ -253,50 +254,37 @@
   .row.actions { margin-top: 8px; }
   .name { font: 500 var(--t-sm)/1.1 var(--f-body); color: var(--ink); }
 
-  .boss { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); }
-  .boss header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .boss-name { font: 600 var(--t-md)/1.1 var(--f-display); color: var(--ink); }
-  .bar { height: 10px; margin-top: 10px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
+  .hero { padding: 12px; background: var(--paper); border: 1px solid var(--rule); }
+  .hero-top { display: flex; gap: 12px; align-items: flex-start; }
+  .portrait { flex: none; width: 64px; height: 64px; display: grid; place-items: center; background: var(--sunk); border: 2px solid var(--r-mythic); color: var(--r-mythic); font: 700 var(--t-xxl)/1 var(--f-display); }
+  .hero-id { min-width: 0; display: grid; gap: 4px; }
+  .boss-name { font: 600 var(--t-lg)/1.1 var(--f-display); color: var(--ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 3px 8px; border: 1px solid var(--rule); background: var(--sunk); font: 700 var(--t-xs)/1.2 var(--f-body); color: var(--ink-2); }
+  .chip.pri { border-color: var(--woad); color: var(--woad); background: var(--woad-soft); }
+  .bar { position: relative; height: 12px; margin-top: 12px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
   .bar .fill { height: 100%; background: var(--hp); transition: width 200ms linear; }
+  .tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); opacity: .6; }
+  .chests { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px; }
+  .chests li { padding: 6px 8px; border: 1px solid var(--rule); background: var(--sunk); display: grid; gap: 2px; font-weight: 700; }
+  .chests small { font-weight: 400; color: var(--ink-3); font-size: var(--t-xs); }
+  .chests li.claimed { border-color: var(--ok); } .chests li.claimed small { color: var(--ok); }
+  .chests li.next { border-color: var(--woad); background: var(--woad-soft); } .chests li.next small { color: var(--woad); }
+  .chests li.locked { opacity: .6; }
+  .phases { margin: 8px 0 0; padding-left: 18px; font-size: var(--t-sm); color: var(--ink-2); }
 
-  .stats {
-    margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px;
-  }
-  .stats div { padding: 8px; background: var(--sunk); border: 1px solid var(--rule); display: grid; gap: 2px; }
-  .stats dt {
-    margin: 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
-    letter-spacing: .04em; text-transform: uppercase;
-  }
+  .stats { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+  .stats div { padding: 8px; background: var(--sunk); border: 1px solid var(--rule); display: grid; gap: 4px; }
+  .stats dt { margin: 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
   .stats dd { margin: 0; font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--ink); }
+  .m { height: 4px; background: var(--paper); border: 1px solid var(--rule); display: block; overflow: hidden; }
+  .m i { display: block; height: 100%; background: var(--woad); }
 
-  .picker { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  .picker button {
-    width: 100%; min-height: 44px; padding: 10px 12px; text-align: left; display: grid; gap: 2px;
-    border: 1px solid var(--rule); background: var(--sunk);
-  }
-  .picker button:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
-  .picker button[aria-pressed="true"] { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
-  .picker button[aria-pressed="true"] .pick-blurb { color: var(--on-woad); opacity: .85; }
-  .pick-name { font: 500 var(--t-sm)/1.1 var(--f-body); }
-  .pick-blurb { font: 400 var(--t-xs)/1.2 var(--f-body); color: var(--ink-3); }
-
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; }
+  .seg .btn { padding: 8px 4px; border-left-width: 0; }
+  .seg .btn:first-child { border-left-width: 1px; }
+  .seg .btn:disabled[aria-pressed="true"] { opacity: .85; }
   .slider { display: flex; align-items: center; gap: 12px; }
   .slider input { flex: 1; min-height: 44px; }
   .slider-val { font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--ink); min-width: 48px; text-align: right; }
-
-  .status { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); }
-  .phase { font: 700 var(--t-sm)/1.1 var(--f-body); }
-  .phase-live { color: var(--woad); }
-  .phase-locked { color: var(--brass); }
-  .phase-done { color: var(--ok); }
-  .phase-prep { color: var(--ink-2); }
-
-  .yourgold { margin: 6px 0 0; font: 700 var(--t-lg)/1.2 var(--f-body); color: var(--ink); }
-  .yourgold .num { font-weight: 700; }
-  .brass { color: var(--brass); }
-  .recap h4 { margin: 12px 0 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
-  .stock { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; font-size: var(--t-sm); }
-  .stock li { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .recap { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); }
-
 </style>
