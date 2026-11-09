@@ -76,6 +76,7 @@
             <button type="button" class="btn" aria-label="Increase" disabled={clamp(num) >= o.max} onclick={() => (num = clamp(num) + 1)}>+</button>
           </div>
           <span class="range num">{o.min}–{o.max}{o.suffix ? ` ${o.suffix}` : ''}</span>
+          {#if o.lines}<ul class="sum num">{#each o.lines(clamp(num)) as ln}<li>{ln}</li>{/each}</ul>{/if}
         </div>
       {:else if opts.text}
         <div class="field">
@@ -115,6 +116,7 @@
   label { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
   .stepper { display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; }
   .stepper input { text-align: center; width: 100%; }
+  .sum { list-style: none; margin: 0; padding: 8px 10px; background: var(--sunk); border: 1px solid var(--rule); display: grid; gap: 2px; font-size: var(--t-sm); color: var(--ink); }
   .range { color: var(--ink-3); font-size: var(--t-sm); text-align: center; }
   input[type="text"] { width: 100%; }
   .actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }

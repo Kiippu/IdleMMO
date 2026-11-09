@@ -2,10 +2,12 @@
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
   import { DATA, H } from '@guildwright/engine';
+  import { ui } from '../ui.svelte';
   import { fmtG, fmtN } from '../format';
   import { confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
 
-  let sub = $state<'roster' | 'jobs' | 'contracts' | 'treasury'>('roster');
+  let sub = $state<'roster' | 'jobs' | 'contracts' | 'treasury'>(ui.crewSub ?? 'roster');
+  ui.crewSub = null;
   let snap = $derived(engine.snapshot);
   let view = $derived(engine.derived);
 

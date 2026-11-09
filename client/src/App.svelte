@@ -7,13 +7,15 @@
   import Workshop from './tabs/Workshop.svelte';
   import Stores from './tabs/Stores.svelte';
   import WarRoom from './tabs/WarRoom.svelte';
-  import Market from './tabs/Market.svelte';
+  import Store from './tabs/Store.svelte';
+  import Toast from './overlays/Toast.svelte';
+  import { ui } from './ui.svelte';
   import Crew from './tabs/Crew.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
   import SaveMenu from './overlays/SaveMenu.svelte';
   import ConfirmSheet from './overlays/ConfirmSheet.svelte';
 
-  const tabs = ['Workshop', 'Stores', 'Market', 'War Room', 'Crew'] as const;
+  const tabs = ['Workshop', 'Stores', 'Shop', 'War Room', 'Crew'] as const;
   type Tab = (typeof tabs)[number];
 
   let active = $state<Tab>('Workshop');
@@ -102,8 +104,8 @@
         <Stores />
       {:else if active === 'War Room'}
         <WarRoom />
-      {:else if active === 'Market'}
-        <Market />
+      {:else if active === 'Shop'}
+        <Store onContracts={() => { ui.crewSub = 'contracts'; active = 'Crew'; }} />
       {:else if active === 'Crew'}
         <Crew />
       {/if}
@@ -112,6 +114,7 @@
 </div>
 
 <ConfirmSheet />
+<Toast />
 
 {#if logOpen}
   <LogSheet onClose={() => (logOpen = false)} />

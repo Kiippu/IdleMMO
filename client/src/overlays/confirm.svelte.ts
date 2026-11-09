@@ -8,7 +8,9 @@ export type SheetOpts = {
   cancelLabel?: string | null;
   danger?: boolean;
   /** Show a number stepper; the promise resolves with the chosen number. */
-  number?: { min: number; max: number; value: number; label?: string; suffix?: string };
+  number?: { min: number; max: number; value: number; label?: string; suffix?: string;
+    /** Live summary lines under the stepper, e.g. total and gold after. */
+    lines?: (n: number) => string[] };
   /** Show a text field; the promise resolves with the entered string. */
   text?: { value: string; label?: string; placeholder?: string; maxLength?: number };
 };

@@ -134,6 +134,21 @@ async function handle(req: Req): Promise<unknown> {
       E.setRaidRules(state, req.rules);
       E.save(state);
       return undefined;
+    case 'storeBuy': {
+      const res = E.storeBuy(state, req.slot, req.qty);
+      E.save(state);
+      return res;
+    }
+    case 'storeSell': {
+      const res = E.storeSell(state, req.itemId, req.grade, req.qty);
+      E.save(state);
+      return res;
+    }
+    case 'storeSellGear': {
+      const res = E.storeSellGear(state, req.uid);
+      E.save(state);
+      return res;
+    }
     case 'lockIn': {
       const res = E.lockIn(state);
       E.save(state);
