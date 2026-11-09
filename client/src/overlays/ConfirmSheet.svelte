@@ -89,7 +89,7 @@
         {#if opts.cancelLabel !== null}
           <button type="button" class="btn ghost" onclick={cancel}>{opts.cancelLabel ?? 'Cancel'}</button>
         {/if}
-        <button type="button" class="btn {opts.danger ? 'danger solid' : 'primary'}" onclick={confirm}>{opts.confirmLabel ?? 'Confirm'}</button>
+        <button type="button" class="btn {opts.danger ? 'danger solid' : 'primary'}" onclick={confirm}>{#each (opts.confirmLabel ?? 'Confirm').split(/(\d[\d,.]*g?)/) as part}{#if /^\d/.test(part)}<span class="num">{part}</span>{:else}{part}{/if}{/each}</button>
       </div>
     </div>
   </div>

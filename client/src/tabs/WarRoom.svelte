@@ -40,7 +40,10 @@
   let lockReason = $derived<string>(status?.prepReason ?? '');
   let locked = $derived(!!status?.locked);
   let bossNo = $derived((boss?.record?.index ?? 0) + 1);
-  let dealt = $derived(boss?.damageDealtPct ?? 0);
+  // While live the replay is partway through: show HP at the replay position, never the final HP.
+  let liveHp = $derived<number | null>(prepPhase === 'live' ? (status?.liveContribution?.bossHpPct ?? null) : null);
+  let hpFrac = $derived(liveHp ?? boss?.hpPct ?? 0);
+  let dealt = $derived(1 - hpFrac);
   let cps = $derived<any[]>(boss?.checkpoints ?? []);
   let nextCp = $derived(cps.find((c) => !c.reached) ?? null);
   let chip = $derived.by(() => {
@@ -144,15 +147,16 @@
             </div>
           </div>
         </div>
-        <div class="bar" role="progressbar" aria-label="Boss HP" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((boss.hpPct ?? 0) * 100)}>
-          <div class="fill" style="width: {Math.round((boss.hpPct ?? 0) * 100)}%"></div>
+        <div class="bar" role="progressbar" aria-label="Boss HP" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(hpFrac * 100)}>
+          <div class="fill" style="width: {Math.round(hpFrac * 100)}%"></div>
           {#each cps as c}<i class="tick" style="left: {Math.round((1 - c.at) * 100)}%"></i>{/each}
         </div>
-        <p class="meta">HP <span class="num">{fmtN(Math.max(0, boss.hpLeft))} / {fmtN(boss.maxHp)}</span>{#if boss.reqPower}{' '}· Req power <span class="num">{fmtN(Math.round(boss.reqPower))}</span>{/if}</p>
+        <p class="meta">HP <span class="num">{fmtN(Math.max(0, hpFrac * boss.maxHp))} / {fmtN(boss.maxHp)}</span>{#if boss.reqPower}{' '}· Req power <span class="num">{fmtN(Math.round(boss.reqPower))}</span>{/if}</p>
         {#if cps.length}
           <ul class="chests">
             {#each cps as c}
-              {@const st = c.reached ? 'claimed' : c === nextCp ? 'next' : 'locked'}
+              {@const got = liveHp != null ? dealt >= c.at - 1e-9 : c.reached}
+              {@const st = got ? 'claimed' : c === (liveHp != null ? cps.find((x) => dealt < x.at - 1e-9) : nextCp) ? 'next' : 'locked'}
               <li class={st}>
                 <span class="num">{Math.round(c.at * 100)}%</span>
                 <small>{st === 'claimed' ? 'Claimed' : st === 'next' ? `${Math.max(1, Math.ceil((c.at - dealt) * 100))}% to go` : 'Locked'}</small>

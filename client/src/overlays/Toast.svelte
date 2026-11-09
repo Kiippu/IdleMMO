@@ -1,9 +1,28 @@
 <script lang="ts">
-  import { toasts } from './toast.svelte';
+  import { toasts, expireToast } from './toast.svelte';
+
+  const SHOW_MS = 2500;
+  let blocked = $state(false);
+  const timers = new Map<number, ReturnType<typeof setTimeout>>();
+
+  // A toast is held back while a sheet is open, then shown for 2.5s.
+  $effect(() => {
+    const check = () => { blocked = !!document.querySelector('[role="dialog"], [role="alertdialog"]'); };
+    check();
+    const mo = new MutationObserver(check);
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  });
+  $effect(() => {
+    if (blocked) return;
+    for (const t of toasts.list) {
+      if (!timers.has(t.id)) timers.set(t.id, setTimeout(() => { timers.delete(t.id); expireToast(t.id); }, SHOW_MS));
+    }
+  });
 </script>
 
 <div class="toasts" role="status" aria-live="polite">
-  {#each toasts.list as t (t.id)}<p class:bad={t.bad}>{t.text}</p>{/each}
+  {#if !blocked}{#each toasts.list as t (t.id)}<p class:bad={t.bad}>{t.text}</p>{/each}{/if}
 </div>
 
 <style>

@@ -3,7 +3,7 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient, type StoreResult } from '../engine/client';
-  import { fmtG, fmtN, fmtDuration } from '../format';
+  import { fmtG, fmtN, fmtDuration, fmtSecs } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import { markDone } from '../guide.svelte';
   import { toast } from '../overlays/toast.svelte';
@@ -43,7 +43,7 @@
 
   function gatherText(s: any): string {
     if (s.gatherSecs == null) return "Can't make yet";
-    return `~${s.gatherSecs < 10 ? s.gatherSecs.toFixed(1).replace(/\.0$/, '') : Math.round(s.gatherSecs)}s to gather yourself`;
+    return `~${fmtSecs(s.gatherSecs)} to gather yourself`;
   }
 
   /** "+2 attack, −1 defence" of this piece against the one worn in the same slot (base stats). */

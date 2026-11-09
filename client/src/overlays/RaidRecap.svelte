@@ -41,7 +41,7 @@
       <h3>Chests claimed</h3>
       {#if chests.length === 0}<p class="muted">No checkpoints reached.</p>
       {:else}
-        <ul class="cells">{#each chests as c}<li><span class="num">{pct(c.at)}</span> chest<small>{(c.items ?? []).map((i: any) => `${itemName(i.itemId ?? i.id)} ×${i.qty ?? 1}`).join(', ')}</small></li>{/each}</ul>
+        <ul class="cells">{#each chests as c}<li>Chest at <span class="num">{pct(c.at)}</span><small>{(c.items ?? []).map((i: any) => `${itemName(i.itemId ?? i.id)} ×${i.qty ?? 1}`).join(', ')}</small></li>{/each}</ul>
       {/if}
     </section>
 
@@ -50,8 +50,12 @@
       <p class="line"><span>Tier</span><b>{recap.tierLabel ?? recap.tier}</b></p>
       <p class="line"><span>Turnout</span><b class="num">{pct(pay?.turnout)}</b></p>
       <div class="meter"><div style="width: {bar(pay?.turnout)}"></div></div>
-      <p class="line"><span>Your contribution</span><b class="num">{pct(pay?.contribution)}</b></p>
-      <div class="meter"><div style="width: {bar(pay?.contribution)}"></div></div>
+      <p class="line"><span>Crew contribution</span><b class="num">{pct(pay?.crewContribution ?? pay?.contribution)}</b></p>
+      <div class="meter"><div style="width: {bar(pay?.crewContribution ?? pay?.contribution)}"></div></div>
+      {#if pay?.yourShare != null}
+        <p class="line"><span>Your share</span><b class="num">{pct(pay.yourShare)}</b></p>
+        <div class="meter"><div style="width: {bar(pay.yourShare)}"></div></div>
+      {/if}
     </section>
 
     <section>

@@ -69,6 +69,8 @@
   let btn = $state<HTMLButtonElement | null>(null);
   $effect(() => { if (finished && btn) btn.focus(); });
 
+  // Nothing to show: don't open at all.
+  $effect(() => { if (summary && rows.length === 0 && !summary.stoppedReason && !summary.weeks) engine.offline = null; });
   function skip() { skipped = true; }
   function collect() { engine.offline = null; }
   function onKey(ev: KeyboardEvent) {
@@ -80,9 +82,10 @@
 
 <svelte:window onkeydown={onKey} />
 
-{#if summary}
+{#if summary && (rows.length || summary.stoppedReason || summary.weeks)}
   <div class="full" role="dialog" aria-modal="true" aria-labelledby="away-title" onclick={skip} onkeydown={onKey} tabindex="-1">
     <div class="col">
+      <div class="mid">
       <header>
         <h2 id="away-title">While you were away<span class="num">{awayText}</span></h2>
         {#if summary.weeks}
@@ -111,6 +114,7 @@
       {#if summary.stoppedReason}<p class="stopped">{summary.stoppedReason}</p>{/if}
 
       {#if !finished}<p class="hint">Tap anywhere to skip</p>{/if}
+      </div>
       <button type="button" class="btn primary collect" bind:this={btn} disabled={!finished} onclick={(e) => { e.stopPropagation(); collect(); }}>Collect</button>
     </div>
   </div>
@@ -122,7 +126,8 @@
     display: flex; justify-content: center;
     padding: max(16px, env(safe-area-inset-top)) var(--gut-r) max(16px, env(safe-area-inset-bottom)) var(--gut-l);
   }
-  .col { width: 100%; max-width: var(--col); display: grid; gap: 12px; align-content: start; }
+  .col { width: 100%; max-width: var(--col); min-height: 100%; display: flex; flex-direction: column; gap: 12px; }
+  .mid { flex: 1; display: grid; gap: 12px; align-content: center; }
   h2 { margin: 0; font: 600 var(--t-xl)/1.15 var(--f-display); color: var(--ink); }
   h2 .num { font-family: var(--f-num); font-weight: 700; color: var(--ink-2); font-size: var(--t-lg); }
   .sub { margin: 4px 0 0; color: var(--ink-2); font-size: var(--t-sm); }

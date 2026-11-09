@@ -85,7 +85,7 @@
   }
   header { display: flex; align-items: center; justify-content: space-between; }
   h2 { margin: 0; font: 600 var(--t-lg)/1.1 var(--f-display); }
-  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; flex: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; flex: none; }
   .chip { padding: 0 12px; flex: none; }
   .empty { margin: 0; padding: 12px; background: var(--sunk); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
   ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }

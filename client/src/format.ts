@@ -31,3 +31,14 @@ export function fmtAgo(t: number, now: number): string {
 /** Rarity index (common 0 .. mythic 5) for sorting. */
 export const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
 export const rarityRank = (r: string | undefined): number => Math.max(0, RARITY_ORDER.indexOf(r as any));
+
+/** Short seconds-based duration: "17s", "1m 40s", "1h 5m". */
+export function fmtSecs(sec: number): string {
+  if (!isFinite(sec) || sec < 0) return '—';
+  if (sec < 10) return `${(Math.round(sec * 10) / 10).toString()}s`;
+  const s = Math.round(sec);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ${s % 60}s`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}

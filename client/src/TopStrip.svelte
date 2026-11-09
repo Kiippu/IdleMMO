@@ -91,7 +91,7 @@
     {#if job}
       <button type="button" class="btn primary" onclick={stop}>Stop</button>
     {:else if hint}
-      <button type="button" class="btn primary hintbtn" onclick={() => showMe(hint.tab, hint.selector, hint.subs ?? {})}>Next: {hint.text}</button>
+      <button type="button" class="btn primary hintbtn" title="Next: {hint.text}" aria-label="Next: {hint.text}" onclick={() => showMe(hint.tab, hint.selector, hint.subs ?? {})}><span class="ell">Next: {hint.text}</span></button>
     {:else}
       <button type="button" class="btn primary" onclick={onStart}>Start next job</button>
     {/if}
@@ -110,6 +110,7 @@
   .chip { flex: 1; min-width: 0; text-align: right; font: 700 var(--t-sm)/1.2 var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink-2); }
   .chip.live { color: var(--woad); }
   .r1 .btn { padding: 0 10px; }
+  .r2 .hintbtn .ell { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .r2 .hintbtn { max-width: 130px; font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; }
   .r2 { display: flex; align-items: center; gap: 8px; }
   .scene { position: relative; flex: none; }

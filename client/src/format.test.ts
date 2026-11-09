@@ -35,3 +35,6 @@ describe('fmtAgo / rarityRank', () => {
   });
   it('ranks rarity', () => { expect(rarityRank('rare')).toBe(2); expect(rarityRank(undefined)).toBe(0); });
 });
+
+import { fmtSecs } from './format';
+describe('fmtSecs', () => { it('formats', () => { expect(fmtSecs(100)).toBe('1m 40s'); expect(fmtSecs(17)).toBe('17s'); expect(fmtSecs(1.5)).toBe('1.5s'); }); });
