@@ -556,7 +556,7 @@ export const DATA: any = {
     raidTierGrowth: ECON.raidTierGrowth,
     raidCapAttendees: ECON.raidCapAttendees,
     raidTreasuryShare: ECON.raidTreasuryShare,
-    weekBuffs: [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }, { kind: 'tax', value: 0.02, label: 'Market tax 2%' }],
+    weekBuffs: [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }], // market-tax buff removed 2026-11-09 (market parked)
     crewStartTreasury: 120,
     // phase 2.5: town contracts (generated each Monday from what the coming raid needs). Gold only.
     contractBudgetShare: 0.75,    // share of free treasury gold escrowed for town contract rewards

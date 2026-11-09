@@ -170,7 +170,8 @@ export function resolveRaid(state, opts, events) {
       else state.raid.corePity = num(state.raid.corePity, 0) + 1;
       cores.pityAfter = state.raid.corePity;
     }
-    const buffs = arr(c.weekBuffs).length ? c.weekBuffs : [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }];
+    // still one rand() for the pick (keeps the seeded RNG order) even with a single buff kind
+    const buffs = arr(c.weekBuffs).filter((b) => b && b.kind !== 'tax').length ? arr(c.weekBuffs).filter((b) => b && b.kind !== 'tax') : [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }];
     const bf = buffs[Math.floor(rand() * buffs.length)];
     weekBuff = { kind: bf.kind, value: bf.value, label: bf.label, week: state.week + 1 };
     state.server.pendingBuff = weekBuff;
@@ -274,4 +275,4 @@ E.recaps = (state) => arr(state.raid.recaps).slice();
 E.markRecapSeen = function (state, id) { const r = arr(state.raid.recaps).find((x) => x.id === (id || (E.lastRecap(state) || {}).id)); if (r) r.seen = true; return { ok: !!r, reason: r ? '' : 'No such recap.' }; };
 E.leaderboards = (state) => { const r = E.lastRecap(state); return r ? r.leaderboards : null; };
 E.weekBuff = (state) => { const b = state.server && state.server.weekBuff; return b && b.week === state.week ? b : null; };
-E.marketTax = function (state) { const b = E.weekBuff(state); const t = clamp(num(cfg().marketTax, 0.05), 0, 1); return b && b.kind === 'tax' ? Math.min(t, num(b.value, t)) : t; };
+E.marketTax = function (state) { return clamp(num(cfg().marketTax, 0.05), 0, 1); }; // no tax week buff since 2026-11-09

@@ -15,6 +15,14 @@ import { gapItem, gapDraft } from './raid-payouts';
 import { pushEvent } from './events';
 
 // ================================================================ v4: crew economy
+// Week buffs a save may hold. The market-tax buff was removed 2026-11-09: a held one becomes the first
+// configured buff (repairs) for the same week, silently; anything unknown becomes none.
+function validBuff(b) {
+  if (!b || typeof b !== 'object') return null;
+  const list = arr(cfg().weekBuffs).filter((x) => x && x.kind !== 'tax');
+  const def = list.find((x) => x.kind === b.kind) || (b.kind === 'tax' ? list[0] : null);
+  return def ? { kind: def.kind, value: def.value, label: def.label, week: b.week } : null;
+}
 export function feedPush(state, kind, who, text) {
   const cr = state.crew; if (!cr) return null;
   if (!Array.isArray(cr.feed)) cr.feed = [];
@@ -293,7 +301,7 @@ export function ensureV5(state) {
   const sv = state.server; sv.name = sv.name || 'Emberfall';
   sv.pop = Math.round(num(sv.pop, base * (0.97 + rand() * 0.06)));
   if (!Array.isArray(sv.popHistory) || !sv.popHistory.length) sv.popHistory = [0, 1, 2, 3].map(() => Math.round(base * (0.96 + rand() * 0.08)));
-  sv.weekBuff = sv.weekBuff || null; sv.pendingBuff = sv.pendingBuff || null;
+  sv.weekBuff = validBuff(sv.weekBuff); sv.pendingBuff = validBuff(sv.pendingBuff);
   const r = state.raid || (state.raid = {});
   r.ladder = clamp(Math.floor(num(r.ladder, 0)), 0, Math.max(0, bosses().length - 1));
   r.season = Math.max(1, Math.floor(num(r.season, 1)));

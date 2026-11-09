@@ -7,7 +7,7 @@ import { addXp } from './skills';
 import { addItem, consume, ownedOfKind } from './inventory';
 import { findGear, makeGear, autoEat } from './gear';
 import { invCount } from './v4-helpers';
-import { lockedNow, prepLock } from './raid-rules';
+import { lockedNow } from './raid-rules';
 import { lootEvent, goldEvent, pushEvent } from './events';
 import { flags } from './core';
 
@@ -93,7 +93,7 @@ export function pouchBlock(state, act) {
 E.start = function (state, actionId) {
   const act = action(actionId); let loadoutId = null;
   const bound = act && E.boundLoadout(state, act.skill);
-  if (bound && !prepLock(state).locked && E.skillLevel(state, act.skill) >= num(act.level, 1) && SLOTS.some((s) => bound.slots[s] && bound.slots[s] !== state.equipped[s] && findGear(state, bound.slots[s]))) {
+  if (bound && E.skillLevel(state, act.skill) >= num(act.level, 1) && SLOTS.some((s) => bound.slots[s] && bound.slots[s] !== state.equipped[s] && findGear(state, bound.slots[s]))) {
     E.equipLoadout(state, bound.id); loadoutId = bound.id;
   }
   const c = E.canStart(state, actionId); if (!c.ok) return Object.assign(c, { loadoutId });

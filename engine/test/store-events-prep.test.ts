@@ -42,7 +42,7 @@ describe('gather estimate', () => {
 });
 
 describe('raid prep lock', () => {
-  it('equip, loadouts and hunt rules lock while the raid is live and unlock in prep and recap', async () => {
+  it('hunt rules and raid plan lock while live; gear swaps stay open and never change the raid', async () => {
     const h = await freshEngine();
     const { E } = h;
     const s = E.newState();
@@ -50,25 +50,50 @@ describe('raid prep lock', () => {
     const lid = s.loadouts[0].id;
     expect(E.raidPrep(s)).toEqual({ phase: 'prep', locked: false, reason: '' });
     expect(E.raidStatus(s)).toMatchObject({ prepPhase: 'prep', prepLocked: false });
-    expect(E.unequip(s, slot).ok).toBe(true);
-    expect(E.equip(s, uid).ok).toBe(true);
     expect(E.setRaidRules(s, { stance: 'defensive' }).ok).toBe(true);
 
-    resolveRaidByClock(h, s); // into the window: raid live (and resolved)
+    const { recap } = resolveRaidByClock(h, s); // into the window: raid live (resolved from the lock)
+    const before = JSON.stringify(recap);
+    const lockSlots = JSON.stringify(s.raid.lock.slots);
     const rs = E.raidStatus(s);
-    expect(rs.prepPhase).toBe('live'); expect(rs.prepLocked).toBe(true); expect(rs.prepReason).toMatch(/raid is live/);
-    for (const r of [E.equip(s, uid), E.unequip(s, slot), E.equipLoadout(s, lid), E.setRaidRules(s, { stance: 'aggressive' }), E.setRaidPlan(s, { role: 'striker' })]) {
+    expect(rs.prepPhase).toBe('live'); expect(rs.prepLocked).toBe(true); expect(rs.prepReason).toMatch(/hunt plan is locked/);
+    for (const r of [E.setRaidRules(s, { stance: 'aggressive' }), E.setRaidPlan(s, { role: 'striker' })]) {
       expect(r.ok).toBe(false); expect(r.reason).toBe(rs.prepReason);
     }
-    expect(s.equipped[slot]).toBe(uid);
     expect(s.raid.rules.stance).toBe('defensive');
+    // gear swaps are allowed mid-raid and leave the raid (lock snapshot + recap + payouts) untouched
+    const gold = s.gold;
+    expect(E.unequip(s, slot).ok).toBe(true);
+    expect(E.equip(s, uid).ok).toBe(true);
+    expect(E.equipLoadout(s, lid).ok).toBe(true);
+    expect(E.unequip(s, 'weapon').ok).toBe(true);
+    for (let i = 0; i < 30; i++) { h.advance(60000); E.tick(s, 1); }
+    expect(JSON.stringify(s.raid.lock.slots)).toBe(lockSlots);
+    expect(JSON.stringify(E.lastRecap(s))).toBe(before);
+    expect(E.recaps(s).length).toBe(1);
+    expect(s.gold).toBeGreaterThanOrEqual(gold);
 
     h.setNow(E.raidWindow(s).end + 60000); E.tick(s, 1); // window over, same week: recap
     expect(E.raidPrep(s)).toMatchObject({ phase: 'recap', locked: false });
-    expect(E.unequip(s, slot).ok).toBe(true);
-    expect(E.equip(s, uid).ok).toBe(true);
     expect(E.setRaidRules(s, { stance: 'aggressive' }).ok).toBe(true);
     expect(E.setRaidPlan(s, { role: 'striker' }).ok).toBe(true);
+  });
+
+  it('a gathering loadout bound to a skill auto-equips mid-raid', async () => {
+    const h = await freshEngine();
+    const { E } = h;
+    const s = E.newState();
+    s.gear.push({ uid: 'gpick', itemId: 'copper_pickaxe', rarity: 'common', quality: 50, affixes: [], dur: 100, maxDur: 100 });
+    const sv = E.saveLoadout(s, { name: 'Mining', slots: Object.assign({}, s.equipped, { weapon: 'gpick' }) });
+    E.bindLoadout(s, sv.loadout.id, 'mining');
+    E.lockIn(s);
+    const combatWeapon = s.raid.lock.slots.weapon;
+    resolveRaidByClock(h, s);
+    expect(E.raidPrep(s).locked).toBe(true);
+    const r = E.start(s, 'mine_copper');
+    expect(r.ok).toBe(true); expect(r.loadoutId).toBe(sv.loadout.id);
+    expect(s.equipped.weapon).toBe('gpick');
+    expect(s.raid.lock.slots.weapon).toBe(combatWeapon);
   });
 
   it('a player sitting the raid out is not locked', async () => {
@@ -253,6 +278,27 @@ describe('player event log', () => {
     expect(s.events.length).toBe(200);
     expect(E.events(s).length).toBe(50);
     expect(E.events(s)[0].id).toBeGreaterThan(E.events(s)[1].id);
+  });
+});
+
+describe('market-tax week buff removed', () => {
+  it('never rolls, and a held tax buff migrates silently to a valid buff', async () => {
+    const h = await freshEngine();
+    const { E, mod } = h;
+    expect(mod.DATA.config.weekBuffs.some((b: any) => b.kind === 'tax')).toBe(false);
+    const raw = fixture('v6-phase25-save.json');
+    raw.server.weekBuff = { kind: 'tax', value: 0.02, label: 'Market tax 2%', week: raw.week };
+    raw.server.pendingBuff = { kind: 'tax', value: 0.02, label: 'Market tax 2%', week: raw.week + 1 };
+    const logLen = (raw.events || []).length;
+    const s = E.migrate(raw);
+    expect(s.v).toBe(6);
+    expect(s.server.weekBuff).toMatchObject({ kind: 'repair', week: raw.week });
+    expect(s.server.pendingBuff).toMatchObject({ kind: 'repair', week: raw.week + 1 });
+    expect(s.events.length).toBe(logLen);
+    expect(E.marketTax(s)).toBe(mod.DATA.config.marketTax);
+    const t = E.newState(); E.lockIn(t);
+    const { recap } = resolveRaidByClock(h, t);
+    if (recap.weekBuff) expect(recap.weekBuff.kind).not.toBe('tax');
   });
 });
 

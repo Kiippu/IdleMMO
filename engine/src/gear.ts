@@ -5,7 +5,6 @@
 import { E, SLOTS, arr, num, rarities, elements, item, allActions, affixDefs, rand, clamp, randInt, shuffle, lcFirst, article, itemName, nextId, gradeOf, gradeMult, rarityDef, fmtGold } from './core';
 import { addItem, consume, lowestGrade } from './inventory';
 import { statsFor } from './stats';
-import { prepLock } from './raid-rules';
 
 // ---------------------------------------------------------------- gear
 export function findGear(state, uid) { return arr(state.gear).find((g) => g.uid === uid) || null; }
@@ -46,7 +45,6 @@ E.gearStats = function (g) {
 };
 E.playerStats = function (state) { return statsFor(state, state.equipped); };
 E.equip = function (state, uid) {
-  const pl = prepLock(state); if (pl.locked) return { ok: false, reason: pl.reason };
   const g = findGear(state, uid); if (!g) return { ok: false, reason: 'That item is no longer in your bag.' };
   const it = item(g.itemId); if (!it || !SLOTS.includes(it.slot)) return { ok: false, reason: 'That item cannot be equipped.' };
   state.equipped[it.slot] = uid;
@@ -54,7 +52,6 @@ E.equip = function (state, uid) {
   return { ok: true };
 };
 E.unequip = function (state, slot) {
-  const pl = prepLock(state); if (pl.locked) return { ok: false, reason: pl.reason };
   if (SLOTS.includes(slot)) state.equipped[slot] = null;
   clampHp(state);
   return { ok: true };

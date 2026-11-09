@@ -27,13 +27,16 @@ export function prepBlocked(state) {
   if (lockedNow(state)) return 'You are locked in. Unlock to change your plan.';
   return '';
 }
-// Raid prep lock (owner decision 2026-11-08): War Room prep (Hunt: stance / tactic / eat threshold;
-// raid plan; equipping gear and loadouts) is LOCKED while the raid is live and open otherwise.
+// Raid prep lock (owner decisions 2026-11-08/09): the Hunt plan (stance / tactic / eat threshold) and
+// the raid plan (role / loadout) are LOCKED while the raid is live and open otherwise. Gear and
+// loadouts (e.g. gathering/crafting sets) can be swapped freely mid-raid: the raid is fought from
+// the lock snapshot (state.raid.lock: slots, rules, pouch, taken at lock-in or auto-lock at raid open)
+// and resolves at the window start, so a swap can never change its result.
 //   phase 'live'  = inside this week's raid window
 //   phase 'recap' = this week's raid has been fought and the window is over (until the Monday rollover)
 //   phase 'prep'  = everything else
 // A player sitting this raid out (save created after it opened) is not locked.
-export const PREP_LOCK_REASON = 'The raid is live: gear, loadouts and hunt plans are locked until it ends.';
+export const PREP_LOCK_REASON = 'The raid is live: your hunt plan is locked until it ends. You can still swap gear for gathering and crafting; the raid uses the gear you locked in.';
 export function prepLock(state) {
   const live = !!E.isRaidWindow(state);
   const phase = live ? 'live' : raidDoneThisWeek(state) ? 'recap' : 'prep';

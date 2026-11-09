@@ -101,7 +101,7 @@ export interface RaidStatus {
   nextRaidAt: number;
   /** War Room prep lock (2026-11-08). NOTE `locked` above means "locked in", not this. */
   prepPhase: RaidPrepPhase;
-  /** true while the raid is live: equip/unequip/equipLoadout/setRaidRules/setRaidPlan refuse with prepReason */
+  /** true while the raid is live: setRaidRules / setRaidPlan refuse with prepReason. Gear and loadout swaps stay allowed (the raid uses the lock snapshot). */
   prepLocked: boolean;
   prepReason: string;
   /** while live: your contribution at the replay's current point (null when not live or not joined) */
