@@ -367,3 +367,62 @@ describe('raid payout field meanings (QA 2026-11-09)', () => {
     expect(E.raidStatus(s).liveContribution.bossHpPct).toBeCloseTo(r.hpPctAfter, 3);
   });
 });
+
+describe('raid gold split: floor + contribution, capped at the player\'s own income (owner 2026-11-09)', () => {
+  const GATHER = ['mining', 'woodcutting', 'herbalism', 'fishing'];
+  async function setup(level: number) {
+    const h = await freshEngine();
+    const s = h.E.newState();
+    if (level > 1) GATHER.forEach((k) => { s.skills[k].xp = h.E.xpForLevel(level); });
+    const rp = await import('../src/raid-payouts');
+    const pay = rp.raidGoldSplit(s, 1, 5, 1, true); // tier 1, full turnout + contribution: the average share is 1.5 H
+    const split = (you: number, crew: number[]) => rp.playerRaidGold(s, pay, 5, you, crew, true);
+    return { h, s, rp, pay, split };
+  }
+  it('zero points: only the floor share; top contributor beats the average; totals stay inside the pool', async () => {
+    const { h, pay, split, s } = await setup(40);
+    const payable = pay.pool - pay.treasury;
+    const zero = split(0, [1, 1, 1, 1]);
+    expect(zero.byContribution).toBe(0);
+    expect(zero.player).toBe(Math.min(zero.floor, zero.cap));
+    expect(zero.floor).toBe(Math.floor(payable * 0.25 / 5));
+    const avg = split(1, [1, 1, 1, 1]); const top = split(3, [1, 1, 1, 1]);
+    expect(top.raw).toBeGreaterThan(avg.raw);
+    expect(Math.abs(avg.raw - pay.perAttendee)).toBeLessThanOrEqual(2);
+    // everyone's uncapped shares add up to no more than the payable pool
+    const pts = [3, 1, 1, 1, 1]; const tot = pts.reduce((a, b) => a + b, 0);
+    const sum = pts.reduce((a, p) => a + Math.floor(payable * 0.25 / 5) + Math.floor(payable * 0.75 * p / tot), 0);
+    expect(sum).toBeLessThanOrEqual(payable);
+    expect(top.player).toBeLessThanOrEqual(top.cap);
+    expect(top.cap).toBe(Math.round(1.5 * h.E.hourlyIncome(s)));
+  });
+  it('the income cap bites for a low-level top contributor; the cut goes to the treasury in a real raid', async () => {
+    const { h, split, s } = await setup(1);
+    const top = split(3, [1, 1, 1, 1]);
+    expect(top.cap).toBeLessThan(top.raw);
+    expect(top.player).toBe(top.cap);
+    expect(top.cut).toBe(top.raw - top.cap);
+    // real raid: a level-1 zero-contribution supply player
+    h.E.setRaidPlan(s, { role: 'supply' }); h.E.lockIn(s);
+    const t0 = h.E.crewGold(s).total; const g0 = s.gold;
+    const { recap } = resolveRaidByClock(h, s);
+    const p = recap.payout;
+    expect(p.split.byContribution).toBe(0);
+    expect(p.gold).toBe(Math.min(p.split.floor, p.split.cap));
+    expect(s.gold - g0).toBeGreaterThanOrEqual(p.gold);
+    expect(h.E.crewGold(s).total - t0).toBe(p.crewGold);
+    expect(p.crewGold).toBe(Math.round(p.pool * 0.025) + p.split.cutToTreasury);
+    expect(p.gold + p.crewGold).toBeLessThanOrEqual(p.pool);
+  });
+  it('examples', async () => {
+    const out: any = {};
+    for (const lvl of [1, 40]) {
+      const { split, pay, h, s } = await setup(lvl);
+      const H = (await import('../src/data')).H;
+      const f = (r: any) => `${r.player}g (${(r.player / H).toFixed(2)} H; uncapped ${r.raw}g)`;
+      out['L' + lvl] = { income: Math.round(h.E.hourlyIncome(s)), cap: split(0, [1]).cap, zero: f(split(0, [1, 1, 1, 1])), avg: f(split(1, [1, 1, 1, 1])), top: f(split(3, [1, 1, 1, 1])), pool: pay.pool };
+    }
+    // eslint-disable-next-line no-console
+    console.log('[raid-gold-examples]', JSON.stringify(out));
+  });
+});

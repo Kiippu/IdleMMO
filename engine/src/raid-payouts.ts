@@ -2,10 +2,11 @@
 // Ported from legacy/engine.js lines 1817-2027. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, itemName, nextId, fmtGold } from './core';
+import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, allActions, itemName, nextId, fmtGold } from './core';
 import { addItem } from './inventory';
 import { pushEvent } from './events';
 import { findGear } from './gear';
+import { ECON } from './data';
 import { CHECK_LABEL, TIER_NAME, ROLE_MIX, mulberry, clone, roleDef, invTake, WORST } from './v4-helpers';
 import { nowOf, weekStartOf, windowFor } from './clock';
 import { ensureRecord, curRecord } from './server';
@@ -147,7 +148,9 @@ export function resolveRaid(state, opts, events) {
   const crewNeed = sim.waves.reduce((a: number, w: any) => a + num(w.crewNeed, 0), 0);
   const avgContribution = crewNeed > 0 ? clamp(crewHave / crewNeed, 0, 1) : 0;
   const pay = raidGoldSplit(state, num(rec.index, 0) + 1, sim.attendCount, avgContribution, joined);
-  const crewGold = pay.treasury;
+  const mine = playerRaidGold(state, pay, sim.attendCount, sim.yourPoints, arr(sim.memberPoints).map((m) => m.points), joined);
+  pay.player = mine.player;
+  const crewGold = pay.treasury + mine.cut; // the income cap's cut stays with the crew
   if (state.crew && state.crew.treasury) {
     state.crew.treasury.gold += crewGold;
     feedPush(state, 'payout', 'Raid', `Raid payout: ${fmtGold(pay.pool)} pool, ${fmtGold(crewGold)} to the treasury, ${fmtGold(pay.perAttendee)} each (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution).`);
@@ -205,7 +208,8 @@ export function resolveRaid(state, opts, events) {
     payout: { floor: { items: floorItems, tickets: joined ? num((c.tierTickets || {}).floor, 1) : 0 }, tier: { tier, items: tierItems, tickets: joined ? num((c.tierTickets || {})[tier], 0) : 0 }, chests, crewGold, gold: pay.player, pool: pay.pool, perAttendee: pay.perAttendee, capped: pay.capped, turnout: pay.turnout,
       // contribution = the CREW's filled share of its fair-share work (0..1), which scales the pool; it is not yours.
       // crewContribution says so explicitly; yourShare is your share of this weekend's check points (contribution.weekShare).
-      contribution: avgContribution, crewContribution: avgContribution, yourShare: weekShare, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
+      contribution: avgContribution, crewContribution: avgContribution, yourShare: weekShare,
+      split: { floor: mine.floor, byContribution: mine.byContribution, pointShare: mine.pointShare, uncapped: mine.raw, cap: mine.cap, cutToTreasury: mine.cut }, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
     cores, weekBuff, auras: sim.auras.map((a) => ({ guild: a.guild, type: a.type, tier: a.tier, strength: num((cfg().auraStrength || [])[a.tier], 0), mine: a.mine })), auraWeakenedWave: sim.auraWeakenedWave,
     moments, bestMoment: best ? { frame: best.frame, t: best.t, at: startedAt + best.frame * frameMs, kind: best.kind, text: best.text, value: best.value } : null,
     windowStart: win.start, windowEnd: win.end, frameMs, instant: !!opts.instant,
@@ -254,6 +258,34 @@ export function coreOddsFor(state, rec, boss, cumTier) {
 // Pity scales with contribution tier: a guaranteed core after this many empty joined kills
 // (gold 3, silver 4, bronze 5, no tier 6).
 export function pityMaxFor(tier) { const m = cfg().corePityByTier || {}; return Math.max(0, Math.floor(num(m[tier], num(cfg().corePityMax, 3)))); }
+// The H measure at this player's levels: median, over the four gathering skills, of each skill's best
+// unlocked action's gold/hour (sold at Standard value after tax). H = this at level 40.
+const GATHER_SKILLS = ['mining', 'woodcutting', 'herbalism', 'fishing'];
+export function hourlyIncome(state) {
+  const best = GATHER_SKILLS.map((sk) => allActions().filter((a) => a && a.skill === sk && a.kind === 'gather' && num(a.level, 1) <= E.skillLevel(state, sk))
+    .reduce((m, a) => Math.max(m, E.incomePerHour(state, a.id)), 0)).sort((a, b) => a - b);
+  return (best[1] + best[2]) / 2;
+}
+E.hourlyIncome = hourlyIncome;
+/**
+ * The player's raid gold from the pool (raidGoldSplit): a floor share (raidEvenShare of the payable pool,
+ * split evenly) plus raidContribShare of it split by check points, capped at raidCapIncomeHours x the
+ * player's hourly income. NPC crewmates take their shares of the same split (they are stand-ins and are
+ * not paid out of state); the cut from the cap goes to the treasury. Never pays more than the pool.
+ */
+export function playerRaidGold(state, pay, attendCount, yourPts, crewPts, joined) {
+  const payable = Math.max(0, pay.pool - pay.treasury);
+  const evenS = clamp(num(ECON.raidEvenShare, 0.25), 0, 1); const contribS = clamp(num(ECON.raidContribShare, 0.75), 0, 1 - evenS);
+  const n = Math.max(1, attendCount);
+  const floor = Math.floor(payable * evenS / n);
+  const total = Math.max(0, num(yourPts, 0)) + arr(crewPts).reduce((a, p) => a + Math.max(0, num(p, 0)), 0);
+  const share = total > 0 ? Math.max(0, num(yourPts, 0)) / total : 1 / n; // nobody scored: split evenly
+  const byContribution = Math.floor(payable * contribS * share);
+  const raw = joined ? floor + byContribution : 0;
+  const cap = Math.round(num(ECON.raidCapIncomeHours, 1.5) * hourlyIncome(state));
+  const player = Math.min(raw, cap);
+  return { player, floor: joined ? floor : 0, byContribution: joined ? byContribution : 0, pointShare: joined ? share : 0, raw, cap, cut: raw - player };
+}
 export function raidGoldSplit(state, bossTier, attendCount, avgContribution, joined) {
   const c = cfg(); const per = num(c.raidGoldPerAttendee, 0);
   const roster = arr(state.crew && state.crew.members).length + 1;

@@ -123,7 +123,23 @@ export interface LiveContribution {
 }
 /** Recap payout fields: payout.contribution / payout.crewContribution = the CREW's fill of its fair-share
  *  work (0..1, scales the pool); payout.yourShare = your share of the weekend's check points. */
-export interface RecapPayoutContribution { contribution: number; crewContribution: number; yourShare: number }
+export interface RecapPayoutContribution { contribution: number; crewContribution: number; yourShare: number; split: RaidGoldSplit }
+/** recap.payout.split (2026-11-09): payout.gold = min(floor + byContribution, cap) */
+export interface RaidGoldSplit {
+  /** ECON.raidEvenShare of the payable pool, split evenly between attendees */
+  floor: number;
+  /** ECON.raidContribShare of the payable pool x pointShare */
+  byContribution: number;
+  /** your share of all attendees' check points (0..1) */
+  pointShare: number;
+  uncapped: number;
+  /** ECON.raidCapIncomeHours x E.hourlyIncome(state) */
+  cap: number;
+  /** what the cap cut; added to the crew treasury (included in payout.crewGold) */
+  cutToTreasury: number;
+}
+// E.hourlyIncome(state) → gold/hour: the H measure at the player's own levels (median of the four gathering
+// skills' best unlocked action, sold at Standard after tax). H = this at level 40.
 /** Recap fields (E.lastRecap(state)), added 2026-11-08 */
 export interface RecapStockShortfall {
   /** 'you' or the crewmate's id */
@@ -234,6 +250,7 @@ export const ECON: {
   raidTreasuryShare: number; raidCapAttendees: number; contractRewardMult: number;
   storeResourceMult: number; storeGearMult: number; storeSellMult: number;
   storeResourceSlots: number; storeGearSlots: number; storeGearMaxTier: number;
+  raidEvenShare: number; raidContribShare: number; raidCapIncomeHours: number;
 };
 
 declare const _default: typeof createEngine;

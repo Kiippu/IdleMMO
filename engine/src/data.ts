@@ -494,6 +494,13 @@ export const ECON = {
   raidTreasuryShare: 0.025,    // share of each raid gold pool routed to the crew treasury: a typical 5-person crew (~55k pool) banks ~1.4k, enough at 75% to fund next week's ~1k of town contracts
   raidCapAttendees: 18,        // pool cap = this many full-turnout attendees' worth (bites only for big crews)
   contractRewardMult: 1.1,     // contract pay per unit = item value x this (market sale nets 0.95 x value)
+  // Raid gold split (owner 2026-11-09): of the payable pool (pool - treasury share), raidEvenShare is split
+  // evenly between attendees (the floor share) and raidContribShare by each attendee's share of the
+  // crew's check points. Each player's payout is capped at raidCapIncomeHours x THEIR own hourly income
+  // (E.hourlyIncome: the H measure at their levels); what the cap cuts goes to the crew treasury.
+  raidEvenShare: 0.25,
+  raidContribShare: 0.75,
+  raidCapIncomeHours: 1.5,
   // NPC general store (2026-11-08; replaces the player market, which is parked). Prices are multiples of
   // item value, so in hours of play: buying 1 H worth of a level-40 gatherer's output costs ~1.58 H
   // (1.5 / 0.95 after-tax value); selling 1 H of output to the store returns ~0.42 H.

@@ -107,6 +107,7 @@ export function simulateFight(state, ctx) {
   let crewFood = crew.reduce((a, m) => a + m.food, 0), crewFoodAcc = 0, foodOutWave = null, foodOutFrame = null, crewFoodShort = 0;
   const crewPotions = crew.reduce((a, m) => a + m.potions, 0) + vaultStart.potions;
   let youCredit = 0;
+  const memberPts = crew.map(() => 0); let yourPts = 0; // raid gold split: each attendee's fill of the running checks
   const playerRoleForAura = role && role !== 'supply' ? [role] : [];
   const myAuraType = crewAuraType(crew.map((m) => m.role).concat(playerRoleForAura));
   const attendCount = crew.length + (ctx.joined ? 1 : 0);
@@ -149,7 +150,7 @@ export function simulateFight(state, ctx) {
     if (pf === 0) ev.push({ kind: 'phase', text: `Phase ${phase + 1}: ${phases[phase].name}` });
     const over = pf >= nominal; const spike = over && check !== 'damage' ? 1.6 : 1;
     // crew
-    let downNow = 0; const crewOut = { damage: 0, healing: 0, mitigation: 0 };
+    let downNow = 0; const crewOut = { damage: 0, healing: 0, mitigation: 0 }; const memFrame = crew.map(() => 0);
     crew.forEach((m, k) => {
       if (crewDown[k] > 0) { crewDown[k]--; downNow++; return; }
       const weak = clamp(1 / m.pf, 0.6, 2.5);
@@ -174,6 +175,7 @@ export function simulateFight(state, ctx) {
       }
       CHECKS.forEach((ck) => { crewOut[ck] += m.pf * fair * (ROLE_CHECK[m.role] === ck ? 1 + crewBuff[k] : OFF_ROLE); });
       if (credit > 0) { crewOut[check] += credit; vaultUse[m.id].credit += credit; }
+      memFrame[k] = m.pf * fair * (ROLE_CHECK[m.role] === check ? 1 + crewBuff[k] : OFF_ROLE) + credit; // this member's fill of the running check
     });
     maxCrewDown = Math.max(maxCrewDown, downNow);
     const myTier = auraTierFor(attendCount - downNow - (down > 0 ? 1 : 0));
@@ -182,6 +184,7 @@ export function simulateFight(state, ctx) {
     const aura = auraTotals(auraList);
     // Crew auras multiply crew output on each check (vault buffs are per member, applied above).
     CHECKS.forEach((ck) => { crewOut[ck] *= 1 + aura[ck]; crewTot[ck] += crewOut[ck]; });
+    memFrame.forEach((v, k) => { memberPts[k] += v * (1 + aura[check]); });
     // player
     const out = { damage: 0, healing: 0, mitigation: 0 };
     let taken = 0, crit = false, frameCredit = 0;
@@ -234,7 +237,7 @@ export function simulateFight(state, ctx) {
     }
     pDmg += out.damage; pHeal += out.healing; pMit += out.mitigation;
     const yours = (role === 'supply' ? out.healing : out[check]) + frameCredit;
-    youCredit += frameCredit;
+    youCredit += frameCredit; if (ctx.joined) yourPts += yours;
     // check fill
     const server = serverBase * form * (1 + aura[check]) * (0.93 + rng() * 0.14);
     fill += server + crewOut[check] + yours; yourFill += yours; crewFill += crewOut[check] + yours;
@@ -290,6 +293,7 @@ export function simulateFight(state, ctx) {
     auras: npc.concat(myAuraType ? [{ guild: crewName, type: myAuraType, tier: startTier, mine: true }] : []), myAuraType, startTier,
     totals: { damage: pDmg, healing: pHeal, mitigation: pMit }, crewTot, powers: pw, role, fair,
     vaultConsumed, vaultUse: Object.keys(vaultUse).map((k) => { const u = vaultUse[k]; return Object.assign({}, u, { credit: Math.round(u.credit) }); }), vaultCredit: { you: youCredit },
+    memberPoints: crew.map((m, k) => ({ id: m.id, name: m.name, points: memberPts[k] })), yourPoints: yourPts,
     stockShortfall: Object.keys(shortfall).map((k) => Object.assign({}, shortfall[k])), stockOutFrame };
 }
 export function fightCtx(state, lock, rng, joined) {

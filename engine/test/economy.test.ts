@@ -96,7 +96,7 @@ describe('raid gold and contract pay, in hours of play (H)', () => {
     const p = recap.payout;
     expect(p.gold).toBeGreaterThan(0);
     expect(s.gold - gold0).toBeGreaterThanOrEqual(p.gold); // plus any item sales etc.
-    expect(p.crewGold).toBe(Math.round(p.pool * 0.025));
+    expect(p.crewGold).toBe(Math.round(p.pool * 0.025) + p.split.cutToTreasury); // plus what the income cap cut
     expect(h.E.crewGold(s).total - t0).toBe(p.crewGold);
     expect(s.crew.treasury.log.find((e: any) => e.kind === 'payout').delta).toBe(p.crewGold);
   });
