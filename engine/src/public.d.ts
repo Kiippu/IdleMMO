@@ -111,6 +111,9 @@ export type ContributionTier = 'none' | 'bronze' | 'silver' | 'gold';
 export interface LiveContribution {
   /** how far through the fight the replay is, 0..1 (= fightPct) */
   pct: number;
+  /** boss HP left (0..1) at the replay's current point. The recap's hpPctAfter is the END of the fight;
+   *  show this while live so progress and boss HP agree. */
+  bossHpPct: number;
   /** your check points so far / all check points so far this weekend */
   points: number; totalPoints: number;
   /** points / totalPoints */
@@ -118,6 +121,9 @@ export interface LiveContribution {
   /** tier that share reaches so far (E.tierThresholds) and its label ('No tier', 'Bronze', ...) */
   tier: ContributionTier; tierLabel: string;
 }
+/** Recap payout fields: payout.contribution / payout.crewContribution = the CREW's fill of its fair-share
+ *  work (0..1, scales the pool); payout.yourShare = your share of the weekend's check points. */
+export interface RecapPayoutContribution { contribution: number; crewContribution: number; yourShare: number }
 /** Recap fields (E.lastRecap(state)), added 2026-11-08 */
 export interface RecapStockShortfall {
   /** 'you' or the crewmate's id */

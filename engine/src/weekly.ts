@@ -69,7 +69,7 @@ function liveContribution(state, cur, now) {
   if (f && f.yourPoints != null) { points = f.yourPoints; total = f.totalPoints; }
   else { points = num(r.contribution && r.contribution.weekPoints, 0) * pct; total = Math.max(1e-9, num(r.contribution && r.contribution.weekPoints, 0) / Math.max(1e-9, num(r.contribution && r.contribution.weekShare, 1))) * pct; }
   const share = total > 0 ? points / total : 0; const tier = tierFor(state, share);
-  return { pct, points: Math.round(points * 100) / 100, totalPoints: Math.round(total * 100) / 100, share, tier, tierLabel: TIER_NAME[tier] || tier };
+  return { pct, bossHpPct: f ? f.bossHpPct : r.hpPctAfter, points: Math.round(points * 100) / 100, totalPoints: Math.round(total * 100) / 100, share, tier, tierLabel: TIER_NAME[tier] || tier };
 }
 function prepFields(state) { const p = prepLock(state); return { prepPhase: p.phase, prepLocked: p.locked, prepReason: p.reason }; }
 E.raidStatus = function (state) {

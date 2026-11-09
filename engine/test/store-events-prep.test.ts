@@ -346,3 +346,24 @@ describe('raid: crew stock shortfall and live contribution', () => {
     expect(E.raidStatus(s).liveContribution).toBeNull();
   });
 });
+
+describe('raid payout field meanings (QA 2026-11-09)', () => {
+  it('payout.contribution is the crew fill; yourShare is the player; live view carries the replay boss HP', async () => {
+    const h = await freshEngine();
+    const { E } = h;
+    const s = E.newState();
+    E.setRaidPlan(s, { role: 'supply' }); E.lockIn(s); // empty pouch: contributes nothing
+    const w = E.raidWindow(s); h.setNow(w.start + HOUR);
+    E.applyOffline(s, h.now());
+    const r = E.lastRecap(s);
+    expect(r.payout.crewContribution).toBe(r.payout.contribution);
+    expect(r.payout.yourShare).toBe(r.contribution.weekShare);
+    expect(r.payout.yourShare).toBe(0);
+    const lc = E.raidStatus(s).liveContribution;
+    expect(lc.share).toBe(0); expect(lc.tier).toBe('none');
+    expect(lc.bossHpPct).toBeGreaterThan(r.hpPctAfter); // early in the replay: more HP left than at the end
+    const tl = r.timeline; expect(lc.bossHpPct).toBe(tl[Math.floor(lc.pct * (tl.length - 1))].bossHpPct);
+    h.setNow(w.start + 10 * HOUR); // replay finished (window still open)
+    expect(E.raidStatus(s).liveContribution.bossHpPct).toBeCloseTo(r.hpPctAfter, 3);
+  });
+});

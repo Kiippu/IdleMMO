@@ -202,7 +202,10 @@ export function resolveRaid(state, opts, events) {
     checks: sim.waves.map((w) => ({ wave: w.wave, phase: w.phase, phaseName: w.phaseName, check: w.check, label: w.label, result: w.result, overtime: w.overtime,
       yourShare: w.yourShare, yourText: w.yourText, your: Math.round(w.your), total: Math.round(w.total), need: Math.round(w.need), crewHave: Math.round(w.crewHave), crewNeed: Math.round(w.crewNeed), helped: w.your > 0,
       auraTier: w.auraTier, auraTierMin: w.auraTierMin, auraWeakened: w.auraWeakened, auraLoss: w.auraLoss, auraWeakFrames: w.auraWeakFrames, fainted: w.fainted })),
-    payout: { floor: { items: floorItems, tickets: joined ? num((c.tierTickets || {}).floor, 1) : 0 }, tier: { tier, items: tierItems, tickets: joined ? num((c.tierTickets || {})[tier], 0) : 0 }, chests, crewGold, gold: pay.player, pool: pay.pool, perAttendee: pay.perAttendee, capped: pay.capped, turnout: pay.turnout, contribution: avgContribution, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
+    payout: { floor: { items: floorItems, tickets: joined ? num((c.tierTickets || {}).floor, 1) : 0 }, tier: { tier, items: tierItems, tickets: joined ? num((c.tierTickets || {})[tier], 0) : 0 }, chests, crewGold, gold: pay.player, pool: pay.pool, perAttendee: pay.perAttendee, capped: pay.capped, turnout: pay.turnout,
+      // contribution = the CREW's filled share of its fair-share work (0..1), which scales the pool; it is not yours.
+      // crewContribution says so explicitly; yourShare is your share of this weekend's check points (contribution.weekShare).
+      contribution: avgContribution, crewContribution: avgContribution, yourShare: weekShare, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
     cores, weekBuff, auras: sim.auras.map((a) => ({ guild: a.guild, type: a.type, tier: a.tier, strength: num((cfg().auraStrength || [])[a.tier], 0), mine: a.mine })), auraWeakenedWave: sim.auraWeakenedWave,
     moments, bestMoment: best ? { frame: best.frame, t: best.t, at: startedAt + best.frame * frameMs, kind: best.kind, text: best.text, value: best.value } : null,
     windowStart: win.start, windowEnd: win.end, frameMs, instant: !!opts.instant,
