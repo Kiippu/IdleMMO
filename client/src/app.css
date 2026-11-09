@@ -32,6 +32,8 @@
   --f-display: "Pixelify Sans", "Silkscreen", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-label: "Silkscreen", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Every digit in the UI uses this: pixel fonts make 5 read as 9. */
+  --f-num: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   --t-xs: 11px; --t-sm: 13px; --t-md: 15px; --t-lg: 18px; --t-xl: 24px; --t-xxl: 32px;
   --gut-l: max(16px, env(safe-area-inset-left, 0px));
@@ -88,14 +90,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding-block: 12px; border-bottom: 1px solid var(--rule);
 }
 .brand { font: 700 var(--t-lg)/1 var(--f-display); color: var(--woad); }
-.gold { font: 600 var(--t-md)/1 var(--f-display); color: var(--brass); }
-.top-right { display: flex; align-items: baseline; gap: 12px; }
-.save-btn {
-  padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
-  font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-  color: var(--ink-2);
-}
-.save-btn:hover { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
+.gold { font: 700 var(--t-md)/1 var(--f-num); font-variant-numeric: tabular-nums; color: var(--brass); }
+.top-right { display: flex; align-items: center; gap: 12px; }
 
 .update {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -103,11 +99,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--sunk); border: 1px solid var(--woad);
 }
 .update p { margin: 0; color: var(--ink); }
-.update button {
-  padding: 6px 10px; border: 1px solid var(--woad); background: var(--paper);
-  font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-  color: var(--woad);
-}
 .bad { color: var(--bad); }
 .panel {
   margin-top: 16px; padding: 16px;
@@ -125,7 +116,71 @@ button { font: inherit; color: inherit; cursor: pointer; }
   display: grid; grid-template-columns: repeat(5, 1fr);
 }
 .tabbar button {
-  border: 0; background: none; color: var(--ink-2);
-  font: 400 var(--t-xs)/1.2 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
+  min-width: 0; min-height: 44px; padding: 0 2px; border: 0; background: none; color: var(--ink-2);
+  font: 700 12px/1.2 var(--f-body); letter-spacing: 0; overflow-wrap: anywhere;
 }
+.tabbar button { position: relative; }
+.tabbar .dot { position: absolute; top: 8px; right: 10%; width: 8px; height: 8px; border-radius: 50%; background: var(--brass-fill); border: 1px solid var(--paper); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .tabbar button[aria-current="page"] { color: var(--woad); background: var(--woad-soft); }
+
+/* ---------- numbers ---------- */
+.num, dd, .price, .delta, .btn .num {
+  text-transform: none;
+  font-family: var(--f-num); font-variant-numeric: tabular-nums;
+}
+
+/* ---------- shared controls ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; min-width: 44px; padding: 10px 14px;
+  border: 1px solid var(--rule); background: var(--sunk); color: var(--ink-2);
+  font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
+  text-align: center;
+}
+.btn:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.primary { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
+.btn.primary:hover:not(:disabled) { background: var(--woad); color: var(--on-woad); filter: brightness(1.1); }
+.btn.ghost { background: transparent; }
+.btn.ghost:hover:not(:disabled) { background: var(--sunk); border-color: var(--rule); color: var(--ink); }
+.btn[aria-pressed="true"] { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
+.btn.danger { border-color: var(--bad); color: var(--bad); background: var(--paper); }
+.btn.danger:hover:not(:disabled) { background: var(--bad); border-color: var(--bad); color: var(--paper); }
+.btn.danger.solid { background: var(--bad); color: var(--paper); }
+
+select, input[type="number"], input[type="text"], textarea {
+  min-height: 44px; min-width: 0; padding: 8px 10px;
+  border: 1px solid var(--rule); background: var(--sunk); color: var(--ink);
+  font: 400 var(--t-md)/1.2 var(--f-body);
+}
+input[type="number"] { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+
+/* sub-tab strip shared by every tab */
+.subs {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  margin: 0 0 16px; border: 1px solid var(--rule); background: var(--paper);
+}
+.subs button {
+  min-height: 44px; min-width: 0; padding: 8px 2px; border: 0; background: transparent;
+  font: 700 12px/1 var(--f-body); letter-spacing: .03em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.subs button[aria-current="page"] { background: var(--woad-soft); color: var(--woad); }
+
+/* neutral status pill; red is for errors/danger only */
+.status-pill { font: 700 var(--t-sm)/1.1 var(--f-body); color: var(--woad); }
+
+.guide-pulse { outline: 3px solid var(--woad); outline-offset: 2px; animation: gpulse 800ms ease-in-out 3; }
+@keyframes gpulse { 50% { outline-color: var(--brass-fill); } }
+@media (prefers-reduced-motion: reduce) { .guide-pulse { animation: none; } }
+
+/* range slider, tokenised for light and dark */
+input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; padding: 0; min-height: 44px; accent-color: var(--woad); }
+input[type="range"]::-webkit-slider-runnable-track { height: 8px; background: var(--sunk); border: 1px solid var(--rule); }
+input[type="range"]::-moz-range-track { height: 8px; background: var(--sunk); border: 1px solid var(--rule); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; background: var(--woad); border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--woad); border-radius: 0; }
+input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: var(--woad); border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--woad); border-radius: 0; }
+input[type="range"]:disabled { opacity: .55; }
+input[type="range"]:focus-visible { outline: 2px solid var(--woad); outline-offset: 2px; }
+@media (max-width: 380px) { .subs button { font-size: 11px; letter-spacing: 0; padding-inline: 0; } }

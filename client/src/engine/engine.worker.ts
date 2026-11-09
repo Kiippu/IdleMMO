@@ -52,6 +52,8 @@ function derive(): Derived {
     marketTax: state ? (E.marketTax(state) as number) : 0.05,
     crewMembers: state ? (E.crewMembers(state) as any[]) : [],
     crewJobs: state ? (E.crewJobs(state) as any[]) : [],
+    now: state ? (E.now(state) as number) : Date.now(),
+    extras: state ? E.derivedExtras(state) : null,
   };
 }
 
@@ -89,7 +91,7 @@ async function init(): Promise<{ offline: OfflineSummary | null; defaultTab: 'wo
 
   state = E.load() ?? E.newState();
   const res = E.applyOffline(state, Date.now()) as { seconds: number; summary: OfflineSummary } | null;
-  const offline = res && res.seconds >= 60 ? res.summary : null;
+  const offline = res && res.seconds >= 60 ? { ...res.summary, awaySec: res.seconds } : null;
   const defaultTab = E.defaultTab(state) as 'workshop' | 'raid';
 
   E.save(state);
@@ -132,6 +134,31 @@ async function handle(req: Req): Promise<unknown> {
       E.setRaidRules(state, req.rules);
       E.save(state);
       return undefined;
+    case 'storeBuy': {
+      const res = E.storeBuy(state, req.slot, req.qty);
+      E.save(state);
+      return res;
+    }
+    case 'storeSell': {
+      const res = E.storeSell(state, req.itemId, req.grade, req.qty);
+      E.save(state);
+      return res;
+    }
+    case 'storeSellGear': {
+      const res = E.storeSellGear(state, req.uid);
+      E.save(state);
+      return res;
+    }
+    case 'lockIn': {
+      const res = E.lockIn(state);
+      E.save(state);
+      return res;
+    }
+    case 'unlock': {
+      const res = E.unlock(state);
+      E.save(state);
+      return res;
+    }
     case 'fillContract': {
       const res = E.fillContract(state, req.contractId, req.qty);
       E.save(state);
@@ -180,7 +207,7 @@ async function handle(req: Req): Promise<unknown> {
       const res = E.applyOffline(state, Date.now()) as { seconds: number; summary: OfflineSummary } | null;
       E.save(state);
       startTicking();
-      return res && res.seconds >= 60 ? res.summary : null;
+      return res && res.seconds >= 60 ? { ...res.summary, awaySec: res.seconds } : null;
     }
     case 'export':
       return await exportSave(JSON.stringify(state));

@@ -35,7 +35,9 @@ Game design
 - Resources submitted through contracts go only to crew/guild stock and are used in raids to heal and buff members,
   which raises their contribution.
 - Every gold and resource movement in a treasury is logged; all crew/guild members can see the log.
-- Raid gold payouts scale with turnout and contribution, capped per crew.
+- Raid gold payouts scale with turnout and contribution, capped per crew: 25% of the payable pool split evenly among
+  turnout, 75% by share of crew contribution points; each player capped at 3x their OWN hourly income (excess goes to
+  the crew treasury). Constants `raidEvenShare` / `raidContribShare` / `raidCapIncomeHours` in ECON (2026-11-09).
 - Server supply board and war chest are dropped. Raid tokens are dropped: core tickets come only from turnout
   (floor) and contribution tier; retune the core-draw odds.
 - One idle action slot per player. Helping a crewmate uses it.
@@ -44,10 +46,16 @@ Game design
 - Speed: `speedFactor: 1` (prototype pace). Prefer income too high over too low; price things in hours of play.
 - Core-draw pity scales with contribution tier (3 / 4 / 5 / 6 empty kills, top tier to none).
 - NPC crewmates (stand-ins) fill at most 50% of a contract, only from Friday until the raid opens.
-- Economy is priced in H = one hour of level-40 income (`H`/`ECON` in engine data.ts): raid payout 1.5 H per player at
-  full contribution (x1.25 per boss tier), 2.5% of each raid pool to the crew treasury, contracts pay 1.1x item value,
+- Economy is priced in H = one hour of level-40 income (`H`/`ECON` in engine data.ts): raid pool sized at 1.5 H per player
+  at full contribution (x1.25 per boss tier; split and capped as above), 2.5% of each raid pool to the crew treasury, contracts pay 1.1x item value,
   spec switch 3 H. Any rank can post crew requests. No refund for 3,000g first picks made at 70+ before 2026-11-08.
-- Navigation: Workshop, Stores (Mine/Crew), Market, War Room (Loadout/Hunt/Raid), Crew. The log opens as a sheet.
+- Navigation: Workshop, Stores (Mine/Crew), Shop, War Room (Loadout/Raid), Crew (Roster/Jobs/Contracts/Treasury).
+  Hunt merged into Raid, which runs prep → live → recap; stance/tactic/eat threshold lock at lock-in, gear swaps stay
+  allowed during a live raid. The log opens as a sheet from the top strip (2026-11-09).
+- Player market PARKED until the shared world (phase 5). The Shop is an NPC general store: 6 resources + 3 gear
+  (tier ≤2) each game hour, weighted to the player's levels; sells at 1.5x (resources) / 2x (gear) value, buys
+  anything at 0.4x. Old open listings return to the bag on load. Bond-token-for-gold exchange needs a home by launch.
+- Weekly market-tax buff removed (old saves get the repairs buff).
 - Name stays Guildwright.
 Tech
 - Stack: Svelte 5 UI, plain Canvas 2D scenes, Vite, rules engine in TypeScript running in a Web Worker.
@@ -66,6 +74,11 @@ Art and UI
   CREDITS so they can be swapped; decide at launch whether to replace them.
 - Keep the existing design tokens: plaster background, flat paper panels, woad blue accent, brass for gold,
   rarity inks from common grey to mythic crimson.
+- Numbers render in Atkinson Hyperlegible with tabular digits (`--f-num`); Pixelify Sans for titles, Silkscreen for
+  short letter labels only. Fonts are bundled (OFL 1.1), not loaded from Google. Buttons ≥44px; no browser dialogs.
+- UI frames (phase 3): ETA "Minimal Fantasy GUI" + Mounir Tohami "Pixel Art GUI Elements" (both CC0; Veyroa's
+  "Fantasy RPG UI Pixel Pack" is a recolour of these), remapped to DB32. Icons: Shikashi + Kyrise. Not Kenney.
+- LPC hero armour: plate / chainmail (Guardian), leather (Striker), robe (Mender, CC-BY-SA only — tag it).
 
 ## Roadmap (each phase ends in a gate)
 0. Foundations: split repo into engine/client/server/art; port engine + data to TS UNCHANGED in behaviour;
@@ -182,6 +195,15 @@ Not verified on this Windows checkout: `wrangler dev` + `/api/health` + `--test-
 in Linux VM during phase 0). Pick up when a server change lands.
 `.npmrc` still sets `legacy-peer-deps=true` to dodge an npm 10.9 vitest install crash.
 
-Next (after 2.5): UI/UX review (see `docs/phase-2.5-plan.md` "Next"), then phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
+## UI/UX pass (2026-11-09) — branch `ui/ux-pass`, not merged
+Review → owner decisions → built: legible numbers, 44px buttons, confirm/stepper sheets, sticky top strip (gold, raid
+chip, job, HP, Stop/next, Log, Save), tab badges, Log sheet, full-screen collect reveal, Workshop = Ready now +
+category chips + skill accordions (mockup A, no horizontal strip), War Room Loadout/Raid with hero card + chest
+checkpoints + recap sheet, Getting started guide (progress in localStorage), Contracts rows + hand-in sheet, Stores
+bag grid + item sheet, Shop (NPC store). Engine: item rarity, gather secs, raid prep phases, store, event log (last 200,
+additive in save v6), payout split/cap. Tests: engine 113, client 23, server 3. Independent QA at 360/400 light/dark.
+Open: credits screen in game; guide progress not in the save export; Workshop/Shop not yet seen on the live tunnel.
+
+Next: merge `ui/ux-pass` → `main` (ask first), then phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
 art pack (DawnBringer 32 remap), LPC hero layer composite driven by equipped slots in SceneStrip (the
 placeholder goes away), per-action animation variety, `art/CREDITS.md` + in-game credits screen.

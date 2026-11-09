@@ -2,9 +2,16 @@
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
   import { DATA, H } from '@guildwright/engine';
-  import { fmtG } from '../format';
+  import { ui } from '../ui.svelte';
+  import { toast } from '../overlays/toast.svelte';
+  import RequestSheet from '../overlays/RequestSheet.svelte';
+  
+  import { markDone } from '../guide.svelte';
+  import { fmtG, fmtN } from '../format';
+  import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
 
   let sub = $state<'roster' | 'jobs' | 'contracts' | 'treasury'>('roster');
+  $effect(() => { if (ui.crewSub) { sub = ui.crewSub; ui.crewSub = null; } });
   let snap = $derived(engine.snapshot);
   let view = $derived(engine.derived);
 
@@ -20,9 +27,9 @@
   const skillList: { id: string; name: string }[] = (DATA as any).skills;
   const skillName = (id: string) => skillList.find((k) => k.id === id)?.name ?? id;
   let pickSkill = $state('');
-  let fillQty = $state<Record<string, number>>({});
   let msg = $state('');
   const itemsMap: Record<string, { name?: string }> = (DATA as any).items;
+  const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
   const itemName = (id: string) => itemsMap[id]?.name ?? id;
 
   function fmtDuration(sec: number): string {
@@ -42,22 +49,32 @@
   function maxFill(c: any): number {
     return Math.max(0, Math.min(c.remaining ?? 0, c.have ?? 0, c.capacity ?? Infinity));
   }
-  function qtyFor(c: any): number {
-    const want = fillQty[c.id] ?? maxFill(c);
-    return Math.max(1, Math.min(want, Math.max(1, maxFill(c))));
-  }
   async function fill(c: any) {
     msg = '';
+    const mx = maxFill(c);
+    if (mx < 1) return;
+    const qty = await askNumber({
+      title: `Hand in ${c.itemName ?? itemName(c.itemId)}`,
+      body: `${fmtG(c.rewardPer)} each, paid by ${c.paidBy}. Items go to the crew stock for raids.`,
+      number: { min: 1, max: mx, value: mx, label: 'How many?', lines: (n) => [`You get ${fmtG(n * c.rewardPer)}`] },
+      confirmLabel: 'Hand in',
+    });
+    if (qty == null) return;
     try {
-      const res = await engineClient.fillContract(c.id, qtyFor(c));
-      if (res && res.ok === false) msg = res.reason || 'Could not fill.';
-      else if (res) msg = `Handed in ${res.accepted ?? 0}${res.gold ? `, +${res.gold}g` : ''}.`;
+      const res = await engineClient.fillContract(c.id, qty);
+      if (res && res.ok === false) { await noticeSheet('Could not fill', res.reason); }
+      else if (res) { toast(`Handed in ${res.accepted ?? qty}${res.gold ? `, +${fmtG(res.gold)}` : ''}`); }
     } catch (err) { console.error('fillContract failed', err); }
   }
   async function doSwitch() {
     if (!pickSkill || !spec) return;
     const first = spec.firstPickFree;
-    if (!confirm(`Specialize in ${skillName(pickSkill)} ${first ? 'for free' : `for ${fmtG(spec.cost)}`}? ${spec.skillId ? `${skillName(spec.skillId)} drops to level ${spec.capLevel} (XP kept). ` : ''}You can't switch again for a week.`)) return;
+    const ok = await confirmSheet({
+      title: `Specialize in ${skillName(pickSkill)}?`,
+      body: `${first ? 'Free.' : `Costs ${fmtG(spec.cost)}.`} ${spec.skillId ? `${skillName(spec.skillId)} drops to level ${spec.capLevel} (XP kept). ` : ''}You can't switch again for a week.`,
+      confirmLabel: first ? 'Specialize' : `Pay ${fmtG(spec.cost)}`,
+    });
+    if (!ok) return;
     try {
       const res = await engineClient.switchSpec(pickSkill);
       msg = res && res.ok === false ? (res.reason || 'Could not switch.') : `Specialized in ${skillName(pickSkill)}.`;
@@ -65,22 +82,8 @@
     } catch (err) { console.error('switchSpec failed', err); }
   }
   const GRADES = ['Any grade', 'Fine+', 'Sharp+', 'Keen+', 'Pristine'];
-  const sellable = Object.values(itemsMap as Record<string, { id?: string; name?: string; kind?: string }>)
-    .filter((i) => i.kind !== 'gear' && i.id)
-    .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
-  let reqItem = $state('');
-  let reqGrade = $state(0);
-  let reqQty = $state(10);
-  let reqReward = $state(5);
-  let reqEscrow = $derived(Math.max(0, Math.floor(reqQty || 0)) * Math.max(0, Math.floor(reqReward || 0)));
-  let reqValid = $derived(!!reqItem && reqQty >= 1 && reqQty <= 500 && reqReward >= 1 && reqEscrow <= gold);
-  async function postRequest() {
-    msg = '';
-    try {
-      const res = await engineClient.postCrewRequest({ itemId: reqItem, qty: Math.floor(reqQty), rewardPer: Math.floor(reqReward), minGrade: reqGrade || undefined });
-      msg = res && res.ok === false ? (res.reason || 'Could not post.') : `Request posted. ${fmtG(res?.escrow ?? reqEscrow)} held in escrow.`;
-    } catch (err) { console.error('postCrewRequest failed', err); }
-  }
+  let requestOpen = $state(false);
+  const sortedContracts = $derived([...contracts].sort((x, y) => Number(!!y.canFill?.ok) - Number(!!x.canFill?.ok)));
   async function cancelRequest(c: any) {
     msg = '';
     try {
@@ -97,7 +100,8 @@
   async function assist(jobId: string) {
     try {
       const res = await engineClient.assistJob(jobId);
-      if (res && res.ok === false) alert(res.reason || 'Could not assist.');
+      if (res && res.ok === false) await noticeSheet('Could not assist', res.reason);
+      else markDone('assist');
     } catch (err) { console.error('assist failed', err); }
   }
 </script>
@@ -145,15 +149,15 @@
           <p class="meta">Reach level {spec.capLevel} in a skill to specialise.</p>
         {:else}
           <p class="meta">
-            {#if spec.firstPickFree}First pick is free.{:else}Switching costs <span class="brass">{fmtG(spec.cost)}</span>{H > 0 ? ` (about ${Math.round(spec.cost / H)} h of work)` : ''}; your old skill is capped at level {spec.capLevel} and keeps its XP.{/if}
-            {cooldown.ready ? '' : `Next switch in ${cooldown.text}.`} You have <span class="brass">{fmtG(gold)}</span>.
+            {#if spec.firstPickFree}First pick is free.{:else}Switching costs <span class="brass num">{fmtG(spec.cost)}</span>{H > 0 ? ` (about ${Math.round(spec.cost / H)} h of work)` : ''}; your old skill is capped at level {spec.capLevel} and keeps its XP.{/if}
+            {cooldown.ready ? '' : `Next switch in ${cooldown.text}.`} You have <span class="brass num">{fmtG(gold)}</span>.
           </p>
           <div class="row sub">
             <select bind:value={pickSkill} aria-label="New specialization" disabled={(spec.eligible ?? []).length === 0}>
               <option value="">{(spec.eligible ?? []).length === 0 ? 'No other skill at level ' + spec.capLevel : 'Choose a skill'}</option>
               {#each spec.eligible as id (id)}<option value={id}>{skillName(id)}</option>{/each}
             </select>
-            <button type="button" class="action-btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
+            <button type="button" class="btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
           </div>
           {#if (spec.eligible ?? []).length === 0}<p class="meta">Reach level {spec.capLevel} in another skill to switch.</p>{/if}
         {/if}
@@ -175,13 +179,14 @@
                 <span class="name">{j.action?.name ?? j.actionId}</span>
                 <span class="meta grade">{j.owner}</span>
               </div>
-              <span class="meta">{j.done}/{j.qty}</span>
+              <span class="meta num">{j.done}/{j.qty}</span>
             </div>
             <div class="row sub">
-              <span class="meta">ETA {fmtDuration(j.etaSec)}{j.station ? ` · ${j.station}` : ''}</span>
+              <span class="meta">ETA <span class="num">{fmtDuration(j.etaSec)}</span>{j.station ? ` · ${j.station}` : ''}</span>
               <button
                 type="button"
-                class="action-btn"
+                class="btn"
+                data-guide="assist"
                 aria-pressed={j.assisting}
                 disabled={!j.canAssist?.ok}
                 onclick={() => assist(j.id)}
@@ -197,7 +202,10 @@
   </section>
 {:else if sub === 'contracts'}
   <section class="group">
-    <h3>Contracts</h3>
+    <div class="group-head">
+      <h3>Contracts</h3>
+      <button type="button" class="btn" onclick={() => (requestOpen = true)}>+ Request</button>
+    </div>
     <article class="treasury">
       <div class="totals">
         <div><dt>Crew gold</dt><dd>{fmtG(cg.total)}</dd></div>
@@ -212,30 +220,31 @@
       <p class="muted">No contracts posted. Check back when the next raid is announced.</p>
     {:else}
       <ul class="list">
-        {#each contracts as c (c.id)}
+        {#each sortedContracts as c (c.id)}
           {@const mx = maxFill(c)}
+          {@const rar = itemRarity[c.itemId] ?? 'common'}
+          {@const fundedTotal = (c.escrow ?? 0) + (c.filled ?? 0) * (c.rewardPer ?? 0)}
           <li>
             <div class="row">
-              <span class="name">{c.itemName ?? itemName(c.itemId)}{c.minGrade ? ` (${GRADES[c.minGrade] ?? `grade ${c.minGrade}+`})` : ''}</span>
-              <span class="meta">{c.filled}/{c.qty}</span>
-            </div>
-            <p class="meta">
+              <span class="name" style:color={`var(--r-${rar})`}>{c.itemName ?? itemName(c.itemId)}{c.minGrade ? ` (${GRADES[c.minGrade] ?? `grade ${c.minGrade}+`})` : ''}</span>
               <span class="tag">{c.source === 'town' ? 'Town' : 'Crew'}</span>
-              {fmtG(c.rewardPer)} each · paid by {c.paidBy}
-              · You have {c.have}{c.vaultHas ? ` · Crew has ${c.vaultHas}` : ''}
-            </p>
+            </div>
+            <div class="pbar" role="progressbar" aria-label="Filled" aria-valuemin="0" aria-valuemax={c.qty} aria-valuenow={c.filled}><div style="width: {c.qty ? Math.round(c.filled / c.qty * 100) : 0}%"></div></div>
+            <p class="meta"><span class="num">{fmtN(c.filled)}/{fmtN(c.qty)}</span> filled · <span class="brass num">{fmtG(c.rewardPer)}</span> each · paid by {c.paidBy} · you have <span class="num">{fmtN(c.have)}</span></p>
+            {#if c.status === 'open' && fundedTotal > 0}
+              <div class="pbar gold" role="progressbar" aria-label="Gold left" aria-valuemin="0" aria-valuemax={fundedTotal} aria-valuenow={c.escrow}><div style="width: {Math.round((c.escrow ?? 0) / fundedTotal * 100)}%"></div></div>
+              <p class="meta"><span class="num">{fmtG(c.escrow ?? 0)}</span> of funded gold left</p>
+            {/if}
             {#if c.note}<p class="meta">{c.note}</p>{/if}
             {#if c.status === 'open' && c.mine}
               <div class="row sub">
-                <span class="meta">Yours · {fmtG(c.escrow)} in escrow</span>
-                {#if c.canCancel}<button type="button" class="action-btn" onclick={() => cancelRequest(c)}>Cancel</button>{/if}
+                <span class="meta">Your request</span>
+                {#if c.canCancel}<button type="button" class="btn" onclick={() => cancelRequest(c)}>Cancel</button>{/if}
               </div>
             {:else if c.status === 'open'}
-              <div class="row sub">
-                <input type="number" min="1" max={mx || 1} value={qtyFor(c)} disabled={!c.canFill?.ok || mx < 1}
-                  oninput={(e) => (fillQty[c.id] = Number((e.target as HTMLInputElement).value))} aria-label="Quantity" />
-                <button type="button" class="action-btn" disabled={!c.canFill?.ok || mx < 1} title={c.canFill?.reason ?? ''} onclick={() => fill(c)}>Fill</button>
-              </div>
+              <button type="button" class="btn primary wide" disabled={!c.canFill?.ok || mx < 1} title={c.canFill?.reason ?? ''} onclick={() => fill(c)}>
+                <span class="num">Hand in {mx} (+{fmtG(mx * (c.rewardPer ?? 0))})</span>
+              </button>
               {#if !c.canFill?.ok && c.canFill?.reason}<p class="meta">{c.canFill.reason}</p>{/if}
             {:else}
               <p class="meta">{c.status === 'filled' ? 'Filled.' : c.status === 'cancelled' ? 'Cancelled.' : 'Closed.'}</p>
@@ -245,26 +254,9 @@
       </ul>
     {/if}
   </section>
-  <section class="group">
-    <h3>Post a request</h3>
-    <article class="treasury form">
-      <label>Item
-        <select bind:value={reqItem}>
-          <option value="">Choose an item</option>
-          {#each sellable as i (i.id)}<option value={i.id}>{i.name}</option>{/each}
-        </select>
-      </label>
-      <div class="fields">
-        <label>Min grade
-          <select bind:value={reqGrade}>{#each GRADES as g, i}<option value={i}>{g}</option>{/each}</select>
-        </label>
-        <label>Qty (1-500)<input type="number" min="1" max="500" bind:value={reqQty} /></label>
-        <label>Reward each (g)<input type="number" min="1" bind:value={reqReward} /></label>
-      </div>
-      <p class="meta">Escrow: <span class="brass">{fmtG(reqEscrow)}</span> from your {fmtG(gold)}. Cancel any time for a refund of what is left.</p>
-      <button type="button" class="action-btn" disabled={!reqValid} onclick={postRequest}>Post request</button>
-    </article>
-  </section>
+  {#if requestOpen}
+    <RequestSheet {gold} onClose={() => (requestOpen = false)} onDone={(t) => { msg = t; toast(t); }} />
+  {/if}
 {:else}
   <section class="group">
     <h3>Treasury</h3>
@@ -303,16 +295,6 @@
 {/if}
 
 <style>
-  .subs {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    margin: 0 0 16px; border: 1px solid var(--rule); background: var(--paper);
-  }
-  .subs button {
-    padding: 10px; border: 0; background: transparent;
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .subs button[aria-current="page"] { background: var(--woad-soft); color: var(--woad); }
 
   .group + .group { margin-top: 16px; }
   .group h3 {
@@ -340,32 +322,22 @@
     margin: 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
     letter-spacing: .04em; text-transform: uppercase;
   }
-  .totals dd { margin: 0; font: 600 var(--t-md)/1 var(--f-display); color: var(--brass); }
+  .totals dd { margin: 0; font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--brass); }
 
   .brass { color: var(--brass); font: inherit; }
   .tag { display: inline-block; margin-right: 6px; padding: 1px 5px; border: 1px solid var(--rule); background: var(--sunk); font: 400 var(--t-xs)/1.3 var(--f-label); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
   .delta.plain { color: var(--ink-2); }
   .form { display: grid; gap: 10px; }
-  .form label { display: grid; gap: 4px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; min-width: 0; }
-  .form .fields { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; }
-  .form input[type="number"] { width: 100%; }
   .meta.first { margin-top: 0; }
-  select, input[type="number"] {
-    min-width: 0; padding: 6px 8px; border: 1px solid var(--rule); background: var(--sunk); color: var(--ink);
-    font: 400 var(--t-sm)/1.2 var(--f-body);
-  }
   select { flex: 1; }
-  input[type="number"] { width: 80px; }
-  .delta { font: 600 var(--t-sm)/1 var(--f-display); }
+  .delta { font-weight: 700; font-size: var(--t-sm); line-height: 1; }
   .delta.pos { color: var(--ok); }
   .delta.neg { color: var(--bad); }
 
-  .action-btn {
-    padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .action-btn:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
-  .action-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .action-btn[aria-pressed="true"] { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
+  .group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .group-head h3 { margin: 0; }
+  .wide { width: 100%; margin-top: 8px; }
+  .pbar { height: 6px; margin-top: 6px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
+  .pbar div { height: 100%; background: var(--woad); }
+  .pbar.gold div { background: var(--brass-fill); }
 </style>

@@ -3,7 +3,7 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, SLOTS, LOG_CAP, D, arr, num, cfg, skillDefs, item, action, clamp, zeros5, gradeOf, rarityDef, fmtGold } from './core';
+import { E, SLOTS, LOG_CAP, D, arr, num, cfg, skillDefs, item, action, clamp, zeros5, gradeOf, rarityDef, fmtGold, itemName } from './core';
 import { addItem } from './inventory';
 import { makeGear, clampHp } from './gear';
 import { isGearCraft } from './actions';
@@ -14,6 +14,9 @@ import { curRecord } from './server';
 import { normRules } from './raid-rules';
 import { ensureV5 } from './crew-economy';
 import { isProfession, rawSkillLevel, SPEC_CAP_LEVEL } from './skills';
+import { marketEnabled, parkMarket } from './market';
+import { ensureEvents, pushEvent } from './events';
+import { normStore } from './store';
 
 /** what switchSpec charged for every pick before the phase 2.5 rework (refunded when a spec is cleared on load) */
 export const LEGACY_SPEC_CHARGE = 3000;
@@ -29,7 +32,9 @@ E.newState = function () {
     active: null, settings: { matPriority: 'best', useCatalyst: false, useCore: false },
     market: { listings: [], mine: [], refreshedAt: now, age: 0 },
     raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, last: null, resolvedWeek: 0, satOutWeek: 0 },
-    log: [], seq: 1
+    log: [], seq: 1,
+    // 2026-11-08 additive v6 fields: player event log (events.ts) and the NPC general store (store.ts)
+    events: [], eventSeq: 0, store: null
   };
   skillDefs().forEach((d) => { s.skills[d.id] = { xp: 0 }; });
   const st = D().starter || {};
@@ -45,7 +50,7 @@ E.newState = function () {
   });
   s.hp = E.playerStats(s).maxHp;
   const b = E.currentBoss(s); s.raid.bossHp = b ? Math.max(1, num(b.hp, 1)) : 0;
-  E.refreshMarket(s);
+  if (marketEnabled()) E.refreshMarket(s); // parked: the general store replaces the market
   makeCrew(s);
   // A save created after this week's raid window opened sits that raid out: it joins next week's.
   // Without this, resolvedWeek defaulted to week-1 and the first tick resolved a raid that started
@@ -117,6 +122,12 @@ export function migrate(raw) {
   const rm = raw.market || {};
   out.market = { listings: arr(rm.listings).filter((l) => l && item(l.itemId)), mine: arr(rm.mine).filter((l) => l && item(l.itemId)), refreshedAt: num(rm.refreshedAt, ctx.now()), age: num(rm.age, 0) };
   if (!out.market.listings.length) out.market.listings = fresh.market.listings;
+  // Player market parked (2026-11-08): open listings go back to the bag, the NPC board is dropped.
+  const marketBack = marketEnabled() ? [] : parkMarket(out);
+  // additive v6 fields (older saves get the defaults)
+  ensureEvents(out);
+  out.store = normStore(raw.store);
+  marketBack.forEach((b) => pushEvent(out, 'loot', `The market closed: your listing of ${b.qty} ${itemName(b.itemId)} came back to your bag.`, { itemId: b.itemId, qty: b.qty, grade: b.grade }));
   const rr = raw.raid || {};
   if (legacyV3) {
     // v3 save: weeks advanced per raid; anchor the calendar so this real week is the save's week

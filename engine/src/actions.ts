@@ -8,6 +8,8 @@ import { addItem, consume, ownedOfKind } from './inventory';
 import { findGear, makeGear, autoEat } from './gear';
 import { invCount } from './v4-helpers';
 import { lockedNow } from './raid-rules';
+import { lootEvent, goldEvent, pushEvent } from './events';
+import { flags } from './core';
 
 // ---------------------------------------------------------------- actions
 E.actionsFor = function (skillId) {
@@ -190,6 +192,7 @@ export function completeOnce(state, act, events) {
       const g = gradeOf(rollQualityGather(state, act)); const q = qtyRange(b.qty);
       addItem(state, b.item, g, q); items.push({ itemId: b.item, grade: g, qty: q });
     });
+    if (!flags.quiet) items.forEach((i) => lootEvent(state, 'gather', i.itemId, i.qty, i.grade));
     state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
     const xp = num(act.xp, 0) * xpMult;
     events.push({ type: 'complete', actionId: act.id, kind: act.kind, items, xp });
@@ -230,9 +233,11 @@ export function completeOnce(state, act, events) {
           items.push({ itemId: id, grade, qty: 1, uid: g.uid });
           events.push({ type: 'craft', actionId: act.id, gear: JSON.parse(JSON.stringify(g)), rarity: g.rarity, pityTriggered: forced });
           logq(state, 'craft', `Crafted ${article(rn)} ${rn} ${it.name}${forced ? ' (pity guarantee)' : ''}.`);
+          if (!flags.quiet) pushEvent(state, 'loot', `Crafted ${article(rn)} ${rn} ${it.name}${forced ? ' (pity guarantee)' : ''}.`, { itemId: id, qty: 1, rarity: g.rarity });
         }
       } else {
         addItem(state, id, grade, q); items.push({ itemId: id, grade, qty: q });
+        if (!flags.quiet) lootEvent(state, act.kind, id, q, grade);
       }
     });
     state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
@@ -265,6 +270,7 @@ export function completeOnce(state, act, events) {
       const g = gradeOf(rollQualityGather(state, act)); const q = qtyRange(d.qty);
       addItem(state, d.item, g, q); drops.push({ itemId: d.item, grade: g, qty: q });
     });
+    if (!flags.quiet) { drops.forEach((d) => lootEvent(state, 'combat', d.itemId, d.qty, d.grade)); goldEvent(state, 'combat:' + act.id, gold, `Gold from ${act.name}`); }
     state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
     const xp = num(act.xp, 0) * xpMult;
     const role = ROLES.includes(act.skill) ? act.skill : 'striker';

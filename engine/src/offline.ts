@@ -9,6 +9,9 @@ import { crewStep } from './crew-assist';
 import { marketFills } from './tick';
 import { processClock } from './weekly';
 import { crewEconomyStep, crewLocksStep } from './crew-economy';
+import { marketEnabled } from './market';
+import { pushEvent } from './events';
+import { itemName } from './core';
 
 // ---------------------------------------------------------------- offline
 E.applyOffline = function (state, nowMs) {
@@ -64,9 +67,11 @@ E.applyOffline = function (state, nowMs) {
     }
     // market: coarse 5s steps
     const ev = [];
-    for (let t = 0; t < seconds && state.market.mine.length; t += 5) marketFills(state, Math.min(5, seconds - t), ev);
-    state.market.age = num(state.market.age, 0) + seconds;
-    if (state.market.age >= MARKET_REFRESH_SEC) E.refreshMarket(state);
+    if (marketEnabled()) {
+      for (let t = 0; t < seconds && state.market.mine.length; t += 5) marketFills(state, Math.min(5, seconds - t), ev);
+      state.market.age = num(state.market.age, 0) + seconds;
+      if (state.market.age >= MARKET_REFRESH_SEC) E.refreshMarket(state);
+    }
     const wk0 = state.week; const cev = [];
     processClock(state, cev); crewLocksStep(state);
     summary.raids = cev.filter((e) => e.type === 'raidResolved').map((e) => e.recapId);
@@ -76,6 +81,10 @@ E.applyOffline = function (state, nowMs) {
   Object.keys(state.skills).forEach((k) => { const d = num(state.skills[k].xp, 0) - num(xp0[k], 0); if (d > 0) summary.xp[k] = d; });
   const nItems = Object.values(summary.items).reduce((x: number, y: any) => x + num(y, 0), 0);
   const xpTot = Object.values(summary.xp).reduce((x: number, y: any) => x + num(y, 0), 0);
+  // event log: one line per item gained, plus the gold, stamped with the catch-up time
+  if ((nItems as number) > 0 || summary.gold) pushEvent(state, 'loot', `While you were away (${E.fmtTime(seconds)}): ${E.fmt(nItems)} items${summary.gold ? `, ${summary.gold > 0 ? '+' : ''}${fmtGold(summary.gold)}` : ''}.`, summary.gold ? { gold: summary.gold } : {});
+  if (summary.assisted) pushEvent(state, 'crew', `While away you helped your crew with ${summary.assisted} crafts${summary.tips ? `: +${fmtGold(summary.tips)} in tips` : ''}.`, summary.tips ? { gold: summary.tips } : {});
+  Object.keys(summary.items).forEach((id) => { const q = num(summary.items[id], 0); if (q > 0) pushEvent(state, 'loot', `While away: ${E.fmt(q)} ${itemName(id)}.`, { itemId: id, qty: q }); });
   E.log(state, 'info', `While you were away (${E.fmtTime(seconds)}): ${E.fmt(nItems)} items, ${E.fmt(xpTot)} XP, ${fmtGold(summary.gold)}${summary.kills ? `, ${summary.kills} kills` : ''}${summary.assisted ? `, helped your crew with ${summary.assisted} crafts` : ''}.${summary.stoppedReason ? ' ' + summary.stoppedReason : ''}`);
   return { seconds: Math.floor(seconds), summary };
 };

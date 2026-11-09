@@ -7,6 +7,8 @@ import { pouchBlock, completeOnce } from './actions';
 import { crewStep } from './crew-assist';
 import { processClock } from './weekly';
 import { crewEconomyStep, crewLocksStep } from './crew-economy';
+import { marketEnabled } from './market';
+import { ensureStore } from './store';
 
 // ---------------------------------------------------------------- tick
 export function advanceAction(state, dt, events, maxN) {
@@ -57,8 +59,11 @@ E.tick = function (state, dtSec, opts) {
   processClock(state, events);
   crewLocksStep(state);
   if (state.active && !state.active.jobId) { const pb = pouchBlock(state, action(state.active.actionId)); if (pb) { state.active = null; events.push({ type: 'stopped', reason: pb }); } }
-  state.market.age = num(state.market.age, 0) + dt;
-  if (state.market.age >= MARKET_REFRESH_SEC) E.refreshMarket(state);
-  marketFills(state, dt, events);
+  if (marketEnabled()) {
+    state.market.age = num(state.market.age, 0) + dt;
+    if (state.market.age >= MARKET_REFRESH_SEC) E.refreshMarket(state);
+    marketFills(state, dt, events);
+  }
+  ensureStore(state);
   return events;
 };

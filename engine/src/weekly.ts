@@ -6,11 +6,11 @@ import { E, SLOTS, CHECKS, arr, num, cfg, item, bosses, rand, clamp, randInt, lc
 import { addXp } from './skills';
 import { findGear, autoEat } from './gear';
 import { drainDurability } from './actions';
-import { ROLE_CHECK, OFF_ROLE, ROLE_MIX, invCount } from './v4-helpers';
+import { ROLE_CHECK, OFF_ROLE, ROLE_MIX, invCount, TIER_NAME } from './v4-helpers';
 import { mondayOf, addDays, dayKey, nowOf, ensureClock, weekNum, weekStartOf, windowFor } from './clock';
 import { curRecord, bossReq } from './server';
 import { statsFor, powersOf } from './stats';
-import { lockedNow, raidDoneThisWeek, lockWarnings, makeLock } from './raid-rules';
+import { lockedNow, raidDoneThisWeek, lockWarnings, makeLock, prepLock, tierFor } from './raid-rules';
 import { grant, resolveRaid } from './raid-payouts';
 import { crewWeekly } from './crew-economy';
 
@@ -57,6 +57,21 @@ export function processClock(state, events) {
 }
 // Phase 2.5: the dev shortcuts startRaidNow / runRaid / canStartNow are gone. The weekend raid
 // resolves only on the game clock (processClock, at the crew's raid-window start).
+// The raid resolves at window start; the live view replays it over the window (fightPct). This reads
+// the player's contribution at the replay's current frame from the recap timeline.
+function liveContribution(state, cur, now) {
+  if (!cur) return null;
+  const r = arr(state.raid.recaps).find((x) => x.id === cur.recapId); if (!r || !r.joined) return null;
+  const chargeMs = num(cfg().raidChargeHours, 10) * 3600000;
+  const pct = cur.instant ? 1 : clamp((now - cur.startedAt) / chargeMs, 0, 1);
+  const tl = arr(r.timeline); const f = tl.length ? tl[Math.min(tl.length - 1, Math.floor(pct * (tl.length - 1)))] : null;
+  let points, total;
+  if (f && f.yourPoints != null) { points = f.yourPoints; total = f.totalPoints; }
+  else { points = num(r.contribution && r.contribution.weekPoints, 0) * pct; total = Math.max(1e-9, num(r.contribution && r.contribution.weekPoints, 0) / Math.max(1e-9, num(r.contribution && r.contribution.weekShare, 1))) * pct; }
+  const share = total > 0 ? points / total : 0; const tier = tierFor(state, share);
+  return { pct, bossHpPct: f ? f.bossHpPct : r.hpPctAfter, points: Math.round(points * 100) / 100, totalPoints: Math.round(total * 100) / 100, share, tier, tierLabel: TIER_NAME[tier] || tier };
+}
+function prepFields(state) { const p = prepLock(state); return { prepPhase: p.phase, prepLocked: p.locked, prepReason: p.reason }; }
 E.raidStatus = function (state) {
   const now = nowOf(state); const w = windowFor(state, now); const live = now >= w.start && now < w.end;
   const resolved = raidDoneThisWeek(state); const cur = state.raid.current && state.raid.current.week === state.week ? state.raid.current : null;
@@ -69,7 +84,10 @@ E.raidStatus = function (state) {
     sittingOut: num(state.raid.satOutWeek, 0) === state.week,
     // game-clock ms of the start of the next raid the player can take part in (this week's window
     // while it is still to be fought, else next week's)
-    nextRaidAt: !resolved && now < w.end ? w.start : windowFor(state, addDays(mondayOf(now), 7)).start };
+    nextRaidAt: !resolved && now < w.end ? w.start : windowFor(state, addDays(mondayOf(now), 7)).start,
+    // War Room prep lock (gear, loadouts, Hunt rules): 'prep' | 'live' | 'recap'; locked only while live
+    ...prepFields(state),
+    liveContribution: live ? liveContribution(state, cur, now) : null };
 };
 E.readinessFlags = function (state) {
   const now = nowOf(state); const w = windowFor(state, now); const secTo = (w.start - now) / 1000;

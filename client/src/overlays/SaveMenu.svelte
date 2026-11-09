@@ -4,6 +4,7 @@
   // the old URL and imports it into the new one. Cloud saves (phase 4) make
   // this obsolete.
   import { engineClient } from '../engine/client';
+  import { sheet, confirmSheet } from './confirm.svelte';
 
   type Props = { onClose: () => void };
   let { onClose }: Props = $props();
@@ -36,7 +37,7 @@
   async function doImport() {
     const code = importText.trim();
     if (!code) { importError = 'Paste a save code first.'; return; }
-    if (!confirm('Importing replaces your current save. Continue?')) return;
+    if (!(await confirmSheet({ title: 'Import this save?', body: 'Importing replaces your current save. There is no undo.', confirmLabel: 'Import', danger: true }))) return;
     importError = null;
     busy = true;
     try {
@@ -50,8 +51,7 @@
   }
 
   async function doReset() {
-    if (!confirm('Reset your save? This cannot be undone.')) return;
-    if (!confirm('Really? All progress will be lost.')) return;
+    if (!(await confirmSheet({ title: 'Reset your save?', body: 'All progress will be lost. This cannot be undone.', confirmLabel: 'Reset save', danger: true }))) return;
     busy = true;
     try {
       await engineClient.reset();
@@ -63,7 +63,7 @@
   }
 
   function onKey(ev: KeyboardEvent) {
-    if (ev.key === 'Escape') onClose();
+    if (ev.key === 'Escape' && !sheet.opts) onClose();
   }
 </script>
 
@@ -81,7 +81,7 @@
   >
     <header>
       <h2 id="save-menu-title">Save</h2>
-      <button type="button" class="ghost" onclick={onClose} aria-label="Close">✕</button>
+      <button type="button" class="btn ghost" onclick={onClose} aria-label="Close">✕</button>
     </header>
 
     <section>
@@ -89,7 +89,7 @@
       <p class="meta">Paste this into another install to pick up where you left off.</p>
       <textarea readonly rows="6" value={exportedCode ?? 'Preparing…'}></textarea>
       <div class="actions">
-        <button type="button" class="action-btn" disabled={!exportedCode} onclick={copy}>
+        <button type="button" class="btn" disabled={!exportedCode} onclick={copy}>
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
@@ -105,7 +105,7 @@
       ></textarea>
       {#if importError}<p class="bad">{importError}</p>{/if}
       <div class="actions">
-        <button type="button" class="action-btn primary" disabled={busy || !importText.trim()} onclick={doImport}>
+        <button type="button" class="btn primary" disabled={busy || !importText.trim()} onclick={doImport}>
           Import
         </button>
       </div>
@@ -115,7 +115,7 @@
       <h3>Reset save</h3>
       <p class="meta">Wipes everything and starts over. The engine will mint a fresh state on next boot.</p>
       <div class="actions">
-        <button type="button" class="action-btn bad" disabled={busy} onclick={doReset}>Reset save</button>
+        <button type="button" class="btn danger" disabled={busy} onclick={doReset}>Reset save</button>
       </div>
     </section>
   </div>
@@ -154,16 +154,4 @@
 
   .actions { margin-top: 8px; display: flex; justify-content: flex-end; }
 
-  .action-btn, .ghost {
-    padding: 8px 12px; border: 1px solid var(--rule); background: var(--sunk);
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-    color: var(--ink-2);
-  }
-  .action-btn:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
-  .action-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .action-btn.primary { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
-  .action-btn.bad { border-color: var(--bad); color: var(--bad); background: var(--paper); }
-  .action-btn.bad:hover:not(:disabled) { background: var(--bad); color: var(--on-woad); }
-  .ghost { background: transparent; border-color: transparent; font: 400 var(--t-lg)/1 var(--f-body); }
-  .ghost:hover { color: var(--ink); }
 </style>

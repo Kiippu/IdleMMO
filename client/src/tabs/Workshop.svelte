@@ -2,181 +2,196 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
-  import SceneStrip from '../scene/SceneStrip.svelte';
+  import { ui } from '../ui.svelte';
+  import { fmtN } from '../format';
 
   type Skill = { id: string; name: string; tier: string; blurb: string };
-  type Action = { id: string; skill: string; kind: string; name: string; level?: number; sec?: number; xp?: number };
+  type Action = { id: string; skill: string; kind: string; name: string; level?: number; sec?: number; xp?: number; inputs?: Record<string, number>; outputs?: Record<string, number>; enemy?: string };
 
   const skills: Skill[] = (DATA as any).skills;
   const actionsAll: Action[] = (DATA as any).actions;
+  const itemsMap: Record<string, { name?: string }> = (DATA as any).items;
+  const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
+  const itemName = (id: string) => itemsMap[id]?.name ?? id;
 
-  const tierOrder = ['gathering', 'refining', 'crafting', 'combat'] as const;
-  const tierLabel: Record<string, string> = {
-    gathering: 'Gather',
-    refining: 'Refine',
-    crafting: 'Craft',
-    combat: 'Fight',
-  };
-
-  // Group skills by tier up front; actions by skill, sorted by unlock level.
+  const CATS = [
+    { id: 'gathering', label: 'Gather' }, { id: 'refining', label: 'Refine' },
+    { id: 'crafting', label: 'Craft' }, { id: 'combat', label: 'Fight' },
+  ] as const;
   const skillsByTier: Record<string, Skill[]> = {};
   for (const s of skills) (skillsByTier[s.tier] ||= []).push(s);
   const actionsBySkill: Record<string, Action[]> = {};
   for (const a of actionsAll) (actionsBySkill[a.skill] ||= []).push(a);
-  for (const id of Object.keys(actionsBySkill)) {
-    actionsBySkill[id].sort((a, b) => (a.level ?? 1) - (b.level ?? 1));
-  }
+  for (const id of Object.keys(actionsBySkill)) actionsBySkill[id].sort((a, b) => (a.level ?? 1) - (b.level ?? 1));
+  const skillOf = (id: string) => skills.find((s) => s.id === id);
 
-  let state = $derived(engine.snapshot);
+  let snapS = $derived(engine.snapshot);
   let view = $derived(engine.derived);
-  let active = $derived(state?.active ?? null);
-  let activeAction = $derived(active ? actionsAll.find((a) => a.id === active.actionId) ?? null : null);
-  let activeTime = $derived(view?.activeTime ?? null);
+  let activeId = $derived<string | null>(snapS?.active?.actionId ?? null);
+  let activeAction = $derived(activeId ? actionsAll.find((a) => a.id === activeId) ?? null : null);
+  let inv = $derived<Record<string, number[]>>(snapS?.inv ?? {});
+  let storeSlots = $derived<any[]>(view?.extras?.store?.slots ?? []);
+
+  const have = (id: string) => (inv[id] ?? []).reduce((a, b) => a + (b || 0), 0);
+  const levelOf = (id: string) => view?.skillLevels?.[id] ?? 0;
+  const timeOf = (a: Action) => view?.actionTimes?.[a.id] ?? a.sec;
   const fmtSec = (s: number | undefined) => (s && isFinite(s) ? `${s.toFixed(1)}s` : '—');
-  let progress = $derived.by(() => {
-    if (!active || !activeTime || activeTime <= 0) return 0;
-    return Math.max(0, Math.min(1, active.progress / activeTime));
+  const locked = (a: Action) => levelOf(a.skill) < (a.level ?? 1);
+  const short = (a: Action) => Object.entries(a.inputs ?? {}).some(([id, n]) => have(id) < n);
+  const startable = (a: Action) => !locked(a) && !short(a);
+  const outId = (a: Action) => Object.keys(a.outputs ?? {})[0] ?? null;
+  const label = (a: Action) => a.name;
+  const inShop = (itemId: string) => storeSlots.some((s) => s.itemId === itemId && s.qty > 0);
+
+  // Category: last explicit choice this session, else the active job's, else Gather.
+  let picked = $state<string | null>(ui.wsCat);
+  let cat = $derived(picked ?? (activeAction ? skillOf(activeAction.skill)?.tier : null) ?? 'gathering');
+  function pickCat(id: string) { picked = id; ui.wsCat = id; }
+  // Deep link from the guide: switch category and open its skills.
+  $effect(() => {
+    if (!ui.wsOpen) return;
+    picked = ui.wsCat; ui.wsOpen = false;
+    for (const s of skillsByTier[picked ?? 'gathering'] ?? []) open[s.id] = true;
   });
 
-  function levelOf(skillId: string): number {
-    return view?.skillLevels?.[skillId] ?? 0;
-  }
-  function capNote(skillId: string): string {
-    const p = view?.skillProgress?.[skillId];
-    return p?.capped ? ' (cap)' : '';
-  }
+  // Accordions: the active job's skill auto-opens; others closed; several may be open.
+  let open = $state<Record<string, boolean>>({});
+  $effect(() => { if (activeAction) open[activeAction.skill] = true; });
+
+  // "Ready now": prefer actions a fillable contract needs, then highest XP per second.
+  let needed = $derived(new Set<string>((view?.contracts ?? []).filter((c: any) => c.status === 'open' && !c.mine && c.canFill?.ok === false && (c.remaining ?? 0) > 0 && c.capacity > 0).map((c: any) => c.itemId)));
+  let ready = $derived.by(() => {
+    const score = (a: Action) => (outId(a) && needed.has(outId(a)!) ? 1e6 : 0) + (a.xp ?? 0) / Math.max(0.5, timeOf(a) ?? 1);
+    return actionsAll.filter((a) => startable(a) && a.id !== activeId).sort((a, b) => score(b) - score(a)).slice(0, 3);
+  });
 
   async function start(id: string) {
     try { await engineClient.start(id); }
     catch (err) { console.error('start failed', err); }
   }
-  async function stop() {
-    try { await engineClient.stop(); }
-    catch (err) { console.error('stop failed', err); }
-  }
+  function toShop() { ui.goTab = 'Shop'; }
+  const capNote = (id: string) => (view?.skillProgress?.[id]?.capped ? ' (cap)' : '');
 </script>
 
-<SceneStrip />
+{#snippet inputsLine(a: Action)}
+  {#if a.inputs && Object.keys(a.inputs).length}
+    <span class="inputs">
+      {#each Object.entries(a.inputs) as [id, n], i}
+        <span class="inp num" class:short={have(id) < n}>{i ? ' · ' : ''}{n} {itemName(id)} · have {fmtN(have(id))}</span>
+      {/each}
+    </span>
+  {/if}
+{/snippet}
 
-{#if active && activeAction}
-  <section class="active-card">
-    <div class="row">
-      <div class="meta">
-        <span class="kind">{activeAction.kind}</span>
-        <h2>{activeAction.name}</h2>
-      </div>
-      <button class="stop" type="button" onclick={stop}>Stop</button>
-    </div>
-    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
-      <div class="fill" style="width: {Math.round(progress * 100)}%"></div>
-    </div>
-    <p class="sub">
-      {activeTime ? `${activeTime.toFixed(1)}s per rep` : '—'}
-      {#if activeAction.xp}· {activeAction.xp} XP{/if}
-    </p>
-  </section>
-{:else}
-  <section class="idle-card">
-    <h2>Pick something to work on.</h2>
-    <p>Guildwright is an idle game. Start an action and leave it; your save catches up when you come back.</p>
+{#snippet row(a: Action)}
+  {@const out = outId(a)}
+  {@const sh = short(a)}
+  {@const running = activeId === a.id}
+  <li class="arow" class:running>
+    <button type="button" class="action main" data-kind={a.kind} aria-pressed={running} disabled={sh} onclick={() => start(a.id)}>
+      <span class="a-name" style:color={out ? `var(--r-${itemRarity[out] ?? 'common'})` : undefined}>{out ? itemName(out) : label(a)}{#if out && label(a) !== itemName(out)}<small>{` · ${label(a)}`}</small>{/if}</span>
+      {@render inputsLine(a)}
+      <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
+    </button>
+    {#if sh}
+      {@const miss = Object.entries(a.inputs ?? {}).find(([id, n]) => have(id) < n && inShop(id))}
+      {#if miss}<button type="button" class="btn shop" onclick={toShop}>Get from Shop</button>{:else}<span class="btn dis">Start</span>{/if}
+    {:else}
+      <button type="button" class="btn start" class:primary={!running} disabled={running} onclick={() => start(a.id)}>{running ? 'Running' : 'Start'}</button>
+    {/if}
+  </li>
+{/snippet}
+
+{#if ready.length}
+  <section class="ready" aria-labelledby="rd-title">
+    <h3 id="rd-title">Ready now</h3>
+    <ul>
+      {#each ready as a (a.id)}
+        <li>
+          <button type="button" class="action main" onclick={() => start(a.id)}>
+            <span class="a-name" style:color={outId(a) ? `var(--r-${itemRarity[outId(a)!] ?? 'common'})` : undefined}>{outId(a) ? itemName(outId(a)!) : a.name}</span>
+            <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
+          </button>
+          <button type="button" class="btn primary start" onclick={() => start(a.id)}>Start</button>
+        </li>
+      {/each}
+    </ul>
   </section>
 {/if}
 
-{#each tierOrder as tier}
-  {#if skillsByTier[tier]?.length}
-    <section class="tier">
-      <h3>{tierLabel[tier]}</h3>
-      {#each skillsByTier[tier] as skill (skill.id)}
-        {@const lvl = levelOf(skill.id)}
-        <article class="skill">
-          <header>
-            <span class="skill-name">{skill.name}</span>
-            <span class="skill-lvl">Lv {lvl}{capNote(skill.id)}</span>
-          </header>
-          <p class="blurb">{skill.blurb}</p>
-          <ul class="actions">
-            {#each actionsBySkill[skill.id] ?? [] as act (act.id)}
-              {@const locked = lvl < (act.level ?? 1)}
-              {@const running = active?.actionId === act.id}
-              <li>
-                <button
-                  type="button"
-                  class="action"
-                  aria-pressed={running}
-                  disabled={locked}
-                  onclick={() => start(act.id)}
-                >
-                  <span class="a-name">{act.name}</span>
-                  <span class="a-req">
-                    {#if locked}Lv {act.level}{:else}{fmtSec(view?.actionTimes?.[act.id])}{/if}
-                  </span>
-                </button>
-              </li>
-            {/each}
-          </ul>
-        </article>
-      {/each}
-    </section>
-  {/if}
+<div class="chips" role="group" aria-label="Category">
+  {#each CATS as c (c.id)}<button type="button" class="btn chip" aria-pressed={cat === c.id} onclick={() => pickCat(c.id)}>{c.label}</button>{/each}
+</div>
+
+{#each skillsByTier[cat] ?? [] as skill (skill.id)}
+  {@const lvl = levelOf(skill.id)}
+  {@const prog = view?.skillProgress?.[skill.id]}
+  {@const acts = actionsBySkill[skill.id] ?? []}
+  {@const unlocked = acts.filter((a) => !locked(a))}
+  {@const lockedActs = acts.filter((a) => locked(a))}
+  {@const can = unlocked.some((a) => startable(a))}
+  <section class="skill" class:isopen={!!open[skill.id]}>
+    <h4>
+      <button type="button" class="head" aria-expanded={!!open[skill.id]} aria-controls="sk-{skill.id}" onclick={() => (open[skill.id] = !open[skill.id])}>
+        <span class="sq" aria-hidden="true">{skill.name[0]}</span>
+        <span class="mid">
+          <span class="skill-name">{skill.name}{#if can}<i class="dot" aria-label="Something can be made now"></i>{/if}</span>
+          <span class="xp" role="progressbar" aria-label="{skill.name} XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((prog?.pct ?? 0) * 100)}><i style="width: {Math.round((prog?.pct ?? 0) * 100)}%"></i></span>
+        </span>
+        <span class="skill-lvl">Lv <span class="num">{lvl}</span>{capNote(skill.id)}</span>
+        <span class="chev" aria-hidden="true">{open[skill.id] ? '▾' : '▸'}</span>
+      </button>
+    </h4>
+    {#if open[skill.id]}
+      <div id="sk-{skill.id}" class="body">
+        <p class="blurb">{skill.blurb}</p>
+        <ul class="alist">
+          {#each unlocked as a (a.id)}{@render row(a)}{/each}
+        </ul>
+        {#if lockedActs.length}
+          <p class="next">Next: {lockedActs[0].name} <span class="num">{`at Lv ${lockedActs[0].level}${lockedActs.length > 1 ? ` · ${lockedActs.length - 1} more locked` : ''}`}</span></p>
+        {/if}
+      </div>
+    {/if}
+  </section>
 {/each}
 
 <style>
-  /* Local layout; tokens from app.css. */
-  section + section { margin-top: 20px; }
+  .ready { margin: 0 0 12px; padding: 10px; background: var(--paper); border: 1px solid var(--woad); }
+  h3 { margin: 0 0 6px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .ready li, .arow { display: flex; gap: 6px; align-items: stretch; }
+  .chips { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; margin: 0 0 12px; }
+  .chip { padding: 0 4px; }
 
-  .active-card, .idle-card {
-    padding: 14px; background: var(--paper); border: 1px solid var(--rule);
-  }
-  .active-card .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .active-card .kind {
-    font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
-    letter-spacing: .04em; text-transform: uppercase;
-  }
-  .active-card h2 { margin: 2px 0 0; font: 600 var(--t-lg)/1.1 var(--f-display); }
-  .active-card .sub { margin: 10px 0 0; color: var(--ink-3); font-size: var(--t-xs); }
-  .active-card .bar {
-    height: 10px; margin-top: 12px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden;
-  }
-  .active-card .fill {
-    height: 100%; background: var(--woad);
-    transition: width 200ms linear;
-  }
-  .active-card .stop {
-    padding: 8px 14px; border: 1px solid var(--woad); background: var(--woad); color: var(--on-woad);
-    font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase;
-  }
+  .skill { margin-bottom: 8px; background: var(--paper); border: 1px solid var(--rule); }
+  h4 { margin: 0; }
+  .head { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; background: transparent; text-align: left; }
+  .sq { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 2px solid var(--woad); color: var(--woad); background: var(--sunk); font: 700 var(--t-md)/1 var(--f-display); }
+  .mid { flex: 1; min-width: 0; display: grid; gap: 6px; }
+  .skill-name { font: 600 var(--t-md)/1.1 var(--f-display); color: var(--ink); display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brass-fill); display: inline-block; }
+  .xp { height: 4px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; display: block; }
+  .xp i { display: block; height: 100%; background: var(--woad); }
+  .skill-lvl { font: 700 var(--t-sm)/1 var(--f-body); color: var(--ink-3); white-space: nowrap; }
+  .chev { color: var(--ink-3); width: 12px; }
+  .body { padding: 0 10px 10px; }
+  .blurb { margin: 0 0 8px; color: var(--ink-2); font-size: var(--t-sm); }
+  .next { margin: 8px 0 0; color: var(--ink-3); font-size: var(--t-sm); }
 
-  .idle-card h2 { margin: 0 0 6px; font: 600 var(--t-lg)/1.1 var(--f-display); }
-  .idle-card p { margin: 0; color: var(--ink-2); }
-
-  .tier h3 {
-    margin: 0 0 10px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
-    letter-spacing: .08em; text-transform: uppercase;
+  .action.main {
+    flex: 1; min-width: 0; min-height: 44px; display: grid; gap: 2px; align-content: center; text-align: left;
+    padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
   }
-
-  .skill { padding: 12px; background: var(--paper); border: 1px solid var(--rule); }
-  .skill + .skill { margin-top: 10px; }
-  .skill header {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-  }
-  .skill-name { font: 600 var(--t-md)/1.1 var(--f-display); color: var(--ink); }
-  .skill-lvl { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); }
-  .blurb { margin: 4px 0 10px; color: var(--ink-2); font-size: var(--t-sm); }
-
-  .actions { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-
-  .action {
-    width: 100%; min-height: 44px;
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 8px 12px; border: 1px solid var(--rule); background: var(--sunk);
-    text-align: left;
-  }
-  .action:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
-  .action:disabled { opacity: .5; cursor: not-allowed; }
-  .action[aria-pressed="true"],
-  .action[aria-pressed="true"]:hover:not(:disabled) { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
-  .action[aria-pressed="true"] .a-name,
-  .action[aria-pressed="true"] .a-req { color: var(--on-woad); opacity: 1; }
-  .a-name { font: 500 var(--t-sm)/1.1 var(--f-body); }
-  .a-req { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; }
+  .action.main:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
+  .action.main:disabled { opacity: .85; cursor: not-allowed; }
+  .arow.running .action.main, .action[aria-pressed="true"] { background: var(--woad-soft); border-color: var(--woad); }
+  .a-name { font: 700 var(--t-sm)/1.15 var(--f-body); }
+  .a-name small { font-weight: 400; color: var(--ink-3); }
+  .inputs { font-size: var(--t-xs); color: var(--ink-3); }
+  .inp.short { color: var(--bad); font-weight: 700; }
+  .a-meta { font-size: var(--t-xs); color: var(--ink-3); font-weight: 700; }
+  .start, .shop, .dis { flex: none; min-width: 72px; padding: 0 8px; }
+  .shop { font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; max-width: 84px; }
+  .dis { opacity: .5; }
 </style>

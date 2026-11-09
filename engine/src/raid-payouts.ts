@@ -2,9 +2,11 @@
 // Ported from legacy/engine.js lines 1817-2027. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, itemName, nextId, fmtGold } from './core';
+import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, allActions, itemName, nextId, fmtGold } from './core';
 import { addItem } from './inventory';
+import { pushEvent } from './events';
 import { findGear } from './gear';
+import { ECON } from './data';
 import { CHECK_LABEL, TIER_NAME, ROLE_MIX, mulberry, clone, roleDef, invTake, WORST } from './v4-helpers';
 import { nowOf, weekStartOf, windowFor } from './clock';
 import { ensureRecord, curRecord } from './server';
@@ -146,7 +148,9 @@ export function resolveRaid(state, opts, events) {
   const crewNeed = sim.waves.reduce((a: number, w: any) => a + num(w.crewNeed, 0), 0);
   const avgContribution = crewNeed > 0 ? clamp(crewHave / crewNeed, 0, 1) : 0;
   const pay = raidGoldSplit(state, num(rec.index, 0) + 1, sim.attendCount, avgContribution, joined);
-  const crewGold = pay.treasury;
+  const mine = playerRaidGold(state, pay, sim.attendCount, sim.yourPoints, arr(sim.memberPoints).map((m) => m.points), joined);
+  pay.player = mine.player;
+  const crewGold = pay.treasury + mine.cut; // the income cap's cut stays with the crew
   if (state.crew && state.crew.treasury) {
     state.crew.treasury.gold += crewGold;
     feedPush(state, 'payout', 'Raid', `Raid payout: ${fmtGold(pay.pool)} pool, ${fmtGold(crewGold)} to the treasury, ${fmtGold(pay.perAttendee)} each (${sim.attendCount} turned out, ${(avgContribution * 100).toFixed(0)}% contribution).`);
@@ -169,7 +173,8 @@ export function resolveRaid(state, opts, events) {
       else state.raid.corePity = num(state.raid.corePity, 0) + 1;
       cores.pityAfter = state.raid.corePity;
     }
-    const buffs = arr(c.weekBuffs).length ? c.weekBuffs : [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }];
+    // still one rand() for the pick (keeps the seeded RNG order) even with a single buff kind
+    const buffs = arr(c.weekBuffs).filter((b) => b && b.kind !== 'tax').length ? arr(c.weekBuffs).filter((b) => b && b.kind !== 'tax') : [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }];
     const bf = buffs[Math.floor(rand() * buffs.length)];
     weekBuff = { kind: bf.kind, value: bf.value, label: bf.label, week: state.week + 1 };
     state.server.pendingBuff = weekBuff;
@@ -194,12 +199,17 @@ export function resolveRaid(state, opts, events) {
     tier, tierWeek, tierBasis: rec.joinedWeekends > 1 ? 'carried' : 'weekend', tierLabel: TIER_NAME[tier] + (rec.joinedWeekends > 1 ? ' (carried over)' : ''),
     contribution: { points: rec.myPoints, weekPoints: sim.weekPoints, totalPoints: rec.totalPoints, weekShare, share, fairShare: 1 / Math.max(1, rec.pop), cumulativeTier: cumTier, weekends: rec.joinedWeekends },
     foodEaten: { total: foodTotal, items: sim.eaten },
+    stockRanOut: arr(sim.stockShortfall).length > 0, stockShortfall: arr(sim.stockShortfall), stockOutAt: sim.stockOutFrame == null ? null : sim.stockOutFrame / Math.max(1, sim.timeline.length - 1),
     crewStock: { used: Object.assign({}, sim.vaultConsumed), byMember: arr(sim.vaultUse).map((u) => Object.assign({}, u, { items: Object.assign({}, u.items) })), yourCredit: Math.round(num(sim.vaultCredit && sim.vaultCredit.you, 0)) }, potionsUsed: sim.potionsUsed, pouchLeft: sim.pouchLeft, pouchStart: sim.pouchStart, supplyDelivered: sim.supplyDelivered, tiers: tiersSnap,
     faints: sim.faints, reviveCost: { food: sim.reviveFood, durability: sim.faints * num(c.reviveDurability, 2) },
     checks: sim.waves.map((w) => ({ wave: w.wave, phase: w.phase, phaseName: w.phaseName, check: w.check, label: w.label, result: w.result, overtime: w.overtime,
       yourShare: w.yourShare, yourText: w.yourText, your: Math.round(w.your), total: Math.round(w.total), need: Math.round(w.need), crewHave: Math.round(w.crewHave), crewNeed: Math.round(w.crewNeed), helped: w.your > 0,
       auraTier: w.auraTier, auraTierMin: w.auraTierMin, auraWeakened: w.auraWeakened, auraLoss: w.auraLoss, auraWeakFrames: w.auraWeakFrames, fainted: w.fainted })),
-    payout: { floor: { items: floorItems, tickets: joined ? num((c.tierTickets || {}).floor, 1) : 0 }, tier: { tier, items: tierItems, tickets: joined ? num((c.tierTickets || {})[tier], 0) : 0 }, chests, crewGold, gold: pay.player, pool: pay.pool, perAttendee: pay.perAttendee, capped: pay.capped, turnout: pay.turnout, contribution: avgContribution, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
+    payout: { floor: { items: floorItems, tickets: joined ? num((c.tierTickets || {}).floor, 1) : 0 }, tier: { tier, items: tierItems, tickets: joined ? num((c.tierTickets || {})[tier], 0) : 0 }, chests, crewGold, gold: pay.player, pool: pay.pool, perAttendee: pay.perAttendee, capped: pay.capped, turnout: pay.turnout,
+      // contribution = the CREW's filled share of its fair-share work (0..1), which scales the pool; it is not yours.
+      // crewContribution says so explicitly; yourShare is your share of this weekend's check points (contribution.weekShare).
+      contribution: avgContribution, crewContribution: avgContribution, yourShare: weekShare,
+      split: { floor: mine.floor, byContribution: mine.byContribution, pointShare: mine.pointShare, uncapped: mine.raw, cap: mine.cap, cutToTreasury: mine.cut }, items: mergeItems([floorItems, tierItems].concat(chests.map((x) => x.items))) },
     cores, weekBuff, auras: sim.auras.map((a) => ({ guild: a.guild, type: a.type, tier: a.tier, strength: num((cfg().auraStrength || [])[a.tier], 0), mine: a.mine })), auraWeakenedWave: sim.auraWeakenedWave,
     moments, bestMoment: best ? { frame: best.frame, t: best.t, at: startedAt + best.frame * frameMs, kind: best.kind, text: best.text, value: best.value } : null,
     windowStart: win.start, windowEnd: win.end, frameMs, instant: !!opts.instant,
@@ -221,6 +231,11 @@ export function resolveRaid(state, opts, events) {
   if (joined) E.log(state, 'raid', won ? `${boss.name} defeated! ${recap.tierLabel} (${(share * 100).toFixed(3)}% share). ${cores.won ? 'You won a core!' : `${cores.tickets} core tickets, no core this time.`}`
     : `Raid on ${boss.name}: ${recap.tierLabel} (${(share * 100).toFixed(3)}% share), ${foodTotal} food eaten${sim.faints ? `, fainted ${sim.faints}x` : ''}. Boss left at ${Math.ceil(rec.hpLeft / rec.maxHp * 100)}%.`);
   chests.forEach((ch) => E.log(state, 'raid', `Server chest (${Math.round(ch.at * 100)}% checkpoint): ${ch.items.map((x) => x.qty + ' ' + itemName(x.itemId)).join(', ')}.`));
+  if (joined) {
+    pushEvent(state, 'raid', won ? `${boss.name} defeated! ${recap.tierLabel}.${cores.won ? ' You won a core!' : ''}` : `Raid on ${boss.name}: ${recap.tierLabel}. Boss left at ${Math.ceil(rec.hpLeft / rec.maxHp * 100)}%.`);
+    if (pay.player > 0) pushEvent(state, 'gold', `Raid payout: +${fmtGold(pay.player)}.`, { gold: pay.player });
+    recap.payout.items.forEach((x: any) => pushEvent(state, 'loot', `Raid loot: ${x.qty} ${itemName(x.itemId)}.`, { itemId: x.itemId, qty: x.qty, grade: x.grade }));
+  } else pushEvent(state, 'raid', `The crew fought ${boss.name} without you.`);
   events.push({ type: 'raidResolved', recapId: recap.id, won });
   return { recap, result, timeline: sim.timeline };
 }
@@ -243,6 +258,34 @@ export function coreOddsFor(state, rec, boss, cumTier) {
 // Pity scales with contribution tier: a guaranteed core after this many empty joined kills
 // (gold 3, silver 4, bronze 5, no tier 6).
 export function pityMaxFor(tier) { const m = cfg().corePityByTier || {}; return Math.max(0, Math.floor(num(m[tier], num(cfg().corePityMax, 3)))); }
+// The H measure at this player's levels: median, over the four gathering skills, of each skill's best
+// unlocked action's gold/hour (sold at Standard value after tax). H = this at level 40.
+const GATHER_SKILLS = ['mining', 'woodcutting', 'herbalism', 'fishing'];
+export function hourlyIncome(state) {
+  const best = GATHER_SKILLS.map((sk) => allActions().filter((a) => a && a.skill === sk && a.kind === 'gather' && num(a.level, 1) <= E.skillLevel(state, sk))
+    .reduce((m, a) => Math.max(m, E.incomePerHour(state, a.id)), 0)).sort((a, b) => a - b);
+  return (best[1] + best[2]) / 2;
+}
+E.hourlyIncome = hourlyIncome;
+/**
+ * The player's raid gold from the pool (raidGoldSplit): a floor share (raidEvenShare of the payable pool,
+ * split evenly) plus raidContribShare of it split by check points, capped at raidCapIncomeHours x the
+ * player's hourly income. NPC crewmates take their shares of the same split (they are stand-ins and are
+ * not paid out of state); the cut from the cap goes to the treasury. Never pays more than the pool.
+ */
+export function playerRaidGold(state, pay, attendCount, yourPts, crewPts, joined) {
+  const payable = Math.max(0, pay.pool - pay.treasury);
+  const evenS = clamp(num(ECON.raidEvenShare, 0.25), 0, 1); const contribS = clamp(num(ECON.raidContribShare, 0.75), 0, 1 - evenS);
+  const n = Math.max(1, attendCount);
+  const floor = Math.floor(payable * evenS / n);
+  const total = Math.max(0, num(yourPts, 0)) + arr(crewPts).reduce((a, p) => a + Math.max(0, num(p, 0)), 0);
+  const share = total > 0 ? Math.max(0, num(yourPts, 0)) / total : 1 / n; // nobody scored: split evenly
+  const byContribution = Math.floor(payable * contribS * share);
+  const raw = joined ? floor + byContribution : 0;
+  const cap = Math.round(num(ECON.raidCapIncomeHours, 3) * hourlyIncome(state));
+  const player = Math.min(raw, cap);
+  return { player, floor: joined ? floor : 0, byContribution: joined ? byContribution : 0, pointShare: joined ? share : 0, raw, cap, cut: raw - player };
+}
 export function raidGoldSplit(state, bossTier, attendCount, avgContribution, joined) {
   const c = cfg(); const per = num(c.raidGoldPerAttendee, 0);
   const roster = arr(state.crew && state.crew.members).length + 1;
@@ -267,4 +310,4 @@ E.recaps = (state) => arr(state.raid.recaps).slice();
 E.markRecapSeen = function (state, id) { const r = arr(state.raid.recaps).find((x) => x.id === (id || (E.lastRecap(state) || {}).id)); if (r) r.seen = true; return { ok: !!r, reason: r ? '' : 'No such recap.' }; };
 E.leaderboards = (state) => { const r = E.lastRecap(state); return r ? r.leaderboards : null; };
 E.weekBuff = (state) => { const b = state.server && state.server.weekBuff; return b && b.week === state.week ? b : null; };
-E.marketTax = function (state) { const b = E.weekBuff(state); const t = clamp(num(cfg().marketTax, 0.05), 0, 1); return b && b.kind === 'tax' ? Math.min(t, num(b.value, t)) : t; };
+E.marketTax = function (state) { return clamp(num(cfg().marketTax, 0.05), 0, 1); }; // no tax week buff since 2026-11-09

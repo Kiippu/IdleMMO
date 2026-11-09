@@ -3,6 +3,8 @@
 import type { Req, FromWorker, OfflineSummary } from './protocol';
 import { engine } from './store.svelte';
 
+export type StoreResult = { ok: boolean; reason: string; qty: number; gold: number; itemId?: string; uids?: string[] };
+
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void };
 
 let worker: Worker | null = null;
@@ -60,7 +62,11 @@ export const engineClient = {
   start: (actionId: string) => rpc<void>({ id: nextId(), type: 'start', actionId }),
   stop: () => rpc<void>({ id: nextId(), type: 'stop' }),
   pause: () => rpc<void>({ id: nextId(), type: 'pause' }),
-  resume: () => rpc<OfflineSummary | null>({ id: nextId(), type: 'resume' }),
+  resume: async () => {
+    const s = await rpc<OfflineSummary | null>({ id: nextId(), type: 'resume' });
+    if (s) engine.offline = s;
+    return s;
+  },
   equip: (uid: string) => rpc<void>({ id: nextId(), type: 'equip', uid }),
   unequip: (slot: string) => rpc<void>({ id: nextId(), type: 'unequip', slot }),
   saveLoadout: (name?: string) => rpc<void>({ id: nextId(), type: 'saveLoadout', name, fromEquipped: true }),
@@ -68,6 +74,13 @@ export const engineClient = {
   equipLoadout: (loadoutId: string) => rpc<void>({ id: nextId(), type: 'equipLoadout', loadoutId }),
   setRaidRules: (rules: { eatAt?: number; stance?: string; tactic?: string }) =>
     rpc<void>({ id: nextId(), type: 'setRaidRules', rules }),
+  storeBuy: (slot: number, qty: number) =>
+    rpc<StoreResult>({ id: nextId(), type: 'storeBuy', slot, qty }),
+  storeSell: (itemId: string, grade: number, qty: number) =>
+    rpc<StoreResult>({ id: nextId(), type: 'storeSell', itemId, grade, qty }),
+  storeSellGear: (uid: string) => rpc<StoreResult>({ id: nextId(), type: 'storeSellGear', uid }),
+  lockIn: () => rpc<{ ok: boolean; reason?: string; warnings?: string[] }>({ id: nextId(), type: 'lockIn' }),
+  unlock: () => rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'unlock' }),
   buyListing: (listingId: string, qty: number) =>
     rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'buyListing', listingId, qty }),
   listItem: (itemId: string, grade: number, qty: number, price: number) =>

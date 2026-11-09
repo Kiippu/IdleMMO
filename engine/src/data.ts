@@ -494,7 +494,34 @@ export const ECON = {
   raidTreasuryShare: 0.025,    // share of each raid gold pool routed to the crew treasury: a typical 5-person crew (~55k pool) banks ~1.4k, enough at 75% to fund next week's ~1k of town contracts
   raidCapAttendees: 18,        // pool cap = this many full-turnout attendees' worth (bites only for big crews)
   contractRewardMult: 1.1,     // contract pay per unit = item value x this (market sale nets 0.95 x value)
+  // Raid gold split (owner 2026-11-09): of the payable pool (pool - treasury share), raidEvenShare is split
+  // evenly between attendees (the floor share) and raidContribShare by each attendee's share of the
+  // crew's check points. Each player's payout is capped at raidCapIncomeHours x THEIR own hourly income
+  // (E.hourlyIncome: the H measure at their levels); what the cap cuts goes to the crew treasury.
+  raidEvenShare: 0.25,
+  raidContribShare: 0.75,
+  raidCapIncomeHours: 3,
+  // NPC general store (2026-11-08; replaces the player market, which is parked). Prices are multiples of
+  // item value, so in hours of play: buying 1 H worth of a level-40 gatherer's output costs ~1.58 H
+  // (1.5 / 0.95 after-tax value); selling 1 H of output to the store returns ~0.42 H.
+  storeResourceMult: 1.5,      // store buy price for raw/refined materials = value x this
+  storeGearMult: 2,            // store buy price for gear (Common, Standard) = value x this; value = 1.3x inputs, so ~2.6x the mats: crafting stays worthwhile
+  storeSellMult: 0.4,          // the store buys anything from the player at value x this (gold floor + sink); below contracts (1.1x)
+  storeResourceSlots: 6,       // resource slots per hourly rotation
+  storeGearSlots: 3,           // gear slots per hourly rotation
+  storeGearMaxTier: 2,         // gear tiers on sale (low/mid only)
 };
+
+// Display rarity per item id (the collect reveal orders rarer items last and flashes their ink).
+// Stackables use their tier (1 common .. 5 legendary); boss cores are mythic. A crafted gear PIECE has
+// its own rolled rarity on the instance (gear.rarity), which wins over this base value.
+export const TIER_RARITY = ['common', 'common', 'uncommon', 'rare', 'epic', 'legendary'];
+export const itemRarity: Record<string, string> = {};
+for (const id of Object.keys(items)) {
+  const it = items[id];
+  it.rarity = it.kind === 'core' ? 'mythic' : TIER_RARITY[Math.max(1, Math.min(5, Math.floor(Number(it.tier) || 1)))];
+  itemRarity[id] = it.rarity;
+}
 
 export const DATA: any = {
   config: {
@@ -505,6 +532,10 @@ export const DATA: any = {
     offlineRate: 0.1,       // offline catch-up runs at 10% speed, capped at 12 h (offlineCapSec)
     maxLevel: 99,
     marketTax: 0.05,
+    // Player market parked 2026-11-08 (the NPC general store replaces it). The code stays; with this
+    // false the NPC board never refreshes, listings never fill, buy/list refuse, and loading a save
+    // cancels the player's open listings (items back to the bag).
+    playerMarket: false,
     pityThreshold: 40,
     speedFactor: SPEED,           // phase 2.5: match the prototype's pace (owner's call, 2026-11-08)
     baseHp: 60,
@@ -532,7 +563,7 @@ export const DATA: any = {
     raidTierGrowth: ECON.raidTierGrowth,
     raidCapAttendees: ECON.raidCapAttendees,
     raidTreasuryShare: ECON.raidTreasuryShare,
-    weekBuffs: [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }, { kind: 'tax', value: 0.02, label: 'Market tax 2%' }],
+    weekBuffs: [{ kind: 'repair', value: 0.3, label: 'Repairs 30% cheaper' }], // market-tax buff removed 2026-11-09 (market parked)
     crewStartTreasury: 120,
     // phase 2.5: town contracts (generated each Monday from what the coming raid needs). Gold only.
     contractBudgetShare: 0.75,    // share of free treasury gold escrowed for town contract rewards
@@ -593,6 +624,7 @@ export const DATA: any = {
   elements: ['fire', 'frost', 'venom', 'holy'],
 
   items,
+  itemRarity,
   actions,
 
   affixes: [
