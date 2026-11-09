@@ -282,7 +282,7 @@ export function playerRaidGold(state, pay, attendCount, yourPts, crewPts, joined
   const share = total > 0 ? Math.max(0, num(yourPts, 0)) / total : 1 / n; // nobody scored: split evenly
   const byContribution = Math.floor(payable * contribS * share);
   const raw = joined ? floor + byContribution : 0;
-  const cap = Math.round(num(ECON.raidCapIncomeHours, 1.5) * hourlyIncome(state));
+  const cap = Math.round(num(ECON.raidCapIncomeHours, 3) * hourlyIncome(state));
   const player = Math.min(raw, cap);
   return { player, floor: joined ? floor : 0, byContribution: joined ? byContribution : 0, pointShare: joined ? share : 0, raw, cap, cut: raw - player };
 }

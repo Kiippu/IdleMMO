@@ -500,7 +500,7 @@ export const ECON = {
   // (E.hourlyIncome: the H measure at their levels); what the cap cuts goes to the crew treasury.
   raidEvenShare: 0.25,
   raidContribShare: 0.75,
-  raidCapIncomeHours: 1.5,
+  raidCapIncomeHours: 3,
   // NPC general store (2026-11-08; replaces the player market, which is parked). Prices are multiples of
   // item value, so in hours of play: buying 1 H worth of a level-40 gatherer's output costs ~1.58 H
   // (1.5 / 0.95 after-tax value); selling 1 H of output to the store returns ~0.42 H.

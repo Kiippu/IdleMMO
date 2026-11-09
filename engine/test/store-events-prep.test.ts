@@ -394,7 +394,10 @@ describe('raid gold split: floor + contribution, capped at the player\'s own inc
     const sum = pts.reduce((a, p) => a + Math.floor(payable * 0.25 / 5) + Math.floor(payable * 0.75 * p / tot), 0);
     expect(sum).toBeLessThanOrEqual(payable);
     expect(top.player).toBeLessThanOrEqual(top.cap);
-    expect(top.cap).toBe(Math.round(1.5 * h.E.hourlyIncome(s)));
+    const { ECON } = await import('../src/data');
+    expect(top.cap).toBe(Math.round(ECON.raidCapIncomeHours * h.E.hourlyIncome(s)));
+    // owner 2026-11-09: cap at 3 H so a level-40 top contributor out-earns the average
+    expect(top.player).toBeGreaterThan(avg.player);
   });
   it('the income cap bites for a low-level top contributor; the cut goes to the treasury in a real raid', async () => {
     const { h, split, s } = await setup(1);
