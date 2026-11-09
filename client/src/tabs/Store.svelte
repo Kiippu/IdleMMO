@@ -6,7 +6,7 @@
   import { fmtG, fmtN, fmtDuration, fmtSecs } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import { markDone } from '../guide.svelte';
-  import { toast } from '../overlays/toast.svelte';
+  import { toast } from '../overlays/toasts.svelte';
 
   type Props = { onContracts: () => void };
   let { onContracts }: Props = $props();
