@@ -5,7 +5,7 @@
   import { ui } from '../ui.svelte';
   import { fmtG, fmtN } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
-  import { toast } from '../overlays/toast.svelte';
+  import { toast } from '../overlays/toasts.svelte';
   import { markDone } from '../guide.svelte';
 
   type Item = { id: string; name: string; slot?: string; kind?: string; stats?: Record<string, number> };

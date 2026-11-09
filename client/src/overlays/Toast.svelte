@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { toasts, expireToast } from './toast.svelte';
+  import { toasts, expireToast } from './toasts.svelte';
 
   const SHOW_MS = 2500;
   let blocked = $state(false);
