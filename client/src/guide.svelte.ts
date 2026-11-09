@@ -24,9 +24,9 @@ export function setBaseEquipped(uids: string[]) { guide.baseEquipped = uids; per
 
 export type Step = { id: string; text: string; tab: string; selector: string; subs?: any };
 export const STEPS: Step[] = [
-  { id: 'gather', text: 'Gather something', tab: 'Workshop', selector: '.action[data-kind="gather"]:not(:disabled)' },
+  { id: 'gather', text: 'Gather something', tab: 'Workshop', subs: { ws: 'gathering' }, selector: '.action[data-kind="gather"]:not(:disabled)' },
   { id: 'sell', text: 'Sell one item at the Shop', tab: 'Shop', selector: '.list li .btn' },
-  { id: 'craft', text: 'Craft an item', tab: 'Workshop', selector: '.action[data-kind="craft"]:not(:disabled)' },
+  { id: 'craft', text: 'Craft an item', tab: 'Workshop', subs: { ws: 'crafting' }, selector: '.action[data-kind="craft"]:not(:disabled)' },
   { id: 'equip', text: 'Equip it', tab: 'Stores', selector: '.grid .tile[data-gear]', subs: { stores: 'mine' } },
   { id: 'assist', text: 'Help a crewmate', tab: 'Crew', selector: '[data-guide="assist"]:not(:disabled)', subs: { crew: 'jobs' } },
   { id: 'lock', text: 'Lock in for the raid', tab: 'War Room', selector: '[data-guide="lock"]', subs: { war: 'raid' } },

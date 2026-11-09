@@ -50,7 +50,7 @@
     const r = engine.derived?.raidStatus;
     if (r) {
       if (r.phase === 'live' && !r.sittingOut) out['War Room'] = 'Raid is live';
-      else if (r.phase === 'prep' && r.secToStart <= 86400) out['War Room'] = 'Raid opens within a day and you are not locked in';
+      else if (r.phase === 'prep' && !r.locked) out['War Room'] = 'You have not locked in for the raid';
     }
     const n = (engine.derived?.contracts ?? []).filter((c: any) => c.status === 'open' && !c.mine && c.canFill?.ok && Math.min(c.remaining ?? 0, c.have ?? 0, c.capacity ?? Infinity) >= 1).length;
     if (n > 0) out['Crew'] = `${n} ${n === 1 ? 'contract' : 'contracts'} you can fill`;

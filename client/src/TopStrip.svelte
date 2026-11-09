@@ -24,7 +24,7 @@
   let hpPct = $derived(maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0);
   let raid = $derived(view?.raidStatus ?? null);
 
-  let hint = $derived(guide.dismissed ? nextStep() : null);
+  let hint = $derived(!guide.dismissed && !active ? nextStep() : null);
   let chip = $derived.by(() => {
     if (!raid) return null;
     if (raid.phase === 'live') return { text: `Raid closes in ${fmtDuration(raid.secLeft)}`, live: true };
@@ -69,9 +69,6 @@
     <button type="button" class="btn" onclick={onLog}>Log</button>
     <button type="button" class="btn" onclick={onSave} aria-label="Open save menu">Save</button>
   </div>
-  {#if hint}
-    <button type="button" class="hint" onclick={() => showMe(hint.tab, hint.selector, hint.subs ?? {})}>Next: {hint.text}</button>
-  {/if}
   <div class="r2">
     <div class="scene">
       <SceneStrip />
@@ -93,6 +90,8 @@
     </div>
     {#if job}
       <button type="button" class="btn primary" onclick={stop}>Stop</button>
+    {:else if hint}
+      <button type="button" class="btn primary hintbtn" onclick={() => showMe(hint.tab, hint.selector, hint.subs ?? {})}>Next: {hint.text}</button>
     {:else}
       <button type="button" class="btn primary" onclick={onStart}>Start next job</button>
     {/if}
@@ -111,7 +110,7 @@
   .chip { flex: 1; min-width: 0; text-align: right; font: 700 var(--t-sm)/1.2 var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink-2); }
   .chip.live { color: var(--woad); }
   .r1 .btn { padding: 0 10px; }
-  .hint { display: block; width: 100%; min-height: 44px; margin: 0 0 4px; padding: 0 8px; text-align: left; border: 1px solid var(--woad); background: var(--woad-soft); color: var(--woad); font: 700 var(--t-sm)/1.2 var(--f-body); }
+  .r2 .hintbtn { max-width: 130px; font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; }
   .r2 { display: flex; align-items: center; gap: 8px; }
   .scene { position: relative; flex: none; }
   .float {
