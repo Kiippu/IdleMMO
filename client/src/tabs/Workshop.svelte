@@ -66,6 +66,7 @@
                 <button
                   type="button"
                   class="action"
+                  data-kind={act.kind}
                   aria-pressed={running}
                   disabled={locked}
                   onclick={() => start(act.id)}

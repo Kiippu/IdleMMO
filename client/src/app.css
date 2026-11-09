@@ -169,3 +169,7 @@ input[type="number"] { font-family: var(--f-num); font-variant-numeric: tabular-
 
 /* neutral status pill; red is for errors/danger only */
 .status-pill { font: 700 var(--t-sm)/1.1 var(--f-body); color: var(--woad); }
+
+.guide-pulse { outline: 3px solid var(--woad); outline-offset: 2px; animation: gpulse 800ms ease-in-out 3; }
+@keyframes gpulse { 50% { outline-color: var(--brass-fill); } }
+@media (prefers-reduced-motion: reduce) { .guide-pulse { animation: none; } }

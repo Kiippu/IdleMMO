@@ -16,7 +16,8 @@
   let stock = $derived<any>(recap?.crewStock ?? null);
   let members = $derived<any[]>(stock?.byMember ?? []);
   let dealt = $derived(Math.max(0, (recap?.hpPctBefore ?? 0) - (recap?.hpPctAfter ?? 0)));
-  let stockEmpty = $derived(!!stock && Object.keys(stock.used ?? {}).length === 0);
+  let short = $derived<any[]>((recap?.stockShortfall ?? []).filter((m: any) => (m.heal ?? 0) + (m.buff ?? 0) > 0));
+  let shortNames = $derived(short.map((m) => (m.who === 'you' ? 'you' : m.name)).join(', '));
   let btn = $state<HTMLButtonElement | null>(null);
   $effect(() => { btn?.focus(); });
   function onKey(ev: KeyboardEvent) { if (ev.key === 'Escape') onClose(); }
@@ -71,8 +72,8 @@
       </section>
     {/if}
 
-    {#if stockEmpty}
-      <p class="nudge">The crew stock had nothing to heal or buff with. Hand items in through Contracts to raise everyone's contribution next week.</p>
+    {#if recap.stockRanOut}
+      <p class="nudge">The crew stock ran out{recap.stockOutAt != null ? ` ${Math.round(recap.stockOutAt * 100)}% into the fight` : ''}{shortNames ? `, so ${shortNames} went without healing or buffs` : ''}. Hand items in through Contracts to keep everyone topped up next week.</p>
     {/if}
 
     <button type="button" class="btn primary done" bind:this={btn} onclick={onClose}>Done</button>

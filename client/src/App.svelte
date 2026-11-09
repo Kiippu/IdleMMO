@@ -10,6 +10,7 @@
   import Store from './tabs/Store.svelte';
   import Toast from './overlays/Toast.svelte';
   import { ui } from './ui.svelte';
+  import GettingStarted from './overlays/GettingStarted.svelte';
   import Crew from './tabs/Crew.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
   import SaveMenu from './overlays/SaveMenu.svelte';
@@ -24,6 +25,7 @@
   let saveMenuOpen = $state(false);
   let logOpen = $state(false);
   let seeded = false;
+  $effect(() => { if (ui.goTab) { active = ui.goTab as Tab; ui.goTab = null; } });
 
   $effect(() => {
     void initEngineClient().catch((err) => { bootError = String(err?.message ?? err); });
@@ -99,6 +101,7 @@
     {:else}
       <CollectReveal />
       {#if active === 'Workshop'}
+        <GettingStarted />
         <Workshop />
       {:else if active === 'Stores'}
         <Stores />

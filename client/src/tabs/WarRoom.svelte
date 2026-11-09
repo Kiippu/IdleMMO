@@ -1,6 +1,7 @@
 <script lang="ts">
   import { DATA } from '@guildwright/engine';
   import { fmtG, fmtN, fmtDuration, hasPayout } from '../format';
+  import { ui } from '../ui.svelte';
   import { askText, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import RaidRecap from '../overlays/RaidRecap.svelte';
   import { engine } from '../engine/store.svelte';
@@ -20,6 +21,7 @@
 
   let sub = $state<'loadout' | 'raid'>('loadout');
   let recapOpen = $state(false);
+  $effect(() => { if (ui.warSub) { sub = ui.warSub; ui.warSub = null; } });
   let snap = $derived(engine.snapshot);
   let view = $derived(engine.derived);
 
@@ -163,6 +165,14 @@
         {/if}
         {#if prepPhase === 'live' && status}
           <p class="meta">Raid progress <span class="num">{pct(status.fightPct ?? 0)}</span></p>
+          {#if status.liveContribution}
+            {@const lc = status.liveContribution}
+            <div class="live">
+              <p class="line"><span>Your contribution</span><b class="num">{pct(lc.share)}</b></p>
+              <div class="bar sm" role="progressbar" aria-label="Your contribution" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(lc.share * 100)}><div class="fill woad" style="width: {Math.min(100, Math.round(lc.share * 100))}%"></div></div>
+              <p class="meta">Tier so far: <b>{lc.tierLabel}</b></p>
+            </div>
+          {/if}
           {#if status.sittingOut}
             <p class="meta">You joined after this raid opened. You'll join next weekend's raid.{#if status.nextRaidAt} Next raid opens in <span class="num">{fmtDuration((status.nextRaidAt - Date.now()) / 1000)}</span>.{/if}</p>
           {/if}
@@ -221,7 +231,7 @@
     </section>
 
     {#if prepPhase === 'prep'}
-      <button type="button" class="btn wide" class:primary={!locked} onclick={toggleLock}>{locked ? 'Locked in. Tap to unlock' : 'Lock in'}</button>
+      <button type="button" class="btn wide" data-guide="lock" class:primary={!locked} onclick={toggleLock}>{locked ? 'Locked in. Tap to unlock' : 'Lock in'}</button>
       {#if !locked}<p class="meta center">Unlocked players are locked in automatically when the raid opens.</p>{/if}
     {:else}
       <p class="meta center">{locked ? 'You are locked in for this raid.' : 'You were locked in automatically.'}</p>
@@ -264,6 +274,10 @@
   .chip.pri { border-color: var(--woad); color: var(--woad); background: var(--woad-soft); }
   .bar { position: relative; height: 12px; margin-top: 12px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
   .bar .fill { height: 100%; background: var(--hp); transition: width 200ms linear; }
+  .live { margin-top: 8px; display: grid; gap: 4px; }
+  .line { margin: 0; display: flex; justify-content: space-between; }
+  .bar.sm { height: 8px; margin-top: 0; }
+  .fill.woad { background: var(--woad); }
   .tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); opacity: .6; }
   .chests { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px; }
   .chests li { padding: 6px 8px; border: 1px solid var(--rule); background: var(--sunk); display: grid; gap: 2px; font-weight: 700; }

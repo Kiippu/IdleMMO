@@ -5,6 +5,7 @@
   import { engineClient, type StoreResult } from '../engine/client';
   import { fmtG, fmtN, fmtDuration } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
+  import { markDone } from '../guide.svelte';
   import { toast } from '../overlays/toast.svelte';
 
   type Props = { onContracts: () => void };
@@ -89,14 +90,14 @@
       confirmLabel: 'Sell',
     });
     if (qty == null) return;
-    try { const res = await engineClient.storeSell(r.id, r.grade, qty); report(res, `Sold ${qty} ${r.name} for ${fmtG(res.gold)}`); }
+    try { const res = await engineClient.storeSell(r.id, r.grade, qty); report(res, `Sold ${qty} ${r.name} for ${fmtG(res.gold)}`); if (res.ok) markDone('sell'); }
     catch (err) { console.error('storeSell failed', err); }
   }
   async function sellOneGear(g: any) {
     const price = store?.gearSellPrices?.[g.uid] ?? 0;
     const name = engine.derived?.gearNames?.[g.uid] ?? itemName(g.itemId);
     if (!(await confirmSheet({ title: `Sell ${name}?`, body: `The store pays ${fmtG(price)}. Store pays ${sellMult}x. A crewmate or contract may pay more.`, confirmLabel: `Sell for ${fmtG(price)}`, danger: true }))) return;
-    try { const res = await engineClient.storeSellGear(g.uid); report(res, `Sold ${name} for ${fmtG(res.gold)}`); }
+    try { const res = await engineClient.storeSellGear(g.uid); report(res, `Sold ${name} for ${fmtG(res.gold)}`); if (res.ok) markDone('sell'); }
     catch (err) { console.error('storeSellGear failed', err); }
   }
   const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
