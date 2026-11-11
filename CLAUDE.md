@@ -22,7 +22,7 @@ The legacy single-file prototype is `index.html` at the repo root. It is the beh
   Parallel agents must not edit the same files. At the end of a session, list the agents used and what each owned.
 - Commit and push to GitHub. Work on branches; don't push to `main` without asking.
 - Builds must keep existing player saves working (save schema v6 in IndexedDB since phase 2.5; `migrate()` loads v1, v3, v4, v5, v6; fixtures in `engine/test/fixtures/`).
-- Test at phone width (max 460px column) in light and dark mode.
+- Test at phone width (360 and 390px) in light mode only (no dark mode or themes since 2026-11-11).
 
 ## Settled decisions (don't reopen unless asked)
 Game design
@@ -218,6 +218,10 @@ overhaul: framed panels replace flat paper — owner confirmed 2026-11-11).
 
 Open: crew activity feed (agreed in the UI review, not built yet); credits screen in game; guide progress not in the save export; Workshop/Shop not yet seen on the live tunnel.
 
+Phase 3 plan (owner-approved 2026-11-11): https://claude.ai/artifact/R52AF1BRcyedWQ8J9AQQhs — order: layout pass
+(no art) → style frame on a real phone → pipeline (+credits log) → icons (32px grid) → UI frames (5 component
+types) → hero/crew/scenes → bosses → sound (mute) → credits screen. LIGHT MODE ONLY from now: no dark mode, no
+themes (test at 360 and 390px, light). Whole-number pixel scaling only.
 Next: phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
 art pack (DawnBringer 32 remap), LPC hero layer composite driven by equipped slots in SceneStrip (the
 placeholder goes away), per-action animation variety, `art/CREDITS.md` + in-game credits screen.
