@@ -119,6 +119,7 @@
     <h3>Members</h3>
     {#if members.length === 0}
       <p class="muted">No crewmates yet.</p>
+      <button type="button" class="btn next" onclick={() => (sub = 'jobs')}>See open jobs</button>
     {:else}
       <ul class="list">
         {#each members as m (m.id)}
@@ -160,7 +161,10 @@
             </select>
             <button type="button" class="btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
           </div>
-          {#if (spec.eligible ?? []).length === 0}<p class="meta">Reach level {spec.capLevel} in another skill to switch.</p>{/if}
+          {#if (spec.eligible ?? []).length === 0}<p class="meta">Reach level {spec.capLevel} in another skill to switch.</p>
+          {:else if !pickSkill}<p class="why">Choose a skill above to turn on Switch.</p>
+          {:else if !cooldown.ready}<p class="why">You can switch again in {cooldown.text}.</p>
+          {:else if gold < spec.cost}<p class="why">You need {fmtG(spec.cost - gold)} more gold to switch.</p>{/if}
         {/if}
         {#if msg}<p class="meta">{msg}</p>{/if}
       </article>
@@ -171,6 +175,7 @@
     <h3>Open jobs</h3>
     {#if jobs.length === 0}
       <p class="muted">No one has posted work right now. Crewmates post jobs when they stop working.</p>
+      <button type="button" class="btn next" onclick={() => (sub = 'contracts')}>Fill a contract instead</button>
     {:else}
       <ul class="list">
         {#each jobs as j (j.id)}
@@ -196,6 +201,10 @@
                 {j.assisting ? 'Assisting' : 'Assist'}
               </button>
             </div>
+            {#if !j.canAssist?.ok && !j.assisting}
+              <!-- TODO(engine): plug in the engine's canAssist.reason once it covers every case; this is the client fallback. -->
+              <p class="why">{j.canAssist?.reason || (snap?.active ? 'Stop your current job first. You only have one action slot.' : 'You cannot help with this job right now.')}</p>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -219,6 +228,7 @@
   <section class="group">
     {#if contracts.length === 0}
       <p class="muted">No contracts posted. Check back when the next raid is announced.</p>
+      <button type="button" class="btn next" onclick={() => (requestOpen = true)}>Post a request of your own</button>
     {:else}
       <ul class="list">
         {#each sortedContracts as c (c.id)}
@@ -246,7 +256,10 @@
               <button type="button" class="btn primary wide" disabled={!c.canFill?.ok || mx < 1} title={c.canFill?.reason ?? ''} onclick={() => fill(c)}>
                 <span class="num">Hand in {mx} (+{fmtG(mx * (c.rewardPer ?? 0))})</span>
               </button>
-              {#if !c.canFill?.ok && c.canFill?.reason}<p class="meta">{c.canFill.reason}</p>{/if}
+              {#if !c.canFill?.ok || mx < 1}
+                <!-- TODO(engine): prefer the engine's canFill.reason; the fallback below uses only client-known counts. -->
+                <p class="why">{c.canFill?.reason || (c.have < 1 ? `You have none to hand in. Make or gather some ${c.itemName ?? itemName(c.itemId)} first.` : (c.remaining ?? 0) < 1 ? 'This contract has nothing left to fill.' : 'The crew stock cannot take any more of this right now.')}</p>
+              {/if}
             {:else}
               <p class="meta">{c.status === 'filled' ? 'Filled.' : c.status === 'cancelled' ? 'Cancelled.' : 'Closed.'}</p>
             {/if}
@@ -274,6 +287,7 @@
     <h3>Ledger</h3>
     {#if log.length === 0}
       <p class="muted">No activity yet. Entries will appear here as the crew earns, deposits or pays out.</p>
+      <button type="button" class="btn next" onclick={() => (sub = 'contracts')}>Hand in items on Contracts</button>
     {:else}
       <ul class="list">
         {#each log as entry}
@@ -339,6 +353,8 @@
   .group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .group-head h3 { margin: 0; }
   .wide { width: 100%; margin-top: 8px; }
+  .why { margin: 6px 0 0; color: var(--ink-2); font-size: var(--t-xs); }
+  .next { margin-top: 8px; }
   .pbar { height: 6px; margin-top: 6px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
   .pbar div { height: 100%; background: var(--woad); }
   .pbar.gold div { background: var(--brass-fill); }

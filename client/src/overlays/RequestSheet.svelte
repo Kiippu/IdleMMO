@@ -52,6 +52,7 @@
     </div>
     <p class="meta">Escrow: <span class="brass num">{fmtG(escrow)}</span> from your <span class="num">{fmtG(gold)}</span>. Cancel any time for a refund of what is left.</p>
     {#if err}<p class="bad">{err}</p>{/if}
+    {#if !valid}<p class="meta">{!item ? 'Choose an item to turn on Post request.' : !(qty >= 1 && qty <= 500) ? 'Quantity must be 1 to 500.' : !(reward >= 1) ? 'Reward must be at least 1g.' : `You need ${fmtG(escrow - gold)} more gold to cover the escrow.`}</p>{/if}
     <div class="actions">
       <button type="button" class="btn ghost" onclick={onClose}>Cancel</button>
       <button type="button" class="btn primary" disabled={!valid} onclick={post}>Post request</button>

@@ -6,6 +6,7 @@
   import { fmtG, fmtN, fmtDuration, fmtSecs } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import { markDone } from '../guide.svelte';
+  import { ui } from '../ui.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
   import { buyFromShop } from '../overlays/shopActions';
   import { toast } from '../overlays/toasts.svelte';
@@ -126,7 +127,8 @@
     <h3>Sell to the store</h3>
     <p class="note">Store pays <span class="num">{sellMult}x</span>. Crewmates and contracts pay more. <button type="button" class="link" onclick={onContracts}>See Contracts</button></p>
     {#if sellRows.length === 0 && sellGear.length === 0}
-      <p class="muted">Nothing to sell. Gather or craft first.</p>
+      <p class="muted">Nothing to sell yet.</p>
+      <button type="button" class="btn next" onclick={() => (ui.goTab = 'Workshop')}>Go gather something</button>
     {:else}
       <ul class="list">
         {#each sellRows as r (r.id + r.grade)}
@@ -161,6 +163,7 @@
   .group h3 { margin: 0 0 8px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
   .muted { margin: 0; padding: 12px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
   .note { margin: 0 0 8px; color: var(--ink-3); font-size: var(--t-sm); }
+  .next { margin-top: 8px; }
   .link { background: none; border: 0; padding: 12px 0; min-height: 44px; color: var(--woad); font: inherit; font-weight: 700; text-decoration: underline; }
   .meta { color: var(--ink-3); font-size: var(--t-xs); }
 

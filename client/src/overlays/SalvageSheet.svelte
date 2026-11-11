@@ -79,6 +79,7 @@
         {/if}
       {/if}
       <label class="chk"><input type="checkbox" bind:checked={allow} /> <span>Include protected (equipped, loadouts, rare+)</span></label>
+      {#if !pv || pv.gearCount === 0}<p class="meta">{!pv ? 'Working out what you would get…' : 'Nothing to salvage. Tick "Include protected" to see equipped and rare gear.'}</p>{/if}
       <div class="actions">
         <button type="button" class="btn ghost" onclick={closeSalvage}>Cancel</button>
         <button type="button" class="btn danger solid" disabled={!pv || pv.gearCount === 0 || busy} onclick={confirm}>Salvage <span class="num">{pv?.gearCount ?? 0}</span></button>

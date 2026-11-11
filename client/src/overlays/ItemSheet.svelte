@@ -182,7 +182,7 @@
             {/each}
           </ul>
           {#if lockd}<p class="meta">Needs {skillName(a.skill)} Lv <span class="num">{a.level}</span>.</p>
-          {:else if !ref.readOnly}<button type="button" class="btn" disabled={short} onclick={() => make(a)}>Start making</button>{/if}
+          {:else if !ref.readOnly}<button type="button" class="btn" disabled={short} onclick={() => make(a)}>Start making</button>{#if short}<p class="meta">Missing materials. Check the "have / need" lines above.</p>{/if}{/if}
         </section>
       {/each}
       {#if gatheredBy.length}<p class="meta">Gathered by: {gatheredBy.map((a) => `${a.name} (${skillName(a.skill)} Lv ${a.level ?? 1})`).join(', ')}</p>{/if}

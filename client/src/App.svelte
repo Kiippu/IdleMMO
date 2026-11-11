@@ -47,18 +47,19 @@
     }
   });
 
-  // Tab badges from existing snapshot/derived data only.
+  // Tab badges from existing snapshot/derived data only. `n` is shown as a number; no `n` means a plain dot.
+  type Badge = { n?: number; text: string };
   let badges = $derived.by(() => {
-    const out: Partial<Record<Tab, string>> = {};
+    const out: Partial<Record<Tab, Badge>> = {};
     if (!engine.ready) return out;
-    if (!engine.snapshot?.active) out['Workshop'] = 'Nothing is running';
+    if (!engine.snapshot?.active) out['Workshop'] = { text: 'Nothing is running' };
     const r = engine.derived?.raidStatus;
     if (r) {
-      if (r.phase === 'live' && !r.sittingOut) out['War Room'] = 'Raid is live';
-      else if (r.phase === 'prep' && !r.locked) out['War Room'] = 'You have not locked in for the raid';
+      if (r.phase === 'live' && !r.sittingOut) out['War Room'] = { n: 1, text: 'Raid is live' };
+      else if (r.phase === 'prep' && !r.locked) out['War Room'] = { n: 1, text: 'You have not locked in for the raid' };
     }
     const n = (engine.derived?.contracts ?? []).filter((c: any) => c.status === 'open' && !c.mine && c.canFill?.ok && Math.min(c.remaining ?? 0, c.have ?? 0, c.capacity ?? Infinity) >= 1).length;
-    if (n > 0) out['Crew'] = `${n} ${n === 1 ? 'contract' : 'contracts'} you can fill`;
+    if (n > 0) out['Crew'] = { n, text: `${n} ${n === 1 ? 'contract' : 'contracts'} you can fill` };
     return out;
   });
 
@@ -144,7 +145,7 @@
     <div class="row">
       {#each tabs as tab}
         <button type="button" aria-current={active === tab ? 'page' : undefined} onclick={() => (active = tab)}>
-          {tab}{#if badges[tab]}<span class="dot" aria-hidden="true"></span><span class="sr">{badges[tab]}</span>{/if}
+          {tab}{#if badges[tab]}{#if badges[tab].n != null}<span class="count num" aria-hidden="true">{badges[tab].n > 9 ? '9+' : badges[tab].n}</span>{:else}<span class="dot" aria-hidden="true"></span>{/if}<span class="sr">{badges[tab].text}</span>{/if}
         </button>
       {/each}
     </div>

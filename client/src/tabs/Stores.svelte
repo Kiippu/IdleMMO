@@ -110,6 +110,10 @@
   {#if list.length === 0}
     <p class="muted">{total === 0 ? (readOnly ? 'The crew vault is empty. Crewmates donate through contracts.' : 'Your bag is empty. Gather or craft something first.') : 'No items match.'}
       {#if total > 0}<button type="button" class="btn" onclick={() => resetFilter(f)}>Clear filters</button>{/if}</p>
+    {#if total === 0}
+      {#if readOnly}<button type="button" class="btn" onclick={() => { ui.crewSub = 'contracts'; ui.goTab = 'Crew'; }}>Open Contracts</button>
+      {:else}<button type="button" class="btn" onclick={() => (ui.goTab = 'Workshop')}>Go to the Workshop</button>{/if}
+    {/if}
   {:else}
     <ul class="grid">
       {#each list as t (t.key)}

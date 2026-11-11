@@ -97,7 +97,7 @@
     {#if out}<button type="button" class="btn info" aria-label="Details: {itemName(out)}" onclick={() => openItem({ itemId: out })}>i</button>{/if}
     {#if sh}
       {@const miss = Object.entries(a.inputs ?? {}).find(([id, n]) => have(id) < n && inShop(id))}
-      {#if miss}<button type="button" class="btn shop" onclick={toShop}>Get from Shop</button>{:else}<span class="btn dis">Start</span>{/if}
+      {#if miss}<button type="button" class="btn shop" onclick={toShop}>Get from Shop</button>{:else}<span class="btn dis" aria-disabled="true">Need items</span>{/if}
     {:else}
       <button type="button" class="btn start" class:primary={!running} disabled={running} onclick={() => start(a.id)}>{running ? 'Running' : 'Start'}</button>
     {/if}
@@ -201,5 +201,5 @@
   .info { flex: none; padding: 0; font: 700 var(--t-md)/1 var(--f-body); text-transform: none; }
   .start, .shop, .dis { flex: none; min-width: 72px; padding: 0 8px; }
   .shop { font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; max-width: 84px; }
-  .dis { opacity: .5; }
+  .dis { opacity: .6; font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; }
 </style>
