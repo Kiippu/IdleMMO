@@ -22,7 +22,7 @@ The legacy single-file prototype is `index.html` at the repo root. It is the beh
   Parallel agents must not edit the same files. At the end of a session, list the agents used and what each owned.
 - Commit and push to GitHub. Work on branches; don't push to `main` without asking.
 - Builds must keep existing player saves working (save schema v6 in IndexedDB since phase 2.5; `migrate()` loads v1, v3, v4, v5, v6; fixtures in `engine/test/fixtures/`).
-- Test at phone width (max 460px column) in light and dark mode.
+- Test at phone width (360 and 390px) in light mode only (no dark mode or themes since 2026-11-11).
 
 ## Settled decisions (don't reopen unless asked)
 Game design
