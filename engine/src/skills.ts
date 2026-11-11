@@ -66,12 +66,30 @@ export function addXp(state, skillId, amount, events) {
   s.xp = num(s.xp, 0) + amount; // XP keeps accruing even while the spec cap holds the level
   const after = E.skillLevel(state, skillId);
   if (after > before) {
-    events.push({ type: 'levelup', skill: skillId, level: after });
+    events.push({ type: 'levelup', skill: skillId, level: after, from: before });
     const def = skillDefs().find((d) => d.id === skillId);
     logq(state, 'level', `${def ? def.name : skillId} reached level ${after}.`);
-    pushEvent(state, 'skill', `${def ? def.name : skillId} reached level ${after}.`);
+    if (lvlBatch) { const b = lvlBatch[skillId]; lvlBatch[skillId] = { from: b ? b.from : before, to: after }; }
+    else levelUpEvent(state, skillId, before, after);
   }
   return amount;
+}
+
+// Level-up lines in the event log (layout pass 2026-11-11): every level gained inside one E.tick or one
+// E.applyOffline is rolled into ONE line per skill ("Mining levelled up 1 → 39."). Outside a batch each
+// addXp call writes its own line. The tick's `levelup` events are unchanged (one per addXp, now with `from`).
+let lvlBatch: any = null; let lvlDepth = 0;
+export function beginLevelBatch() { if (lvlDepth++ === 0) lvlBatch = {}; }
+export function endLevelBatch(state) {
+  if (lvlDepth <= 0) return;
+  if (--lvlDepth > 0) return;
+  const b = lvlBatch; lvlBatch = null;
+  Object.keys(b || {}).forEach((id) => levelUpEvent(state, id, b[id].from, b[id].to));
+}
+export function levelUpEvent(state, skillId, from, to) {
+  const def = skillDefs().find((d) => d.id === skillId); const name = def ? def.name : skillId;
+  const text = to - from > 1 ? `${name} levelled up ${from} → ${to}.` : `${name} reached level ${to}.`;
+  return pushEvent(state, 'skill', text, { skill: skillId, from, level: to });
 }
 
 // Specialization (CLAUDE.md "Settled decisions"; phase 2.5 owner rules):

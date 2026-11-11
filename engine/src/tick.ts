@@ -10,6 +10,7 @@ import { crewEconomyStep, crewLocksStep } from './crew-economy';
 import { marketEnabled } from './market';
 import { ensureStore } from './store';
 import { sweepSeen } from './codex';
+import { beginLevelBatch, endLevelBatch } from './skills';
 
 // ---------------------------------------------------------------- tick
 export function advanceAction(state, dt, events, maxN) {
@@ -48,6 +49,11 @@ E.tick = function (state, dtSec, opts) {
   const events = [];
   if (!state) return events;
   const dt = clamp(num(dtSec, 0), 0, 86400); if (dt <= 0) return events;
+  beginLevelBatch();
+  try { tickBody(state, dt, opts, events); } finally { endLevelBatch(state); }
+  return events;
+};
+function tickBody(state, dt, opts, events) {
   const visible = !opts || opts.visible !== false;
   state.focus = clamp(num(state.focus, 0) + (visible && state.active ? 2 : -5) * dt, 0, 100);
   const ps = E.playerStats(state);
@@ -67,5 +73,4 @@ E.tick = function (state, dtSec, opts) {
   }
   ensureStore(state);
   sweepSeen(state);
-  return events;
-};
+}

@@ -169,6 +169,7 @@ export interface RecapStockFields {
 //   E.storeSell(state, itemId, grade, qty) → StoreSellResult; E.storeSellGear(state, uid) → StoreSellResult;
 //   E.storeBuyPrice(itemId, grade); E.storeSellPrice(itemId, grade).
 // Event log: E.events(state, n = 50) → GameEvent[] (newest first; state.events keeps the last 200).
+// Tick events: { type: 'levelup', skill, level, from } (from added 2026-11-11).
 // Player market parked: DATA.config.playerMarket = false; E.buy / E.list return { ok: false, reason }.
 export type RarityId = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 export type RaidPrepPhase = 'prep' | 'live' | 'recap';
@@ -185,6 +186,10 @@ export interface GameEvent {
   gold?: number;
   /** gear crafted / sold: the instance rarity */
   rarity?: RarityId;
+  /** level-up lines (cat 'skill', layout pass 2026-11-11): all levels gained in one E.tick or one
+   *  E.applyOffline roll into ONE line per skill. text "Mining levelled up 1 → 39." (or "Mining reached level 5."
+   *  for a single level). Older saved lines lack these fields. */
+  skill?: string; from?: number; level?: number;
 }
 export interface StoreSlot {
   /** pass to storeBuy */

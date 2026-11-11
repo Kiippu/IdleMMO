@@ -79,3 +79,40 @@ describe('return moment: offline summary extras', () => {
     expect(r.summary.goldBySource).toEqual([]);
   });
 });
+
+describe('level-ups roll into one log line per skill', () => {
+  it('many level-ups in one tick → one line with from → to', async () => {
+    const h = await freshEngine(1);
+    const s = h.E.newState();
+    h.E.start(s, 'mine_copper');
+    const ev = h.E.tick(s, 3600);
+    const ups = ev.filter((e: any) => e.type === 'levelup' && e.skill === 'mining');
+    expect(ups.length).toBeGreaterThan(1);
+    expect(ups[0].from).toBe(1);
+    const lines = h.E.events(s, 200).filter((e: any) => e.cat === 'skill');
+    expect(lines.length).toBe(1);
+    const to = h.E.skillLevel(s, 'mining');
+    expect(lines[0]).toMatchObject({ skill: 'mining', from: 1, level: to });
+    expect(lines[0].text).toBe(`Mining levelled up 1 → ${to}.`);
+  });
+
+  it('a single level keeps the old wording; the next tick gets its own line', async () => {
+    const h = await freshEngine(1);
+    const s = h.E.newState();
+    h.E.start(s, 'mine_copper');
+    let guard = 0;
+    while (h.E.skillLevel(s, 'mining') < 2 && guard++ < 10000) h.E.tick(s, 1);
+    const lines = h.E.events(s, 200).filter((e: any) => e.cat === 'skill');
+    expect(lines.length).toBe(1);
+    expect(lines[0].text).toBe('Mining reached level 2.');
+    expect(lines[0]).toMatchObject({ skill: 'mining', from: 1, level: 2 });
+  });
+
+  it('offline catch-up writes one line per skill', async () => {
+    const { E, s } = await away(6 * 3600000, (E, s) => E.start(s, 'mine_copper'));
+    const lines = E.events(s, 200).filter((e: any) => e.cat === 'skill');
+    expect(lines.length).toBe(1);
+    expect(lines[0].from).toBe(1);
+    expect(lines[0].level).toBe(E.skillLevel(s, 'mining'));
+  });
+});

@@ -11,7 +11,7 @@ import { processClock } from './weekly';
 import { crewEconomyStep, crewLocksStep } from './crew-economy';
 import { marketEnabled } from './market';
 import { pushEvent } from './events';
-import { addXp, rawSkillLevel } from './skills';
+import { addXp, rawSkillLevel, beginLevelBatch, endLevelBatch } from './skills';
 import { addItem } from './inventory';
 import { ensureStore } from './store';
 import { sweepSeen } from './codex';
@@ -74,7 +74,7 @@ E.applyOffline = function (state, nowMs) {
     else if (e.type === 'jobDone') summary.tips += e.tip;
     else if (e.type === 'raidResolved') summary.raids.push(e.recapId);
   }); };
-  flags.quiet = true;
+  flags.quiet = true; beginLevelBatch();
   try {
     const a = state.active; const act = a && action(a.actionId);
     if (a && !act) state.active = null;
@@ -129,7 +129,7 @@ E.applyOffline = function (state, nowMs) {
     else if (!state.active || act.kind !== 'combat') state.hp = Math.min(ps.maxHp, state.hp + ps.maxHp * 0.01 * (state.active ? seconds : restSec));
     ensureStore(state); sweepSeen(state);
     summary.weeks = state.week - wk0;
-  } finally { ctx.now = realNow; flags.quiet = false; }
+  } finally { ctx.now = realNow; flags.quiet = false; endLevelBatch(state); }
   summary.gold = Math.round(state.gold - gold0);
   Object.keys(state.skills).forEach((k) => { const d = num(state.skills[k].xp, 0) - num(xp0[k], 0); if (d > 0) summary.xp[k] = d; });
   Object.assign(summary, buildReturn(state, racc, lv0, summary.xp, summary.gold));
