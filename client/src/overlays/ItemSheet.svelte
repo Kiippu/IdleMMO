@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
   // The one item sheet: what it is, how it is made, where it comes from, what uses it, and what you can do with it.
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
@@ -136,7 +137,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="it-title" tabindex="-1" bind:this={dlg} onclick={(e) => e.stopPropagation()}>
       <header>
-        <span class="tile" style:--ink-r={`var(--r-${rarity})`} aria-hidden="true"><span class="letter">{hint ? '?' : itemName(ref.itemId)[0]}</span></span>
+        <span class="tile" style:--ink-r={`var(--r-${rarity})`} aria-hidden="true"><ItemIcon id={ref.itemId} size={64} rarity={hint ? undefined : rarity} silhouette={hint} /></span>
         <div>
           <h2 id="it-title" style:color={hint ? undefined : `var(--r-${rarity})`}>{hint ? '???' : gname()}</h2>
           {#if hint}<p class="meta">{hintLine}</p>{:else}<p class="meta">{cap(rarity)} · {it.kind === 'gear' ? (SLOT_LABEL[it.slot] ?? 'Gear') : cap(it.kind ?? 'item')}{it.tier ? ` · tier ${it.tier}` : ''}</p>{/if}
@@ -219,8 +220,7 @@
   header { display: flex; gap: 12px; align-items: center; }
   h2 { margin: 0; font: 600 var(--t-lg)/1.2 var(--f-display); }
   h3 { margin: 0 0 4px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
-  .tile { flex: none; width: 56px; height: 56px; display: grid; place-items: center; background: var(--paper); border: 2px solid var(--ink-r); color: var(--ink-r); }
-  .letter { font: 700 var(--t-lg)/1 var(--f-display); }
+  .tile { flex: none; width: 72px; height: 72px; display: grid; place-items: center; background: var(--paper); border: 2px solid var(--ink-r); }
   .meta { margin: 0; color: var(--ink-3); font-size: var(--t-sm); }
   .lore { font-style: italic; color: var(--ink-2); }
   .body { margin: 0; color: var(--ink); font-size: var(--t-sm); }

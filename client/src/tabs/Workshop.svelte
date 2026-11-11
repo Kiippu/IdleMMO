@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
@@ -91,7 +92,8 @@
   {@const running = activeId === a.id}
   <li class="arow" class:running>
     <div class="r1">
-    <button type="button" class="action main" data-kind={a.kind} aria-pressed={running} disabled={sh} onclick={() => start(a.id)}>
+    <button type="button" class="action main" data-kind={a.kind} data-ic={out ? '1' : undefined} aria-pressed={running} disabled={sh} onclick={() => start(a.id)}>
+      {#if out}<span class="aic"><ItemIcon id={out} rarity={itemRarity[out] ?? 'common'} /></span>{/if}
       <span class="a-name" style:color={out ? `var(--r-${itemRarity[out] ?? 'common'})` : undefined}>{out ? itemName(out) : label(a)}{#if out && label(a) !== itemName(out)}<small>{` · ${label(a)}`}</small>{/if}</span>
       <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
     </button>
@@ -118,7 +120,8 @@
     <ul>
       {#each ready as a (a.id)}
         <li>
-          <button type="button" class="action main" onclick={() => start(a.id)}>
+          <button type="button" class="action main" data-ic={outId(a) ? '1' : undefined} onclick={() => start(a.id)}>
+            {#if outId(a)}<span class="aic"><ItemIcon id={outId(a)!} rarity={itemRarity[outId(a)!] ?? 'common'} /></span>{/if}
             <span class="a-name" style:color={outId(a) ? `var(--r-${itemRarity[outId(a)!] ?? 'common'})` : undefined}>{outId(a) ? itemName(outId(a)!) : a.name}</span>
             <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
           </button>
@@ -195,6 +198,8 @@
   }
   .action.main:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
   .action.main:disabled { opacity: .85; cursor: not-allowed; }
+  .action.main[data-ic] { grid-template-columns: 32px 1fr; column-gap: 8px; align-items: center; }
+  .aic { grid-row: 1 / span 2; display: grid; }
   .arow.running .action.main, .action[aria-pressed="true"] { background: var(--woad-soft); border-color: var(--woad); }
   .a-name { font: 700 var(--t-sm)/1.15 var(--f-body); }
   .a-name small { font-weight: 400; color: var(--ink-3); }

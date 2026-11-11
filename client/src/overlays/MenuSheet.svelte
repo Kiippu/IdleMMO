@@ -1,6 +1,7 @@
 <script lang="ts">
   // One menu for the rarely used things: Log, Save, Credits, Settings.
   import { settings, setSetting } from '../settings.svelte';
+  import { CREDITS } from '../art/credits';
 
   type Props = { onClose: () => void; onLog: () => void; onSave: () => void };
   let { onClose, onLog, onSave }: Props = $props();
@@ -37,7 +38,7 @@
         <li><button type="button" class="item" onclick={() => go(onLog)}><span>Log</span><small>What you found and earned</small></button></li>
         <li><button type="button" class="item" onclick={() => go(onSave)}><span>Save</span><small>Back up or move your game</small></button></li>
         <li><button type="button" class="item" onclick={() => (view = 'settings')}><span>Settings</span><small>Sound and motion</small></button></li>
-        <li><button type="button" class="item" onclick={() => (view = 'credits')}><span>Credits</span><small>Fonts and art</small></button></li>
+        <li><button type="button" class="item" onclick={() => (view = 'credits')}><span>Credits</span><small>Art, fonts and licences</small></button></li>
       </ul>
     {:else if view === 'settings'}
       <ul class="items">
@@ -56,12 +57,16 @@
       </ul>
     {:else}
       <div class="credits">
-        <p>Full art credits arrive with the art pass (coming in phase 3). Every pack, author and licence will be listed here.</p>
-        <h3>Fonts (SIL OFL 1.1)</h3>
-        <ul>
-          <li>Atkinson Hyperlegible, Braille Institute of America, Inc.</li>
-          <li>Pixelify Sans, Stefie Justprince</li>
-          <li>Silkscreen, Jason Kottke</li>
+        <p>Everything here is free to use. Tap a name to open its page. Art is remapped to the DawnBringer 32 palette.</p>
+        <ul class="crl">
+          {#each CREDITS as c (c.asset)}
+            <li>
+              <b>{c.asset}</b>
+              <span>{c.author} · {c.licence}{c.shareAlike ? ' · share-alike' : ''}</span>
+              {#if c.note}<small>{c.note}</small>{/if}
+              {#if c.url}<a href={c.url} target="_blank" rel="noopener noreferrer">{c.url.replace(/^https?:\/\//, '')}</a>{/if}
+            </li>
+          {/each}
         </ul>
       </div>
     {/if}
@@ -91,6 +96,9 @@
   .sw.on { background: var(--woad); border-color: var(--woad); color: var(--on-woad); }
   .credits { color: var(--ink-2); font-size: var(--t-sm); }
   .credits p { margin: 0 0 12px; }
-  .credits h3 { margin: 0 0 6px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
-  .credits ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+  .crl { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .crl li { display: grid; gap: 2px; padding: 8px 10px; background: var(--sunk); border: 1px solid var(--rule); }
+  .crl b { color: var(--ink); font-weight: 700; }
+  .crl small { color: var(--ink-3); font-size: var(--t-xs); }
+  .crl a { display: inline-flex; align-items: center; min-height: 44px; color: var(--woad); overflow-wrap: anywhere; }
 </style>

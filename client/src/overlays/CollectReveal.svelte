@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
   import { reducedMotion } from '../settings.svelte';
   import { untrack } from 'svelte';
   // Full-screen "While you were away" sheet. The engine already applied the gains;
@@ -148,7 +149,7 @@
 
       {#if best}
         <button type="button" class="hero" style:--ink-r={`var(--r-${best.rarity})`} onclick={(e) => { e.stopPropagation(); openItem({ itemId: best.itemId, ...(best.uid ? { uid: best.uid } : {}) }); }}>
-          <span class="sq" aria-hidden="true">{best.name[0]}</span>
+          <span class="sq" aria-hidden="true"><ItemIcon id={best.itemId} rarity={best.rarity} grade={best.grade} /></span>
           <span class="hm">
             <small>Best find</small>
             <span class="hn" style:color={`var(--r-${best.rarity})`}>{best.name}</span>
@@ -208,7 +209,7 @@
   .g-total:first-child .val { color: var(--brass); }
   .headline { margin: 6px 0 0; font: 700 var(--t-md)/1.3 var(--f-body); color: var(--woad); }
   .hero { display: flex; align-items: center; gap: 12px; padding: 12px; text-align: left; background: var(--paper); border: 2px solid var(--ink-r); min-height: 72px; color: var(--ink); }
-  .hero .sq { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border: 2px solid var(--ink-r); color: var(--ink-r); background: var(--sunk); font: 700 var(--t-xl)/1 var(--f-display); }
+  .hero .sq { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border: 2px solid var(--ink-r); background: var(--sunk); }
   .hm { display: grid; gap: 2px; min-width: 0; }
   .hm small { color: var(--ink-3); font-size: var(--t-xs); }
   .hn { font: 700 var(--t-lg)/1.15 var(--f-body); }

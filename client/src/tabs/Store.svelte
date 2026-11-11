@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
   // General store: the town's NPC shop. Hourly stock at a mark-up; sells your spare items at a floor price.
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
@@ -111,7 +112,7 @@
       {#each resources as s (s.slot)}
         <li class="tl">
           <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
-            <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true">{s.name[0]}</span>
+            <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true"><ItemIcon id={s.itemId} rarity={s.rarity} /></span>
             <span class="nm">{s.name}</span>
             <span class="meta">{GRADE_LABEL[s.grade] ?? ''}</span>
             <span class="price num">{fmtG(s.price)}</span>
@@ -130,7 +131,7 @@
       {#each gearSlots as s (s.slot)}
         <li class="tl">
           <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
-            <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true">{s.name[0]}</span>
+            <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true"><ItemIcon id={s.itemId} rarity={s.rarity} /></span>
             <span class="nm">{s.name}</span>
             <span class="meta">{SLOT_LABEL[itemsMap[s.itemId]?.slot] ?? 'Gear'} · {cap(s.rarity)}</span>
             <span class="price num">{fmtG(s.price)}</span>
@@ -204,7 +205,7 @@
   .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 10px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink); }
   .tile:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
   .tile.out { opacity: .5; cursor: not-allowed; background: var(--sunk); }
-  .sq { width: 32px; height: 32px; display: grid; place-items: center; border: 2px solid; background: var(--sunk); font: 700 var(--t-md)/1 var(--f-display); }
+  .sq { width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid; background: var(--sunk); }
   .nm { font: 700 var(--t-sm)/1.15 var(--f-body); }
   .price { color: var(--brass); font-weight: 700; font-size: var(--t-lg); line-height: 1; }
 

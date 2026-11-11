@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
   // Full-screen raid recap, in mockup order. Gold only: no coin, raid tokens or pity tokens.
   import { DATA } from '@guildwright/engine';
   import { fmtG, fmtN } from '../format';
@@ -35,7 +36,7 @@
 
 {#snippet tile(i: { itemId: string; name: string; qty: number; rarity: string })}
   <button type="button" class="itile" style:--ink-r={`var(--r-${i.rarity})`} onclick={() => openItem({ itemId: i.itemId })} aria-label="{i.name}, {i.qty}">
-    <span class="sq" aria-hidden="true">{i.name[0]}</span>
+    <span class="sq" aria-hidden="true"><ItemIcon id={i.itemId} rarity={i.rarity} /></span>
     <span class="in" style:color={`var(--r-${i.rarity})`}>{i.name}</span>
     <span class="iq num">×{fmtN(i.qty)}</span>
   </button>
@@ -143,7 +144,7 @@
   .cat { font-size: var(--t-sm); }
   .tiles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
   .itile { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; background: var(--paper); border: 1px solid var(--ink-r); color: var(--ink); text-align: left; }
-  .itile .sq { width: 34px; height: 34px; display: grid; place-items: center; border: 2px solid var(--ink-r); color: var(--ink-r); background: var(--sunk); font: 700 var(--t-md)/1 var(--f-display); }
+  .itile .sq { width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid var(--ink-r); background: var(--sunk); }
   .itile .in { font: 700 var(--t-sm)/1.1 var(--f-body); }
   .itile .iq { font-size: var(--t-xs); color: var(--ink-3); font-weight: 700; }
   .nudge.next { border-color: var(--brass); background: var(--paper); }

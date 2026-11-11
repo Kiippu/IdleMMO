@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
@@ -119,7 +120,7 @@
       {#each list as t (t.key)}
         <li>
           <button type="button" class="tile" data-gear={t.kind === "gear" ? "1" : undefined} style:--ink-r={`var(--r-${t.rarity})`} onclick={() => openItem({ itemId: t.id, uid: t.gear?.uid, readOnly })} aria-label="{t.name}{t.qty ? `, ${t.qty}` : ''}">
-            <span class="letter">{t.letter}</span>
+            <ItemIcon id={t.id} rarity={t.rarity} />
             {#if t.qty}<span class="qty num">{t.qty > 999 ? '999+' : t.qty}</span>{/if}
           </button>
         </li>
@@ -144,7 +145,7 @@
         <li>
           {#if g}
             <button type="button" class="tile" style:--ink-r={`var(--r-${g.rarity})`} onclick={() => openItem({ itemId: g.itemId, uid: g.uid })} aria-label="{SLOT_LABEL[slot]}: {gname(g)}">
-              <span class="letter">{itemName(g.itemId)[0]}</span>
+              <ItemIcon id={g.itemId} rarity={g.rarity} />
             </button>
           {:else}
             <span class="tile empty" aria-label="{SLOT_LABEL[slot]}: empty"><span class="letter">·</span></span>
@@ -172,7 +173,7 @@
         {#each grp.tiles as t (t.id)}
           <li>
             <button type="button" class="tile" class:hintt={t.status === 'hint'} style:--ink-r={t.status === 'known' ? `var(--r-${t.rarity})` : 'var(--rule)'} onclick={() => openItem({ itemId: t.id, readOnly: true })} aria-label={t.status === 'hint' ? (t.total > 0 ? `Unknown item, uses ${t.seen} of ${t.total} materials you have found` : 'Unknown raw material') : t.name}>
-              <span class="letter">{t.status === 'hint' ? '???' : t.name[0]}</span>
+              <ItemIcon id={t.id} rarity={t.status === 'known' ? t.rarity : undefined} silhouette={t.status === 'hint'} />
             </button>
           </li>
         {/each}
@@ -206,7 +207,6 @@
   .eq small { color: var(--ink-3); font-size: 10px; }
 
   .tile.hintt { background: var(--sunk); opacity: .75; color: var(--ink-3); border-style: dashed; }
-  .tile.hintt .letter { font-size: var(--t-xs); }
   h4 { margin: 12px 0 6px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
   .cprog { margin: 0 0 6px; font-weight: 700; }
   .pbar { height: 8px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
