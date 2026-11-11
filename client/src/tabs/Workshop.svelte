@@ -31,6 +31,7 @@
   let activeId = $derived<string | null>(snapS?.active?.actionId ?? null);
   let activeAction = $derived(activeId ? actionsAll.find((a) => a.id === activeId) ?? null : null);
   let inv = $derived<Record<string, number[]>>(snapS?.inv ?? {});
+  let reasons = $derived(view?.extras?.disabledReasons?.actions ?? {});
   let storeSlots = $derived<any[]>(view?.extras?.store?.slots ?? []);
 
   const have = (id: string) => (inv[id] ?? []).reduce((a, b) => a + (b || 0), 0);
@@ -103,6 +104,7 @@
     {/if}
     </div>
     {@render inputsLine(a)}
+    {#if reasons[a.id] && !running}<p class="why">{reasons[a.id]}</p>{/if}
   </li>
 {/snippet}
 
@@ -201,5 +203,6 @@
   .info { flex: none; padding: 0; font: 700 var(--t-md)/1 var(--f-body); text-transform: none; }
   .start, .shop, .dis { flex: none; min-width: 72px; padding: 0 8px; }
   .shop { font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; max-width: 84px; }
+  .why { margin: 0; color: var(--ink-2); font-size: var(--t-xs); }
   .dis { opacity: .6; font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; }
 </style>

@@ -23,6 +23,7 @@
   let gearNames = $derived<Record<string, string>>(view?.gearNames ?? {});
   let contracts = $derived<any[]>(view?.contracts ?? []);
   let spec = $derived(view?.spec ?? null);
+  let reasons = $derived(view?.extras?.disabledReasons ?? null);
   let feed = $derived(view?.extras?.crewActivity ?? []);
   let feedMore = $state(false);
   let shownFeed = $derived(feedMore ? feed : feed.slice(0, 5));
@@ -185,6 +186,7 @@
             <button type="button" class="btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
           </div>
           {#if (spec.eligible ?? []).length === 0}<p class="meta">Reach level {spec.capLevel} in another skill to switch.</p>
+          {:else if reasons?.spec}<p class="why">{reasons.spec}</p>
           {:else if !pickSkill}<p class="why">Choose a skill above to turn on Switch.</p>
           {:else if !cooldown.ready}<p class="why">You can switch again in {cooldown.text}.</p>
           {:else if gold < spec.cost}<p class="why">You need {fmtG(spec.cost - gold)} more gold to switch.</p>{/if}
@@ -225,8 +227,7 @@
               </button>
             </div>
             {#if !j.canAssist?.ok && !j.assisting}
-              <!-- TODO(engine): plug in the engine's canAssist.reason once it covers every case; this is the client fallback. -->
-              <p class="why">{j.canAssist?.reason || (snap?.active ? 'Stop your current job first. You only have one action slot.' : 'You cannot help with this job right now.')}</p>
+              <p class="why">{reasons?.jobs?.[j.id] || j.canAssist?.reason || (snap?.active ? 'Stop your current job first. You only have one action slot.' : 'You cannot help with this job right now.')}</p>
             {/if}
           </li>
         {/each}
@@ -280,8 +281,7 @@
                 <span class="num">Hand in {mx} (+{fmtG(mx * (c.rewardPer ?? 0))})</span>
               </button>
               {#if !c.canFill?.ok || mx < 1}
-                <!-- TODO(engine): prefer the engine's canFill.reason; the fallback below uses only client-known counts. -->
-                <p class="why">{c.canFill?.reason || (c.have < 1 ? `You have none to hand in. Make or gather some ${c.itemName ?? itemName(c.itemId)} first.` : (c.remaining ?? 0) < 1 ? 'This contract has nothing left to fill.' : 'The crew stock cannot take any more of this right now.')}</p>
+                <p class="why">{reasons?.contracts?.[c.id] || c.canFill?.reason || (c.have < 1 ? `You have none to hand in. Make or gather some ${c.itemName ?? itemName(c.itemId)} first.` : (c.remaining ?? 0) < 1 ? 'This contract has nothing left to fill.' : 'The crew stock cannot take any more of this right now.')}</p>
               {/if}
             {:else}
               <p class="meta">{c.status === 'filled' ? 'Filled.' : c.status === 'cancelled' ? 'Cancelled.' : 'Closed.'}</p>
