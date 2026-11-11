@@ -157,7 +157,7 @@
               <span class="meta rank">{m.rankName}</span>
             </div>
             {#if m.skill}
-              <p class="meta">Specializes in {m.skill}.</p>
+              <p class="meta spl"><ItemIcon skill={m.skill} /><span>Specializes in {m.skill}.</span></p>
             {/if}
           </li>
         {/each}
@@ -169,8 +169,8 @@
     <section class="group">
       <h3>Specialization</h3>
       <article class="treasury">
-        <p class="meta first">
-          {spec.skillId ? `Specialized in ${skillName(spec.skillId)}.` : 'Not specialized yet.'}
+        <p class="meta first spl">
+          {#if spec.skillId}<ItemIcon skill={spec.skillId} />{/if}<span>{spec.skillId ? `Specialized in ${skillName(spec.skillId)}.` : 'Not specialized yet.'}</span>
         </p>
         {#if !spec.skillId && (spec.eligible ?? []).length === 0}
           <p class="meta">Reach level {spec.capLevel} in a skill to specialise.</p>
@@ -374,6 +374,7 @@
   .delta.pos { color: var(--ok); }
   .delta.neg { color: var(--bad); }
 
+  .spl { display: flex; align-items: center; gap: 8px; }
   .linkbtn { flex: 1; min-height: 44px; padding: 0; border: 0; background: none; text-align: left; text-decoration: underline; }
   .group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .group-head h3 { margin: 0; }

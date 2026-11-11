@@ -61,10 +61,10 @@
         <ul class="crl">
           {#each CREDITS as c (c.asset)}
             <li>
-              <b>{c.asset}</b>
+              {#if c.url}<a class="nm" href={c.url} target="_blank" rel="noopener noreferrer">{c.asset}</a>{:else}<b>{c.asset}</b>{/if}
               <span>{c.author} · {c.licence}{c.shareAlike ? ' · share-alike' : ''}</span>
               {#if c.note}<small>{c.note}</small>{/if}
-              {#if c.url}<a href={c.url} target="_blank" rel="noopener noreferrer">{c.url.replace(/^https?:\/\//, '')}</a>{/if}
+              {#if c.url}<small class="host">{c.url.replace(/^https?:\/\//, '').split('/')[0]}</small>{/if}
             </li>
           {/each}
         </ul>
@@ -100,5 +100,5 @@
   .crl li { display: grid; gap: 2px; padding: 8px 10px; background: var(--sunk); border: 1px solid var(--rule); }
   .crl b { color: var(--ink); font-weight: 700; }
   .crl small { color: var(--ink-3); font-size: var(--t-xs); }
-  .crl a { display: inline-flex; align-items: center; min-height: 44px; color: var(--woad); overflow-wrap: anywhere; }
+  .crl a.nm { display: flex; align-items: center; min-height: 44px; color: var(--woad); font-weight: 700; text-decoration: underline; overflow-wrap: anywhere; }
 </style>
