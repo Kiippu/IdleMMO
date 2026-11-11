@@ -11,6 +11,7 @@
   import { fmtG, fmtN, fmtDuration, rarityRank } from '../format';
   const GRADE = ['Rough', 'Fine', 'Sharp', 'Keen', 'Pristine'];
   import { openItem } from './itemRef.svelte';
+  import { play } from '../sound';
 
   const items: Record<string, { name?: string }> = (DATA as any).items;
   const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
@@ -120,11 +121,11 @@
   function stopFountain() { fountainAnims.forEach((a) => a.cancel()); fountainAnims = []; layer?.querySelectorAll('.fp').forEach((n) => n.remove()); try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(0); } catch { /* */ } }
   let launched = false;
   $effect(() => {
-    if (summary && layer && rows.length && !launched) { launched = true; requestAnimationFrame(launchFountain); }
+    if (summary && layer && rows.length && !launched) { launched = true; play('fountain'); requestAnimationFrame(launchFountain); }
     if (!summary) { launched = false; stopFountain(); }
   });
   function skip() { skipped = true; stopFountain(); }
-  function collect() { engine.offline = null; }
+  function collect() { play('collect'); engine.offline = null; }
   function onKey(ev: KeyboardEvent) {
     if (!summary) return;
     if (ev.key === 'Escape' && finished) collect();

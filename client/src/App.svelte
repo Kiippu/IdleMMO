@@ -4,6 +4,7 @@
   import { engine } from './engine/store.svelte';
   import { initEngineClient, engineClient } from './engine/client';
   import { registerServiceWorker } from './pwa';
+  import { initSound, play } from './sound';
   import Workshop from './tabs/Workshop.svelte';
   import Stores from './tabs/Stores.svelte';
   import WarRoom from './tabs/WarRoom.svelte';
@@ -21,7 +22,13 @@
   import ItemSheet from './overlays/ItemSheet.svelte';
   import SalvageSheet from './overlays/SalvageSheet.svelte';
 
+  import icoWorkshop from './ui-art/tab-workshop.png';
+  import icoStores from './ui-art/tab-stores.png';
+  import icoShop from './ui-art/tab-shop.png';
+  import icoWar from './ui-art/tab-war.png';
+  import icoCrew from './ui-art/tab-crew.png';
   const tabs = ['Workshop', 'Stores', 'Shop', 'War Room', 'Crew'] as const;
+  const tabIcon: Record<(typeof tabs)[number], string> = { Workshop: icoWorkshop, Stores: icoStores, Shop: icoShop, 'War Room': icoWar, Crew: icoCrew };
   type Tab = (typeof tabs)[number];
 
   let active = $state<Tab>('Workshop');
@@ -32,6 +39,17 @@
   let menuOpen = $state(false);
   let seeded = false;
   $effect(() => { if (ui.goTab) { active = ui.goTab as Tab; ui.goTab = null; } });
+
+  $effect(() => initSound());
+
+  // Level-up chime: a skill level rises during live play (not on boot or offline catch-up).
+  let lastLevels: Record<string, number> | null = null;
+  $effect(() => {
+    const lv = engine.derived?.skillLevels;
+    if (!engine.ready || !lv) return;
+    if (lastLevels && !engine.offline && Object.keys(lv).some((k) => lv[k] > (lastLevels![k] ?? lv[k]))) play('levelUp');
+    lastLevels = { ...lv };
+  });
 
   $effect(() => {
     void initEngineClient().catch((err) => { bootError = String(err?.message ?? err); });
@@ -162,7 +180,7 @@
     <div class="row">
       {#each tabs as tab}
         <button type="button" aria-current={active === tab ? 'page' : undefined} onclick={() => (active = tab)}>
-          {tab}{#if badges[tab]}{#if badges[tab].n != null}<span class="count num" aria-hidden="true">{badges[tab].n > 9 ? '9+' : badges[tab].n}</span>{:else}<span class="dot" aria-hidden="true"></span>{/if}<span class="sr">{badges[tab].text}</span>{/if}
+          <img class="ico" src={tabIcon[tab]} alt="" width="32" height="32" /><span class="lbl">{tab}</span>{#if badges[tab]}{#if badges[tab].n != null}<span class="count num" aria-hidden="true">{badges[tab].n > 9 ? '9+' : badges[tab].n}</span>{:else}<span class="dot" aria-hidden="true"></span>{/if}<span class="sr">{badges[tab].text}</span>{/if}
         </button>
       {/each}
     </div>
