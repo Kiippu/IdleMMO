@@ -11,7 +11,9 @@ from scenelib import remap_db32, ramp_tint, mult_tint, shelf_pack
 
 SRC, OUT = sys.argv[1], sys.argv[2]
 CANVAS = 192
-ANIMS = {'idle': (2, 'idle', 3), 'slash': (6, 'slash', 8), 'cast': (7, 'spellcast', 8), 'shoot': (13, 'shoot', 12)}
+ANIMS = {'idle': (2, 'idle', 3), 'slash': (6, 'slash', 8), 'cast': (7, 'spellcast', 8), 'shoot': (13, 'shoot', 12), 'fish': (13, 'thrust', 6)}
+FILE_COLS = {'idle': 2, 'slash': 6, 'cast': 7, 'shoot': 13, 'fish': 8}     # columns in the source sheet
+FISH_SEQ = [0, 1, 2, 3, 4, 5, 4, 4, 4, 5, 4, 2, 3]                         # LPC tool_rod: thrust frame order (fishing_rod layer is 13 frames)
 EAST = 3
 
 def P(*a): return os.path.join(SRC, *a)
@@ -63,17 +65,19 @@ LAYERS['staff_bg'] = ({'cast': P('weapon/magic/simple/background/spellcast/simpl
 LAYERS['staff_fg'] = ({'cast': P('weapon/magic/simple/foreground/spellcast/simple.png')}, None)
 LAYERS['bow_bg'] = ({'shoot': P('weapon/ranged/bow/normal/universal/background/shoot/normal.png')}, None)
 LAYERS['bow_fg'] = ({'shoot': P('weapon/ranged/bow/normal/universal/foreground/shoot/normal.png')}, None)
+LAYERS['rod_bg'] = ({'fish': P('tools/fishing_rod/bg.png')}, None)
+LAYERS['rod_fg'] = ({'fish': P('tools/fishing_rod/fg.png')}, None)
 for t in ('pickaxe', 'axe', 'hammer'):
     for part in ('bg', 'fg'):
         LAYERS[f'{t}_{part}'] = ({'slash': P(f'tools/{t}/{part}.png')}, None)
 
-def row_frames(path, cols):
+def row_frames(path, cols, row=EAST):
     im = Image.open(path).convert('RGBA')
     fs = im.width // cols
     assert im.height == fs * 4, (path, im.size, cols)
     frames = []
     for c in range(cols):
-        f = im.crop((c * fs, EAST * fs, (c + 1) * fs, (EAST + 1) * fs))
+        f = im.crop((c * fs, row * fs, (c + 1) * fs, (row + 1) * fs))
         canvas = Image.new('RGBA', (CANVAS, CANVAS), (0, 0, 0, 0))
         canvas.paste(f, ((CANVAS - fs) // 2, (CANVAS - fs) // 2))
         frames.append(canvas)
@@ -86,17 +90,20 @@ def apply_tint(frames, tint):
 
 # feet anchor: bottom of the body layer, idle frame 0 (192 canvas coords), x centre = 96
 bf = row_frames(LAYERS['body'][0]['idle'], 2)[0]
-FEET = bf.getbbox()[3]
+FEET = bf.getchannel('A').point(lambda v: 255 if v >= 128 else 0).getbbox()[3]
 entries, rects = {}, []
 for key, (paths, tint) in LAYERS.items():
     for anim, path in paths.items():
+        rod = key.startswith('rod_')
+        frames = row_frames(path, 13 if rod else FILE_COLS[anim], 0 if key == 'rod_bg' else EAST)   # the rod's bg sheet only fills its first row
+        if anim == 'fish' and not rod: frames = [frames[i] for i in FISH_SEQ]
         cols = ANIMS[anim][0]
-        frames = remap_db32_frames = [remap_db32(f) for f in apply_tint(row_frames(path, cols), tint)]
-        boxes = [f.getbbox() for f in frames if f.getbbox()]
+        frames = apply_tint(frames, tint)
+        boxes = [b for b in (f.getchannel('A').point(lambda v: 255 if v >= 128 else 0).getbbox() for f in frames) if b]
         if not boxes: continue
         x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes); x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
         w, h = x1 - x0, y1 - y0
-        entries[(key, anim)] = dict(frames=[f.crop((x0, y0, x1, y1)) for f in frames], w=w, h=h, ox=x0 - 96, oy=y0 - FEET)
+        entries[(key, anim)] = dict(frames=[remap_db32(f.crop((x0, y0, x1, y1))) for f in frames], w=w, h=h, ox=x0 - 96, oy=y0 - FEET)
         rects.append(((key, anim), w * cols, h))
 pos, H = shelf_pack(rects, 1024)
 atlas = Image.new('RGBA', (1024, H), (0, 0, 0, 0))
