@@ -3,6 +3,7 @@
   import { engineClient } from '../engine/client';
   import { DATA, H } from '@guildwright/engine';
   import { ui } from '../ui.svelte';
+  import { openItem } from '../overlays/itemRef.svelte';
   import { toast } from '../overlays/toasts.svelte';
   import RequestSheet from '../overlays/RequestSheet.svelte';
   
@@ -226,7 +227,7 @@
           {@const fundedTotal = (c.escrow ?? 0) + (c.filled ?? 0) * (c.rewardPer ?? 0)}
           <li>
             <div class="row">
-              <span class="name" style:color={`var(--r-${rar})`}>{c.itemName ?? itemName(c.itemId)}{c.minGrade ? ` (${GRADES[c.minGrade] ?? `grade ${c.minGrade}+`})` : ''}</span>
+              <button type="button" class="name linkbtn" style:color={`var(--r-${rar})`} onclick={() => openItem({ itemId: c.itemId })}>{c.itemName ?? itemName(c.itemId)}{c.minGrade ? ` (${GRADES[c.minGrade] ?? `grade ${c.minGrade}+`})` : ''}</button>
               <span class="tag">{c.source === 'town' ? 'Town' : 'Crew'}</span>
             </div>
             <div class="pbar" role="progressbar" aria-label="Filled" aria-valuemin="0" aria-valuemax={c.qty} aria-valuenow={c.filled}><div style="width: {c.qty ? Math.round(c.filled / c.qty * 100) : 0}%"></div></div>
@@ -334,6 +335,7 @@
   .delta.pos { color: var(--ok); }
   .delta.neg { color: var(--bad); }
 
+  .linkbtn { min-height: 44px; padding: 0; border: 0; background: none; text-align: left; text-decoration: underline; }
   .group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .group-head h3 { margin: 0; }
   .wide { width: 100%; margin-top: 8px; }

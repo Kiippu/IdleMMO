@@ -4,6 +4,7 @@
   import { engineClient } from '../engine/client';
   import { ui } from '../ui.svelte';
   import { fmtN } from '../format';
+  import { openItem } from '../overlays/itemRef.svelte';
 
   type Skill = { id: string; name: string; tier: string; blurb: string };
   type Action = { id: string; skill: string; kind: string; name: string; level?: number; sec?: number; xp?: number; inputs?: Record<string, number>; outputs?: Record<string, number>; enemy?: string };
@@ -93,6 +94,7 @@
       {@render inputsLine(a)}
       <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
     </button>
+    {#if out}<button type="button" class="btn info" aria-label="Details: {itemName(out)}" onclick={() => openItem({ itemId: out })}>i</button>{/if}
     {#if sh}
       {@const miss = Object.entries(a.inputs ?? {}).find(([id, n]) => have(id) < n && inShop(id))}
       {#if miss}<button type="button" class="btn shop" onclick={toShop}>Get from Shop</button>{:else}<span class="btn dis">Start</span>{/if}
@@ -191,6 +193,7 @@
   .inputs { font-size: var(--t-xs); color: var(--ink-3); }
   .inp.short { color: var(--bad); font-weight: 700; }
   .a-meta { font-size: var(--t-xs); color: var(--ink-3); font-weight: 700; }
+  .info { flex: none; padding: 0; font: 700 var(--t-md)/1 var(--f-body); text-transform: none; }
   .start, .shop, .dis { flex: none; min-width: 72px; padding: 0 8px; }
   .shop { font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; max-width: 84px; }
   .dis { opacity: .5; }

@@ -54,7 +54,7 @@
 {#if opts}
   <div class="scrim" onclick={cancel} role="presentation">
     <div
-      class="sheet"
+      class="sheet cs-sheet"
       role={opts.cancelLabel === null ? 'alertdialog' : 'dialog'}
       aria-modal="true"
       aria-labelledby="cs-title"

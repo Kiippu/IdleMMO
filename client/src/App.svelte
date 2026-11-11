@@ -15,6 +15,8 @@
   import CollectReveal from './overlays/CollectReveal.svelte';
   import SaveMenu from './overlays/SaveMenu.svelte';
   import ConfirmSheet from './overlays/ConfirmSheet.svelte';
+  import ItemSheet from './overlays/ItemSheet.svelte';
+  import SalvageSheet from './overlays/SalvageSheet.svelte';
 
   const tabs = ['Workshop', 'Stores', 'Shop', 'War Room', 'Crew'] as const;
   type Tab = (typeof tabs)[number];
@@ -116,6 +118,8 @@
   </main>
 </div>
 
+<ItemSheet />
+<SalvageSheet />
 <ConfirmSheet />
 <Toast />
 

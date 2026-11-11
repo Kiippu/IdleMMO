@@ -6,6 +6,7 @@
   import { fmtG, fmtN, fmtDuration, fmtSecs } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import { markDone } from '../guide.svelte';
+  import { openItem } from '../overlays/itemRef.svelte';
   import { toast } from '../overlays/toasts.svelte';
 
   type Props = { onContracts: () => void };
@@ -114,7 +115,8 @@
     <h3>Resources</h3>
     <ul class="tiles">
       {#each resources as s (s.slot)}
-        <li>
+        <li class="tl">
+          <button type="button" class="info" aria-label="Details: {s.name}" onclick={() => openItem({ itemId: s.itemId })}>i</button>
           <button type="button" class="tile" class:out={s.qty < 1} disabled={s.qty < 1} onclick={() => buy(s)} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
             <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true">{s.name[0]}</span>
             <span class="nm">{s.name}</span>
@@ -132,7 +134,8 @@
     <h3>Gear</h3>
     <ul class="tiles">
       {#each gearSlots as s (s.slot)}
-        <li>
+        <li class="tl">
+          <button type="button" class="info" aria-label="Details: {s.name}" onclick={() => openItem({ itemId: s.itemId })}>i</button>
           <button type="button" class="tile" class:out={s.qty < 1} disabled={s.qty < 1} onclick={() => buy(s)} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
             <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true">{s.name[0]}</span>
             <span class="nm">{s.name}</span>
@@ -200,4 +203,6 @@
   .list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--paper); border: 1px solid var(--rule); }
   .info { display: grid; gap: 2px; min-width: 0; }
   .name { font: 700 var(--t-sm)/1.1 var(--f-body); }
+  .tl { position: relative; }
+  .info { position: absolute; top: 0; right: 0; z-index: 1; width: 44px; height: 44px; border: 0; background: none; color: var(--ink-3); font: 700 var(--t-md)/1 var(--f-body); }
 </style>

@@ -5,6 +5,9 @@ import { engine } from './store.svelte';
 
 export type StoreResult = { ok: boolean; reason: string; qty: number; gold: number; itemId?: string; uids?: string[] };
 
+export type SalvagePreview = { items: Array<{ itemId: string; grade: number; qtyMin: number; qtyMax: number; expected: number }>; gearCount: number; blocked: Array<{ uid: string; reason: string }> };
+export type SalvageResult = { ok: boolean; reason: string; salvaged: number; items: Array<{ itemId: string; grade: number; qty: number }>; blocked: Array<{ uid: string; reason: string }> };
+
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void };
 
 let worker: Worker | null = null;
@@ -79,6 +82,10 @@ export const engineClient = {
   storeSell: (itemId: string, grade: number, qty: number) =>
     rpc<StoreResult>({ id: nextId(), type: 'storeSell', itemId, grade, qty }),
   storeSellGear: (uid: string) => rpc<StoreResult>({ id: nextId(), type: 'storeSellGear', uid }),
+  salvagePreview: (uids: string[], allowProtected: boolean) =>
+    rpc<SalvagePreview>({ id: nextId(), type: 'salvagePreview', uids, allowProtected }),
+  salvage: (uids: string[], allowProtected: boolean) =>
+    rpc<SalvageResult>({ id: nextId(), type: 'salvage', uids, allowProtected }),
   lockIn: () => rpc<{ ok: boolean; reason?: string; warnings?: string[] }>({ id: nextId(), type: 'lockIn' }),
   unlock: () => rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'unlock' }),
   buyListing: (listingId: string, qty: number) =>
