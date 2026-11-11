@@ -3,7 +3,9 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { E, SLOTS, arr, num, rarities, elements, item, allActions, affixDefs, rand, clamp, randInt, shuffle, lcFirst, article, itemName, nextId, gradeOf, gradeMult, rarityDef, fmtGold } from './core';
-import { addItem, consume, lowestGrade } from './inventory';
+import { addItem, consume, lowestGrade, markSeen } from './inventory';
+import { ECON } from './data';
+import { pushEvent } from './events';
 import { statsFor } from './stats';
 
 // ---------------------------------------------------------------- gear
@@ -20,7 +22,7 @@ export function makeGear(state, itemId, rIdx, quality) {
   affixes.forEach((af) => { const d = affixDefs().find((x) => x.id === af.id); if (d && d.stat === 'dur') durPct += af.value; });
   const maxDur = Math.max(10, Math.round(num(rar.durability, 100) * (1 + durPct / 100)));
   const g = { uid: nextId(state, 'g'), itemId, rarity: rar.id, quality: clamp(Math.round(num(quality, 50)), 1, 100), affixes, dur: maxDur, maxDur };
-  state.gear.push(g);
+  state.gear.push(g); markSeen(state, itemId);
   return g;
 }
 export const emptyElements = () => { const o = {}; elements().forEach((e) => { o[e] = 0; }); return o; };
@@ -98,22 +100,58 @@ E.repair = function (state, uid) {
 export function recipeFor(itemId) {
   return allActions().find((a) => a && a.kind === 'craft' && a.outputs && a.outputs[itemId]) || null;
 }
-E.salvage = function (state, uid) {
-  const g = findGear(state, uid); if (!g) return { ok: false, reason: 'That item is no longer in your bag.', items: [] };
-  if (isEquipped(state, uid)) return { ok: false, reason: 'Unequip it before salvaging.', items: [] };
-  const rec = recipeFor(g.itemId); const grade = gradeOf(g.quality); const items = [];
-  if (rec && rec.inputs) {
-    const outQty = Math.max(1, num(rec.outputs[g.itemId], 1));
-    Object.keys(rec.inputs).forEach((id) => {
-      if (!item(id)) return;
-      const exact = num(rec.inputs[id], 0) / outQty * 0.3;
-      const q = Math.floor(exact) + (rand() < exact % 1 ? 1 : 0);
-      if (q > 0) { addItem(state, id, grade, q); items.push({ itemId: id, grade, qty: q }); }
+// Salvage (QoL pass 2026-11-11): gear only. Returns ECON.salvagePct[rarity] of the recipe inputs, each
+// input rounded up or down at random (seeded RNG), at the grade of the piece's quality. Protected unless
+// opts.allowProtected: equipped pieces, pieces in any saved loadout, and rarity rare and above.
+export const salvagePctOf = (rarity) => num((ECON.salvagePct || {})[rarity], num((ECON.salvagePct || {}).common, 0.2));
+export function salvageBlock(state, g, allowProtected) {
+  if (!g) return 'That item is no longer in your bag.';
+  if (isEquipped(state, g.uid)) return 'Equipped. Unequip it first.';
+  if (allowProtected) return '';
+  if (arr(state.loadouts).some((l) => l && l.slots && SLOTS.some((s) => l.slots[s] === g.uid))) return 'Part of a saved loadout.';
+  if (rarities().findIndex((r) => r.id === g.rarity) >= 2) return `${rarityDef(g.rarity).name} or better: protected.`;
+  return '';
+}
+/** expected mats from one gear piece: [{ itemId, grade, exact }] */
+export function salvageYield(g) {
+  const rec = g && recipeFor(g.itemId); if (!rec || !rec.inputs) return [];
+  const outQty = Math.max(1, num(rec.outputs[g.itemId], 1)); const pct = salvagePctOf(g.rarity); const grade = gradeOf(g.quality);
+  return Object.keys(rec.inputs).filter((id) => item(id)).map((id) => ({ itemId: id, grade, exact: num(rec.inputs[id], 0) / outQty * pct })).filter((x) => x.exact > 0);
+}
+const uidList = (uids) => (Array.isArray(uids) ? uids : uids != null ? [uids] : []).map(String);
+E.salvagePreview = function (state, uids, opts) {
+  const allow = !!(opts && opts.allowProtected); const agg = {}; const blocked = []; let gearCount = 0;
+  uidList(uids).forEach((uid) => {
+    const g = findGear(state, uid); const why = salvageBlock(state, g, allow);
+    if (why) { blocked.push({ uid, reason: why }); return; }
+    gearCount++;
+    salvageYield(g).forEach((y) => {
+      const k = y.itemId + '|' + y.grade; const a = agg[k] || (agg[k] = { itemId: y.itemId, grade: y.grade, qtyMin: 0, qtyMax: 0, expected: 0 });
+      a.qtyMin += Math.floor(y.exact); a.qtyMax += Math.ceil(y.exact); a.expected += y.exact;
     });
-  }
-  state.gear = state.gear.filter((x) => x.uid !== uid);
-  E.log(state, 'info', items.length ? `Salvaged ${E.gearName(g)} into ${items.map((i) => `${i.qty} ${itemName(i.itemId)}`).join(', ')}.` : `Salvaged ${E.gearName(g)}; nothing useful was left.`);
-  return { ok: true, items };
+  });
+  const items = Object.values(agg).map((a: any) => Object.assign(a, { expected: Math.round(a.expected * 100) / 100 }));
+  return { items, gearCount, blocked };
+};
+E.salvage = function (state, uids, opts) {
+  const allow = !!(opts && opts.allowProtected); const blocked = []; const got = {}; let n = 0;
+  uidList(uids).forEach((uid) => {
+    const g = findGear(state, uid); const why = salvageBlock(state, g, allow);
+    if (why) { blocked.push({ uid, reason: why }); return; }
+    salvageYield(g).forEach((y) => {
+      const q = Math.floor(y.exact) + (rand() < y.exact % 1 ? 1 : 0);
+      if (q > 0) { addItem(state, y.itemId, y.grade, q); const k = y.itemId + '|' + y.grade; got[k] = (got[k] || 0) + q; }
+    });
+    state.gear = state.gear.filter((x) => x.uid !== uid); n++;
+  });
+  const items = Object.keys(got).map((k) => { const [itemId, grade] = k.split('|'); return { itemId, grade: Number(grade), qty: got[k] }; });
+  if (!n) return { ok: false, reason: blocked.length ? blocked[0].reason : 'Pick something to salvage.', salvaged: 0, items, blocked };
+  const byItem = {}; items.forEach((i) => { byItem[i.itemId] = (byItem[i.itemId] || 0) + i.qty; });
+  const list = Object.keys(byItem).map((id) => `${byItem[id]} ${itemName(id)}`).join(', ');
+  const text = `Salvaged ${n} item${n === 1 ? '' : 's'} → ${list || 'nothing useful'}.`;
+  pushEvent(state, 'loot', text, { qty: n });
+  E.log(state, 'info', text);
+  return { ok: true, reason: '', salvaged: n, items, blocked };
 };
 E.fuseCandidates = function (state) {
   const by = {};

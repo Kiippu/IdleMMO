@@ -14,6 +14,7 @@ import { pushEvent } from './events';
 import { addXp, rawSkillLevel } from './skills';
 import { addItem } from './inventory';
 import { ensureStore } from './store';
+import { sweepSeen } from './codex';
 import { itemName } from './core';
 
 // ---------------------------------------------------------------- offline
@@ -121,7 +122,7 @@ E.applyOffline = function (state, nowMs) {
     const ps = E.playerStats(state);
     if (!solo) state.hp = ps.maxHp;
     else if (!state.active || act.kind !== 'combat') state.hp = Math.min(ps.maxHp, state.hp + ps.maxHp * 0.01 * (state.active ? seconds : restSec));
-    ensureStore(state);
+    ensureStore(state); sweepSeen(state);
     summary.weeks = state.week - wk0;
   } finally { ctx.now = realNow; flags.quiet = false; }
   summary.gold = Math.round(state.gold - gold0);

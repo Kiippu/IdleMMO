@@ -9,6 +9,7 @@ import { processClock } from './weekly';
 import { crewEconomyStep, crewLocksStep } from './crew-economy';
 import { marketEnabled } from './market';
 import { ensureStore } from './store';
+import { sweepSeen } from './codex';
 
 // ---------------------------------------------------------------- tick
 export function advanceAction(state, dt, events, maxN) {
@@ -65,5 +66,6 @@ E.tick = function (state, dtSec, opts) {
     marketFills(state, dt, events);
   }
   ensureStore(state);
+  sweepSeen(state);
   return events;
 };
