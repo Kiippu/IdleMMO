@@ -256,3 +256,7 @@ Owner asked to finish the whole phase in one go, so the step 2 style-frame phone
 - Known gaps: no engine notion of crewmates assisting YOUR action (only you assisting theirs), so that isn't drawn;
   the fishing rod tip clips ~9px at the top of the scene; weak icons (scales, cores, essences, tin vs silver ore).
 - Open: the owner's real-phone check of the art (style frame), offline cache size budget.
+- Final QA 2026-11-12 (5795c3f): gate passed, 192 tests green. Left for a follow-up pass: combat weapon is dark on the
+  dark ground and one big swing covers the foe; reveal floating pieces briefly overlap the headline; at 360px the gear item
+  sheet scrolls so Salvage/Equip sit below the fold; Shikashi credit name is long with a raw URL; salvage "Skipped" list
+  repeats one piece per reason; the service worker caches at runtime (no install-time precache, ~0.9 MB).
