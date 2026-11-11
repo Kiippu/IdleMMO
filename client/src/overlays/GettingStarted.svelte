@@ -3,10 +3,12 @@
   import { engine } from '../engine/store.svelte';
   import { guide, markDone, dismissGuide, setBaseEquipped, STEPS, nextStep } from '../guide.svelte';
   import { showMe } from '../ui.svelte';
+  import { openItem } from './itemRef.svelte';
 
-  const actions: Array<{ id: string; kind: string }> = (DATA as any).actions;
+  const actions: Array<{ id: string; kind: string; skill?: string; level?: number; outputs?: Record<string, number> }> = (DATA as any).actions;
   const kindOf = (k: string) => actions.filter((a) => a.kind === k).map((a) => a.id);
   const gatherIds = kindOf('gather'), craftIds = kindOf('craft');
+  const refineIds = ['smelt_copper'];
 
   let snap = $derived(engine.snapshot);
   // Auto-tick from state. Once ticked a step stays ticked.
@@ -14,12 +16,22 @@
     if (!snap) return;
     const m = snap.mastery ?? {};
     if (gatherIds.some((id) => (m[id] ?? 0) > 0)) markDone('gather');
+    if (refineIds.some((id) => (m[id] ?? 0) > 0)) markDone('refine');
     if (craftIds.some((id) => (m[id] ?? 0) > 0)) markDone('craft');
     const eq = Object.values(snap.equipped ?? {}).filter(Boolean) as string[];
     if (guide.baseEquipped == null) setBaseEquipped(eq);
     else if (eq.some((u) => !guide.baseEquipped!.includes(u))) markDone('equip');
-    if (engine.derived?.raidStatus?.locked) markDone('lock');
+    if ((engine.derived?.treasuryLog ?? []).some((e: any) => e.kind === 'contract' && e.who === 'You' && e.itemId === 'bread')) markDone('contract');
   });
+  // The welcome button goes to the first step and, for gathering, opens the first gather tile's sheet so Start is one tap away.
+  function begin() {
+    if (!next) return;
+    showMe(next.tab, next.selector, next.subs ?? {});
+    if (next.id === 'gather') {
+      const a = actions.find((x) => x.kind === 'gather' && (x.level ?? 1) <= 1);
+      if (a) openItem({ itemId: Object.keys(a.outputs ?? {})[0] ?? '', actionId: a.id });
+    }
+  }
   let doneCount = $derived(STEPS.filter((s) => guide.done[s.id]).length);
   let next = $derived(nextStep());
 </script>
@@ -29,7 +41,7 @@
     <!-- Fresh save: one clear thing to do. -->
     <section class="card fresh" aria-labelledby="gs-title">
       <h2 id="gs-title">Welcome to the guild</h2>
-      <button type="button" class="btn primary first" onclick={() => showMe(next.tab, next.selector, next.subs ?? {})}>
+      <button type="button" class="btn primary first" onclick={begin}>
         <span class="lbl">Do this first</span><span class="what">{next.text}</span>
       </button>
       <p class="after">Then: {STEPS.slice(1, 4).map((s) => s.text.toLowerCase()).join(', ')} and more. A guide line will keep you on track.</p>

@@ -109,3 +109,20 @@ export function figure(skill: string | null, active: boolean, eq: Equipped, crew
   const back = bg, front = fg;
   return { back, front: [...under, ...over, ...front], anim, backdrop: backdropFor(active ? skill : null), key: [crew ? 'c' : 'h', anim, ...bg, ...under, ...over, ...front].join(',') };
 }
+
+/** Frame index in each animation where the tool actually lands / the spell or arrow is released (the "hit"). */
+export const HIT_FRAME: Record<AnimName, number | null> = { idle: null, slash: 2, cast: 5, shoot: 9, fish: 5 };
+/** Absolute (rAF clock, ms) times of the hits of `anim` that fall in (from, to]. Frames advance on the same clock the scene paints with. */
+export function hitsBetween(anim: AnimName, from: number, to: number, phase = 0): number[] {
+  const h = HIT_FRAME[anim]; const a = MAN.anims[anim];
+  if (h == null || !a) return [];
+  const cycle = (a.frames / a.fps) * 1000, at = (h / a.fps) * 1000;
+  const out: number[] = [];
+  for (let k = Math.max(0, Math.floor((from - phase - at) / cycle)); ; k++) {
+    const t = k * cycle + at + phase;
+    if (t > to) break;
+    if (t > from) out.push(t);
+  }
+  return out;
+}
+export const cycleMs = (anim: AnimName) => (MAN.anims[anim].frames / MAN.anims[anim].fps) * 1000;

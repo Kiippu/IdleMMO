@@ -1,92 +1,54 @@
 <script lang="ts">
-  // Sticky status strip: gold, raid chip, Menu, then current job + HP. No scene here (it lives on the Workshop tab).
+  // Sticky status strip: gold, health, raid timer and the Menu cog. The running job lives under the Workshop scene.
   import { engine } from './engine/store.svelte';
-  import { engineClient } from './engine/client';
   import { fmtG, fmtN, fmtDuration } from './format';
-  import { DATA } from '@guildwright/engine';
-  import { guide } from './guide.svelte';
 
-  type Props = { onMenu: () => void; onStart: () => void };
-  let { onMenu, onStart }: Props = $props();
+  type Props = { onMenu: () => void };
+  let { onMenu }: Props = $props();
 
-  const actionsAll: Array<{ id: string; name: string }> = (DATA as any).actions;
   let snap = $derived(engine.snapshot);
   let view = $derived(engine.derived);
-  let active = $derived(snap?.active ?? null);
-  let job = $derived(active ? actionsAll.find((a) => a.id === active.actionId) ?? null : null);
-  let activeTime = $derived<number>(view?.activeTime ?? 0);
-  let progress = $derived(active && activeTime > 0 ? Math.max(0, Math.min(1, active.progress / activeTime)) : 0);
   let hp = $derived(Math.max(0, snap?.hp ?? 0));
   let maxHp = $derived<number>(view?.playerStats?.maxHp ?? 0);
   let hpPct = $derived(maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0);
   let raid = $derived(view?.raidStatus ?? null);
-
-  // On a fresh save the Workshop's "Do this first" button is the only call to action.
-  let fresh = $derived(!guide.dismissed && !guide.done['gather']);
   let chip = $derived.by(() => {
     if (!raid) return null;
-    if (raid.phase === 'live') return { text: `Raid closes in ${fmtDuration(raid.secLeft)}`, live: true };
+    if (raid.phase === 'live') return { text: `Raid closes ${fmtDuration(raid.secLeft)}`, live: true };
     if (raid.phase === 'done') {
       const sec = raid.nextRaidAt ? (raid.nextRaidAt - Date.now()) / 1000 : 0;
-      return { text: sec > 0 ? `Next raid in ${fmtDuration(sec)}` : 'Raid settled', live: false };
+      return { text: sec > 0 ? `Next raid ${fmtDuration(sec)}` : 'Raid settled', live: false };
     }
-    return { text: `Raid opens in ${fmtDuration(raid.secToStart)}`, live: false };
+    return { text: `Raid opens ${fmtDuration(raid.secToStart)}`, live: false };
   });
-
-  async function stop() {
-    try { await engineClient.stop(); } catch (err) { console.error('stop failed', err); }
-  }
 </script>
 
 <header class="strip">
-  <div class="r1">
-    {#if snap}<span class="gold">{fmtG(snap.gold)}</span>{/if}
-    {#if chip}<span class="chip" class:live={chip.live}>{chip.text}</span>{/if}
-    <button type="button" class="btn" onclick={onMenu} aria-label="Open menu: Log, Save, Settings, Credits">Menu</button>
-  </div>
-  <div class="r2">
-    <div class="job">
-      {#if job}
-        <span class="job-name">{job.name}</span>
-        <div class="bar" role="progressbar" aria-label="Job progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
-          <div class="fill" style="width: {Math.round(progress * 100)}%"></div>
-        </div>
-      {:else}
-        <span class="job-name idle">Nothing running</span>
-      {/if}
-      <div class="hp" aria-label="Health {fmtN(hp)} of {fmtN(maxHp)}">
-        <div class="hpbar"><div class="hpfill" style="width: {Math.round(hpPct * 100)}%"></div></div>
-        <span class="num">{fmtN(hp)}/{fmtN(maxHp)}</span>
-      </div>
-    </div>
-    {#if job}
-      <button type="button" class="btn primary" onclick={stop}>Stop</button>
-    {:else if !fresh}
-      <button type="button" class="btn primary" onclick={onStart}>Start next job</button>
-    {/if}
-  </div>
+  {#if snap}<span class="gold">{fmtG(snap.gold)}</span>{/if}
+  <span class="hp" role="img" aria-label="Health {fmtN(hp)} of {fmtN(maxHp)}">
+    <svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true" shape-rendering="crispEdges"><path d="M2 1h4v1h1v1h2V2h1V1h4v1h1v5h-1v1h-1v1h-1v1h-1v1H9v1H7v-1H6v-1H5v-1H4V8H3V7H2V2z" fill="var(--hp)"/></svg>
+    <span class="hpbar"><span class="hpfill" style="width: {Math.round(hpPct * 100)}%"></span></span>
+    <span class="num">{fmtN(hp)}/{fmtN(maxHp)}</span>
+  </span>
+  {#if chip}<span class="chip" class:live={chip.live}>{chip.text}</span>{/if}
+  <button type="button" class="btn cog" onclick={onMenu} aria-label="Menu">
+    <svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true" shape-rendering="crispEdges" fill="currentColor"><path fill-rule="evenodd" d="M6 0h4v2h1v1h1l1-1h1l1 1v1l-1 1v1h2v4h-2v1l1 1v1l-1 1h-1l-1-1h-1v1h-1v2H6v-2H5v-1H4l-1 1H2l-1-1v-1l1-1V9H0V5h2V4L1 3V2l1-1h1l1 1h1V2h1zM8 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+  </button>
 </header>
 
 <style>
   .strip {
-    position: sticky; top: 0; z-index: 15;
+    position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 10px; min-height: 48px;
     margin: 0 calc(var(--gut-r) * -1) 0 calc(var(--gut-l) * -1);
-    padding: 0 var(--gut-r) 6px var(--gut-l);
+    padding: 0 var(--gut-r) 0 var(--gut-l);
     background: var(--plaster); border-bottom: 1px solid var(--rule);
   }
-  .r1 { display: flex; align-items: center; gap: 8px; min-height: 48px; }
-  .r1 .gold { font-size: var(--t-lg); }
-  .chip { flex: 1; min-width: 0; text-align: right; font: 700 var(--t-sm)/1.2 var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .gold { font-size: var(--t-lg); flex: none; }
+  .hp { flex: none; display: inline-flex; align-items: center; gap: 4px; font: 700 var(--t-xs)/1 var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .hpbar { width: 36px; height: 6px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; display: block; }
+  .hpfill { display: block; height: 100%; background: var(--hp); }
+  .chip { flex: 1; min-width: 0; text-align: right; font: 700 var(--t-xs)/1.2 var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chip.live { color: var(--woad); }
-  .r1 .btn { padding: 0 10px; }
-  .r2 { display: flex; align-items: center; gap: 8px; }
-  .job { flex: 1; min-width: 0; display: grid; gap: 4px; }
-  .job-name { font: 700 var(--t-sm)/1.1 var(--f-body); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .job-name.idle { color: var(--ink-3); }
-  .bar, .hpbar { height: 6px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
-  .fill { height: 100%; background: var(--woad); transition: width 200ms linear; }
-  .hp { display: flex; align-items: center; gap: 6px; font: 700 var(--t-xs)/1 var(--f-num); color: var(--ink-2); }
-  .hpbar { flex: 1; }
-  .hpfill { height: 100%; background: var(--hp); }
-  .r2 .btn { padding: 0 10px; max-width: 96px; line-height: 1.2; }
+  .cog { flex: none; width: 44px; padding: 0; margin-left: auto; display: grid; place-items: center; }
+  .chip + .cog { margin-left: 0; }
 </style>

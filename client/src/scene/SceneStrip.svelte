@@ -1,37 +1,28 @@
 <script lang="ts">
-  // Workshop scene: a small native canvas (W about 96-144 x SCENE_H 64) scaled by a whole number (SCALE = 3,
-  // image-rendering: pixelated, no smoothing). Layers: action backdrop (Ninja Adventure tiles), the hero built from
+  // Workshop scene: a small native canvas (W about 96-144 x SCENE_H 64) scaled by a whole number (SCALE = 2,
+  // image-rendering: pixelated, no smoothing). Shown at 2x (about 128 css px tall). Layers: action backdrop (Ninja Adventure tiles), the hero built from
   // LPC layers that follow the equipped gear, and one crewmate beside you while you help a crew job.
   // Drawing is capped at 30 fps, only repaints when a frame or the look changes, stops while the app is hidden, and
   // shows a still pose under reduced motion.
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { reducedMotion } from '../settings.svelte';
+  import { heroLook } from './hero';
   import { loadSceneArt, MAN, BD, SCENE_H, FEET_Y, figure, backdropRow, foeRow, FOES, type Equipped, type Gear, type Look } from './sprites';
 
-  const SCALE = 3;
+  const SCALE = 2;   // 64 native px -> 128 css px tall: a short panoramic strip
   const H = SCENE_H;
-  let W = $state(120);
+  let W = $state(144);
   let wrapEl: HTMLDivElement;
   let canvasEl: HTMLCanvasElement;
 
-  const actionById = new Map<string, any>(((DATA as any).actions as any[]).map((a) => [a.id, a]));
   const items: Record<string, any> = (DATA as any).items;
-
-  function gearAt(slot: string): Gear | null {
-    const s = engine.snapshot;
-    const uid = s?.equipped?.[slot];
-    const g = uid ? (s.gear as any[] | undefined)?.find((x) => x.uid === uid) : null;
-    const it = g ? items[g.itemId] : null;
-    return it ? { itemId: g.itemId, tier: it.tier ?? 1, role: it.role ?? '' } : null;
-  }
+  void items;
 
   let scene = $derived.by(() => {
     const s = engine.snapshot;
-    const act = s?.active ? actionById.get(s.active.actionId) : null;
-    const eq: Equipped = { weapon: gearAt('weapon'), head: gearAt('head'), chest: gearAt('chest'), legs: gearAt('legs') };
+    const { look: hero, action: act, eq } = heroLook(s);
     const skill: string | null = act?.skill ?? null;
-    const hero = figure(skill, !!act, eq, false);
     const crew = s?.active?.jobId ? figure(skill, true, eq, true) : null;
     const foe = foeRow(act?.id ?? null, act?.kind ?? null);
     return { hero, crew, foe, label: act ? `Working: ${act.name}` : 'Idle in the workshop yard' };
@@ -39,7 +30,7 @@
 
   $effect(() => {
     if (!wrapEl) return;
-    const fit = () => { W = Math.max(96, Math.min(BD.w, Math.floor(wrapEl.clientWidth / SCALE))); };
+    const fit = () => { W = Math.max(96, Math.min(240, Math.floor(wrapEl.clientWidth / SCALE))); };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(wrapEl);
@@ -83,8 +74,14 @@
       lastSig = sig;
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, W, H);
-      const bx = Math.floor((BD.w - W) / 2);
-      ctx.drawImage(art.backdrops, bx, backdropRow(hero.backdrop) * H, W, H, 0, 0, W, H);
+      // Backdrop is BD.w wide: centred, with mirrored copies either side so a wide scene stays seamless.
+      const row = backdropRow(hero.backdrop) * H, x0 = Math.floor((W - BD.w) / 2);
+      for (let k = -1; k <= 1; k++) {
+        const dx = x0 + k * BD.w;
+        if (dx >= W || dx + BD.w <= 0) continue;
+        if (k === 0) ctx.drawImage(art.backdrops, 0, row, BD.w, H, dx, 0, BD.w, H);
+        else { ctx.save(); ctx.translate(dx + BD.w, 0); ctx.scale(-1, 1); ctx.drawImage(art.backdrops, 0, row, BD.w, H, 0, 0, BD.w, H); ctx.restore(); }
+      }
       const hx = crew ? Math.floor(W * 0.62) : Math.floor(W / 2);
       if (crew) drawFigure(ctx, art.atlas, crew, hx - 30, fc);
       if (foe != null) {   // the current foe stands to the right, facing the hero

@@ -5,6 +5,7 @@
   import { engine } from '../engine/store.svelte';
   import { reducedMotion } from '../settings.svelte';
   import SceneStrip from './SceneStrip.svelte';
+  import JobBar from './JobBar.svelte';
 
   // Floating "+n Item" over the scene on each completed rep while the app is open.
   const itemsMap: Record<string, { name?: string }> = (DATA as any).items;
@@ -34,9 +35,10 @@
   <SceneStrip />
   {#each floats as f (f.id)}<span class="float" style:border-left-color={`var(--r-${f.rarity})`}>{f.text}</span>{/each}
 </div>
+<JobBar />
 
 <style>
-  .scene { position: relative; margin: 0 0 12px; }
+  .scene { position: relative; margin: 0; }
   .float {
     position: absolute; left: 50%; top: 4px; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
     padding: 2px 6px; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-left-width: 4px; font: 700 var(--t-xs)/1.2 var(--f-num);

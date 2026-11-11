@@ -24,12 +24,13 @@ export function setBaseEquipped(uids: string[]) { guide.baseEquipped = uids; per
 
 export type Step = { id: string; text: string; tab: string; selector: string; subs?: any };
 export const STEPS: Step[] = [
-  { id: 'gather', text: 'Gather something', tab: 'Workshop', subs: { ws: 'gathering' }, selector: '.action[data-kind="gather"]:not(:disabled)' },
-  { id: 'sell', text: 'Sell one item at the Shop', tab: 'Shop', selector: '.list li .btn' },
-  { id: 'craft', text: 'Craft an item', tab: 'Workshop', subs: { ws: 'crafting' }, selector: '.action[data-kind="craft"]:not(:disabled)' },
-  { id: 'equip', text: 'Equip it', tab: 'Stores', selector: '.grid .tile[data-gear]', subs: { stores: 'mine' } },
-  { id: 'assist', text: 'Help a crewmate', tab: 'Crew', selector: '[data-guide="assist"]:not(:disabled)', subs: { crew: 'jobs' } },
-  { id: 'lock', text: 'Lock in for the raid', tab: 'War Room', selector: '[data-guide="lock"]', subs: { war: 'raid' } },
+  { id: 'gather', text: 'Gather something', tab: 'Workshop', subs: { ws: 'gathering' }, selector: '[data-guide="gather"]' },
+  { id: 'sell', text: 'Sell one item at the Shop', tab: 'Shop', subs: { shop: 'sell' }, selector: '[data-guide="sell"]' },
+  { id: 'refine', text: 'Make a copper bar (Refine)', tab: 'Workshop', subs: { ws: 'refining' }, selector: '[data-guide="refine"]' },
+  { id: 'craft', text: 'Craft an item', tab: 'Workshop', subs: { ws: 'crafting' }, selector: '[data-guide="craft"]' },
+  { id: 'equip', text: 'Equip it (War Room gear)', tab: 'War Room', subs: { war: 'loadout' }, selector: '[data-guide="equip"]' },
+  { id: 'assist', text: 'Help a crewmate', tab: 'Crew', subs: { crew: 'jobs' }, selector: '[data-guide="assist"]:not(:disabled)' },
+  { id: 'contract', text: 'Hand in bread to a contract', tab: 'Crew', subs: { crew: 'contracts' }, selector: '[data-guide="contract"]' },
 ];
 
 export const nextStep = (): Step | null => STEPS.find((s) => !guide.done[s.id]) ?? null;

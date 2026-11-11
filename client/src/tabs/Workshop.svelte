@@ -4,7 +4,6 @@
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
   import { ui } from '../ui.svelte';
-  import { fmtN } from '../format';
   import { openItem } from '../overlays/itemRef.svelte';
 
   type Skill = { id: string; name: string; tier: string; blurb: string };
@@ -54,82 +53,45 @@
   $effect(() => {
     if (!ui.wsOpen) return;
     picked = ui.wsCat; ui.wsOpen = false;
-    for (const s of skillsByTier[picked ?? 'gathering'] ?? []) open[s.id] = true;
   });
 
-  // Accordions: the active job's skill auto-opens; others closed; several may be open.
-  let open = $state<Record<string, boolean>>({});
-  $effect(() => { if (activeAction) open[activeAction.skill] = true; });
+  // Guide hooks: the first gather tile you can use, the Copper bar tile, the first craft tile you can make now.
+  let guideGather = $derived(actionsAll.find((a) => a.kind === 'gather' && !locked(a))?.id ?? null);
+  let guideCraft = $derived(actionsAll.find((a) => a.kind === 'craft' && startable(a))?.id ?? null);
+  const guideOf = (a: Action) => (a.id === guideGather ? 'gather' : a.id === 'smelt_copper' ? 'refine' : a.id === guideCraft ? 'craft' : undefined);
 
-  // "Ready now": prefer actions a fillable contract needs, then highest XP per second.
-  let needed = $derived(new Set<string>((view?.contracts ?? []).filter((c: any) => c.status === 'open' && !c.mine && c.canFill?.ok === false && (c.remaining ?? 0) > 0 && c.capacity > 0).map((c: any) => c.itemId)));
-  let ready = $derived.by(() => {
-    const score = (a: Action) => (outId(a) && needed.has(outId(a)!) ? 1e6 : 0) + (a.xp ?? 0) / Math.max(0.5, timeOf(a) ?? 1);
-    return actionsAll.filter((a) => skillOf(a.skill)?.tier === cat && startable(a) && a.id !== activeId).sort((a, b) => score(b) - score(a)).slice(0, 3);
-  });
-
-  async function start(id: string) {
-    try { await engineClient.start(id); }
-    catch (err) { console.error('start failed', err); }
+  // Recently unlocked (levelled into, not yet dismissed).
+  let recent = $derived<Action[]>((view?.extras?.recentUnlocks ?? []).map((id: string) => actionsAll.find((a) => a.id === id)).filter((a): a is Action => !!a));
+  async function dismissRecent() {
+    try { await engineClient.dismissUnlocks(recent.map((a) => a.id)); } catch (err) { console.error('dismiss failed', err); }
   }
-  function toShop() { ui.goTab = 'Shop'; }
+  const openAction = (a: Action) => openItem({ itemId: outId(a) ?? '', actionId: a.id });
   const capNote = (id: string) => (view?.skillProgress?.[id]?.capped ? ' (cap)' : '');
 </script>
 
-{#snippet inputsLine(a: Action)}
-  {#if a.inputs && Object.keys(a.inputs).length}
-    <span class="inputs">
-      {#each Object.entries(a.inputs) as [id, n]}
-        <button type="button" class="inp num" class:short={have(id) < n} onclick={() => openItem({ itemId: id })}>{n} {itemName(id)} · have {fmtN(have(id))}</button>
-      {/each}
-    </span>
-  {/if}
-{/snippet}
-
-{#snippet row(a: Action)}
+{#snippet tile(a: Action)}
   {@const out = outId(a)}
   {@const sh = short(a)}
   {@const running = activeId === a.id}
-  <li class="arow" class:running>
-    <div class="r1">
-    <button type="button" class="action main" data-kind={a.kind} data-ic={out || a.enemy ? '1' : undefined} aria-pressed={running} disabled={sh} onclick={() => start(a.id)}>
-      {#if out}<span class="aic"><ItemIcon id={out} rarity={itemRarity[out] ?? 'common'} /></span>{:else if a.enemy}<span class="aic"><ItemIcon named="fight:{a.id}" /></span>{/if}
-      <span class="a-name" style:color={out ? `var(--r-${itemRarity[out] ?? 'common'})` : undefined}>{out ? itemName(out) : label(a)}{#if out && label(a) !== itemName(out)}<small>{` · ${label(a)}`}</small>{/if}</span>
-      <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
-    </button>
-    {#if out}<button type="button" class="btn info" aria-label="Details: {itemName(out)}" onclick={() => openItem({ itemId: out })}>i</button>{/if}
-    {#if sh}
-      {@const miss = Object.entries(a.inputs ?? {}).find(([id, n]) => have(id) < n && inShop(id))}
-      {#if miss}<button type="button" class="btn shop" onclick={toShop}>Get from Shop</button>{:else}<span class="btn dis" aria-disabled="true">Need items</span>{/if}
-    {:else}
-      <button type="button" class="btn start" class:primary={!running} disabled={running} onclick={() => start(a.id)}>{running ? 'Running' : 'Start'}</button>
-    {/if}
-    </div>
-    {@render inputsLine(a)}
-    {#if reasons[a.id] && !running}<p class="why">{reasons[a.id]}</p>{/if}
-  </li>
+  <button type="button" class="tile" class:running class:dim={sh} data-kind={a.kind} data-guide={guideOf(a)} aria-pressed={running}
+    aria-label="{out ? itemName(out) : a.name}{running ? ', running' : ''}{sh ? ', missing materials' : ''}" onclick={() => openAction(a)}>
+    <span class="slot" style:border-color={running ? undefined : out ? `var(--r-${itemRarity[out] ?? 'common'})` : undefined}>
+      {#if out}<ItemIcon id={out} rarity={itemRarity[out] ?? 'common'} />{:else}<ItemIcon named="fight:{a.id}" />{/if}
+      {#if sh}<i class="mark" aria-hidden="true">!</i>{/if}
+      {#if running}<i class="run" aria-hidden="true"></i>{/if}
+    </span>
+    <span class="tn">{out ? itemName(out) : (a.enemy as any)?.name ?? a.name}</span>
+  </button>
 {/snippet}
 
 <div class="chips" role="group" aria-label="Category">
   {#each CATS as c (c.id)}<button type="button" class="btn chip" aria-pressed={cat === c.id} onclick={() => pickCat(c.id)}>{c.label}</button>{/each}
 </div>
 
-{#if ready.length}
-  <section class="ready" aria-labelledby="rd-title">
-    <h3 id="rd-title">Ready now</h3>
-    <ul>
-      {#each ready as a (a.id)}
-        <li>
-          <button type="button" class="action main" data-ic={outId(a) || a.enemy ? '1' : undefined} onclick={() => start(a.id)}>
-            {#if outId(a)}<span class="aic"><ItemIcon id={outId(a)!} rarity={itemRarity[outId(a)!] ?? 'common'} /></span>{:else if a.enemy}<span class="aic"><ItemIcon named="fight:{a.id}" /></span>{/if}
-            <span class="a-name" style:color={outId(a) ? `var(--r-${itemRarity[outId(a)!] ?? 'common'})` : undefined}>{outId(a) ? itemName(outId(a)!) : a.name}</span>
-            <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
-          </button>
-          {#if outId(a)}<button type="button" class="btn info" aria-label="Details: {itemName(outId(a)!)}" onclick={() => openItem({ itemId: outId(a)! })}>i</button>{/if}
-          <button type="button" class="btn primary start" onclick={() => start(a.id)}>Start</button>
-        </li>
-      {/each}
-    </ul>
+{#if recent.length}
+  <section class="recent" aria-labelledby="ru-title">
+    <div class="rh"><h3 id="ru-title">Recently unlocked</h3><button type="button" class="btn ghost x" aria-label="Dismiss recently unlocked" onclick={dismissRecent}>×</button></div>
+    <div class="grid">{#each recent as a (a.id)}{@render tile(a)}{/each}</div>
   </section>
 {/if}
 
@@ -139,75 +101,43 @@
   {@const acts = actionsBySkill[skill.id] ?? []}
   {@const unlocked = acts.filter((a) => !locked(a))}
   {@const lockedActs = acts.filter((a) => locked(a))}
-  {@const can = unlocked.some((a) => startable(a))}
-  <section class="skill" class:isopen={!!open[skill.id]}>
+  <section class="skill">
     <h4>
-      <button type="button" class="head" aria-expanded={!!open[skill.id]} aria-controls="sk-{skill.id}" onclick={() => (open[skill.id] = !open[skill.id])}>
-        <span class="sq" aria-hidden="true"><ItemIcon skill={skill.id} /></span>
-        <span class="mid">
-          <span class="skill-name">{skill.name}{#if can}<i class="dot" aria-label="Something can be made now"></i>{/if}</span>
-          <span class="xp" role="progressbar" aria-label="{skill.name} XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((prog?.pct ?? 0) * 100)}><i style="width: {Math.round((prog?.pct ?? 0) * 100)}%"></i></span>
-        </span>
-        <span class="skill-lvl">Lv <span class="num">{lvl}</span>{capNote(skill.id)}</span>
-        <span class="chev" aria-hidden="true">{open[skill.id] ? '▾' : '▸'}</span>
-      </button>
+      <span class="sq" aria-hidden="true"><ItemIcon skill={skill.id} /></span>
+      <span class="skill-name">{skill.name}</span>
+      <span class="skill-lvl">Lv <span class="num">{lvl}</span>{capNote(skill.id)}</span>
+      <span class="xp" role="progressbar" aria-label="{skill.name} XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((prog?.pct ?? 0) * 100)}><i style="width: {Math.round((prog?.pct ?? 0) * 100)}%"></i></span>
     </h4>
-    {#if open[skill.id]}
-      <div id="sk-{skill.id}" class="body">
-        <p class="blurb">{skill.blurb}</p>
-        <ul class="alist">
-          {#each unlocked as a (a.id)}{@render row(a)}{/each}
-        </ul>
-        {#if lockedActs.length}
-          <p class="next">Next: {lockedActs[0].name} <span class="num">{`at Lv ${lockedActs[0].level}${lockedActs.length > 1 ? ` · ${lockedActs.length - 1} more locked` : ''}`}</span></p>
-        {/if}
-      </div>
+    <div class="grid">{#each unlocked as a (a.id)}{@render tile(a)}{/each}</div>
+    {#if lockedActs.length}
+      <p class="next">Next: {lockedActs[0].name} <span class="num">{`at Lv ${lockedActs[0].level}${lockedActs.length > 1 ? ` · ${lockedActs.length - 1} more locked` : ''}`}</span></p>
     {/if}
   </section>
 {/each}
 
 <style>
-  .ready { margin: 0 0 12px; padding: 10px; background: var(--paper); border: 1px solid var(--woad); }
-  h3 { margin: 0 0 6px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
-  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  .ready li, .r1 { display: flex; gap: 6px; align-items: stretch; }
-  .arow { display: grid; gap: 2px; }
-  .inputs { display: flex; flex-wrap: wrap; gap: 0 12px; }
-  .inp { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; border: 0; background: none; font: 400 var(--t-xs)/1.2 var(--f-num); color: var(--ink-3); text-decoration: underline; text-align: left; }
   .chips { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; margin: 0 0 12px; }
   .chip { padding: 0 4px; }
-
-  .skill { margin-bottom: 8px; background: var(--paper); border: 1px solid var(--rule); }
-  h4 { margin: 0; }
-  .head { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; background: transparent; text-align: left; }
-  .sq { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid var(--woad); background: var(--sunk); }
-  .mid { flex: 1; min-width: 0; display: grid; gap: 6px; }
-  .skill-name { font: 600 var(--t-md)/1.1 var(--f-display); color: var(--ink); display: inline-flex; align-items: center; gap: 6px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brass-fill); display: inline-block; }
-  .xp { height: 4px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; display: block; }
+  h3 { margin: 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+  .recent { margin: 0 0 12px; padding: 8px 10px 10px; background: var(--paper); border: 1px solid var(--woad); display: grid; gap: 6px; }
+  .rh { display: flex; align-items: center; justify-content: space-between; }
+  .x { width: 44px; padding: 0; font-size: var(--t-lg); }
+  .skill { margin-bottom: 8px; padding: 8px 10px 10px; background: var(--paper); border: 1px solid var(--rule); display: grid; gap: 8px; }
+  h4 { margin: 0; display: grid; grid-template-columns: 32px 1fr auto; grid-template-areas: "i n l" "i x x"; column-gap: 10px; row-gap: 4px; align-items: center; }
+  .sq { grid-area: i; width: 32px; height: 32px; display: grid; place-items: center; }
+  .skill-name { grid-area: n; font: 600 var(--t-md)/1.1 var(--f-display); color: var(--ink); }
+  .skill-lvl { grid-area: l; font: 700 var(--t-sm)/1 var(--f-body); color: var(--ink-3); white-space: nowrap; }
+  .xp { grid-area: x; height: 4px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; display: block; }
   .xp i { display: block; height: 100%; background: var(--woad); }
-  .skill-lvl { font: 700 var(--t-sm)/1 var(--f-body); color: var(--ink-3); white-space: nowrap; }
-  .chev { color: var(--ink-3); width: 12px; }
-  .body { padding: 0 10px 10px; }
-  .blurb { margin: 0 0 8px; color: var(--ink-2); font-size: var(--t-sm); }
-  .next { margin: 8px 0 0; color: var(--ink-3); font-size: var(--t-sm); }
-
-  .action.main {
-    flex: 1; min-width: 0; min-height: 44px; display: grid; gap: 2px; align-content: center; text-align: left;
-    padding: 6px 10px; border: 1px solid var(--rule); background: var(--sunk);
-  }
-  .action.main:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
-  .action.main:disabled { opacity: .85; cursor: not-allowed; }
-  .action.main[data-ic] { grid-template-columns: 32px 1fr; column-gap: 8px; align-items: center; }
-  .aic { grid-row: 1 / span 2; display: grid; }
-  .arow.running .action.main, .action[aria-pressed="true"] { background: var(--woad-soft); border-color: var(--woad); }
-  .a-name { font: 700 var(--t-sm)/1.15 var(--f-body); }
-  .a-name small { font-weight: 400; color: var(--ink-3); }
-  .inp.short { color: var(--bad); font-weight: 700; }
-  .a-meta { font-size: var(--t-xs); color: var(--ink-3); font-weight: 700; }
-  .info { flex: none; padding: 0; font: 700 var(--t-md)/1 var(--f-body); text-transform: none; }
-  .start, .shop, .dis { flex: none; min-width: 72px; padding: 0 8px; }
-  .shop { font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; max-width: 84px; }
-  .why { margin: 0; color: var(--ink-2); font-size: var(--t-xs); }
-  .dis { opacity: .6; font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px 4px; }
+  .tile { min-height: 44px; padding: 2px 0 0; display: grid; justify-items: center; align-content: start; gap: 2px; border: 0; background: none; color: var(--ink); }
+  .slot { position: relative; width: 44px; height: 44px; display: grid; place-items: center; background: var(--sunk); border: 2px solid var(--rule); }
+  .tile.dim .slot { opacity: .5; }
+  .tile.running .slot { border-color: var(--woad); box-shadow: 0 0 0 2px var(--woad-soft), 0 0 0 3px var(--woad); }
+  .mark { position: absolute; right: -4px; top: -4px; width: 14px; height: 14px; display: grid; place-items: center; background: var(--brass-fill); color: var(--ink); font: 700 10px/1 var(--f-num); font-style: normal; border: 1px solid var(--ink); }
+  .run { position: absolute; left: 2px; right: 2px; bottom: 2px; height: 3px; background: var(--woad); animation: runbar 1.4s ease-in-out infinite; transform-origin: left; }
+  @keyframes runbar { 0% { transform: scaleX(.1); } 100% { transform: scaleX(1); } }
+  @media (prefers-reduced-motion: reduce) { .run { animation: none; } }
+  .tn { max-width: 100%; font: 400 11px/1.1 var(--f-body); color: var(--ink-2); text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+  .next { margin: 0; color: var(--ink-3); font-size: var(--t-sm); }
 </style>

@@ -7,14 +7,15 @@
   import { fmtG, fmtN, fmtSecs } from '../format';
   import { itemSheet, openItem, closeItem } from './itemRef.svelte';
   import { askNumber, confirmSheet, noticeSheet } from './confirm.svelte';
-  import { toast } from './toasts.svelte';
+  import QuantitySheet from './QuantitySheet.svelte';
+  import { askQuantity } from './quantity.svelte';
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
   import { openSalvage } from './salvage.svelte';
-  import { buyFromShop } from './shopActions';
+  import { buyFromShop, lastBuy } from './shopActions';
+  import { gradeName } from '../engine/grades';
 
   type Action = { id: string; skill: string; kind: string; name: string; level?: number; sec?: number; xp?: number; inputs?: Record<string, number>; outputs?: Record<string, number>; bonus?: Array<{ item: string }>; drops?: Array<{ item: string }>; zone?: string; enemy?: string };
-  const GRADE_LABEL = ['Rough', 'Fine', 'Sharp', 'Keen', 'Pristine'];
   const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring' };
   const STAT_NAME: Record<string, string> = { atk: 'attack', def: 'defence', heal: 'heal', hp: 'HP' };
   const itemsMap: Record<string, any> = (DATA as any).items;
@@ -30,7 +31,7 @@
   let cat = $derived<any>(ref ? catalog[ref.itemId] ?? null : null);
   let cstat = $derived<string>(ref ? (engine.derived?.extras?.codex?.items?.[ref.itemId]?.status ?? 'known') : 'known');
   // A hint: not yet discovered. Only inputs you have already seen are named.
-  let hint = $derived(!!ref && cstat === 'hint' && !engine.snapshot?.seen?.[ref.itemId] && !ref.uid);
+  let hint = $derived(!!ref && cstat === 'hint' && !engine.snapshot?.seen?.[ref.itemId] && !ref.uid && !ref.actionId);
   const seenId = (id: string) => !!engine.snapshot?.seen?.[id];
   let salvageYield = $derived.by(() => {
     if (!cat?.salvage || !g || isEq) return '';
@@ -82,11 +83,13 @@
     const parts = Object.keys(STAT_NAME).map((k) => ({ k, d: (a[k] ?? 0) - (b[k] ?? 0) })).filter((x) => x.d !== 0).map((x) => `${x.d > 0 ? '+' : '−'}${Math.abs(x.d)} ${STAT_NAME[x.k]}`);
     return parts.length ? `Against your worn piece: ${parts.join(', ')}.` : 'Same base stats as your worn piece.';
   }
-  const gname = () => (g ? (view?.gearNames?.[g.uid] ?? itemName(g.itemId)) : itemName(ref!.itemId));
+  const gname = () => (g ? (view?.gearNames?.[g.uid] ?? itemName(g.itemId)) : ref ? itemName(ref.itemId) : '');
+  let note = $state('');
+  $effect(() => { void ref; note = ''; });
 
   async function equip() {
     if (status?.prepLocked) { await noticeSheet('Gear is locked', status.prepReason || 'Gear cannot change while the raid runs.'); return; }
-    try { await engineClient.equip(g.uid); closeItem(); toast(`Equipped ${gname()}`); } catch (e) { console.error(e); }
+    try { await engineClient.equip(g.uid); closeItem(); } catch (e) { console.error(e); note = 'Could not equip.'; }
   }
   async function unequip() {
     if (status?.prepLocked) { await noticeSheet('Gear is locked', status.prepReason || 'Gear cannot change while the raid runs.'); return; }
@@ -96,19 +99,31 @@
     const price = store?.gearSellPrices?.[g.uid] ?? 0;
     if (!(await confirmSheet({ title: `Sell ${gname()}?`, body: `The store pays ${fmtG(price)}. A crewmate or contract may pay more.`, confirmLabel: `Sell for ${fmtG(price)}`, danger: true }))) return;
     const res = await engineClient.storeSellGear(g.uid);
-    if (res.ok) { markDone('sell'); closeItem(); toast(`Sold ${gname()} for ${fmtG(res.gold)}`); } else await noticeSheet('Could not sell', res.reason);
+    if (res.ok) { markDone('sell'); closeItem(); } else await noticeSheet('Could not sell', res.reason);
   }
   async function sellStack(grade: number, n: number) {
     const id = ref!.itemId; const price = store?.sellPrices?.[id]?.[grade] ?? 0;
-    const qty = await askNumber({ title: `Sell ${itemName(id)}`, body: `${GRADE_LABEL[grade]} · the store pays ${fmtG(price)} each.`,
+    const qty = await askNumber({ title: `Sell ${itemName(id)}`, body: `${gradeName(grade)} · the store pays ${fmtG(price)} each.`,
       number: { min: 1, max: n, value: 1, label: 'How many?', lines: (k) => [`You get ${fmtG(k * price)}`] }, confirmLabel: 'Sell' });
     if (qty == null) return;
     const res = await engineClient.storeSell(id, grade, qty);
-    if (res.ok) { markDone('sell'); toast(`Sold ${qty} ${itemName(id)} for ${fmtG(res.gold)}`); } else await noticeSheet('Could not sell', res.reason);
+    if (res.ok) { markDone('sell'); note = `Sold ${qty} for ${fmtG(res.gold)}.`; } else await noticeSheet('Could not sell', res.reason);
   }
-  async function make(a: Action) {
-    try { await engineClient.start(a.id); closeItem(); toast(`Started ${a.name}`); } catch (e) { console.error(e); }
+  // Gather / fight start right away and keep going until stopped; refine / craft ask how many first.
+  async function begin(a: Action) {
+    if (a.kind === 'refine' || a.kind === 'craft') { closeItem(); askQuantity(a.id); return; }
+    try { await engineClient.start(a.id); closeItem(); } catch (e) { console.error(e); note = 'Could not start.'; }
   }
+  async function stopJob() { try { await engineClient.stop(); } catch (e) { console.error(e); } }
+  let act = $derived<Action | null>(ref?.actionId ? actions.find((a) => a.id === ref!.actionId) ?? null : null);
+  let fightAct = $derived<Action | null>(act && act.kind === 'combat' ? act : null);
+  let runningId = $derived<string | null>(snap?.active?.actionId ?? null);
+  let runningName = $derived(runningId ? actions.find((a) => a.id === runningId)?.name ?? null : null);
+  let panelActs = $derived<Action[]>(act && act.kind !== 'combat' ? [act] : recipes);
+  const KIND_LABEL: Record<string, string> = { gather: 'Gather', refine: 'Refine', craft: 'Craft', combat: 'Fight' };
+  // Rough damage per kill from the engine's own formula: dmg x ~1.2, less 30% of defence.
+  const hitDmg = (a: Action) => Math.max(1, Math.round(((a.enemy as any)?.dmg ?? 1) * 1.2 - (view?.playerStats?.def ?? 0) * 0.3));
+  const maxHp = $derived<number>(view?.playerStats?.maxHp ?? 0);
   function toShop() { closeItem(); ui.goTab = 'Shop'; }
 
   let dlg = $state<HTMLElement | null>(null);
@@ -128,11 +143,51 @@
 
 <svelte:window onkeydown={onKey} />
 
+{#snippet startCtl(a: Action)}
+  {@const short = Object.entries(a.inputs ?? {}).some(([id, n]) => have(id) < n)}
+  {@const lockd = levelOf(a.skill) < (a.level ?? 1)}
+  {#if lockd}<p class="meta">Needs {skillName(a.skill)} Lv <span class="num">{a.level}</span>.</p>
+  {:else if !ref?.readOnly}
+    {#if runningId === a.id}
+      <button type="button" class="btn" onclick={stopJob}>Running · Stop</button>
+    {:else}
+      <button type="button" class="btn primary start" disabled={short} onclick={() => begin(a)}>{runningName ? `Start · stops ${runningName}` : 'Start'}</button>
+      {#if runningName && !short}<p class="meta">This stops {runningName}.</p>{/if}
+    {/if}
+    {#if short}<p class="meta">{view?.extras?.disabledReasons?.actions?.[a.id] ?? 'Missing materials. Check the have / need lines above.'}</p>{/if}
+  {/if}
+{/snippet}
+
 {#snippet link(id: string)}
   <button type="button" class="il" style:color={`var(--r-${itemRarity[id] ?? 'common'})`} onclick={() => openItem({ itemId: id })}>{itemName(id)}</button>
 {/snippet}
 
-{#if ref && it}
+{#if ref && fightAct}
+  <div class="scrim" onclick={closeItem} role="presentation">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="it-title" tabindex="-1" bind:this={dlg} onclick={(e) => e.stopPropagation()}>
+      <header>
+        <span class="tile" style:--ink-r="var(--ink)" aria-hidden="true"><ItemIcon named="fight:{fightAct.id}" size={64} /></span>
+        <div>
+          <h2 id="it-title">{fightAct.name}</h2>
+          <p class="meta">Fight · {skillName(fightAct.skill)} Lv <span class="num">{fightAct.level ?? 1}</span>{fightAct.zone ? ` · ${fightAct.zone}` : ''}</p>
+        </div>
+      </header>
+      <section>
+        <h3>Enemy</h3>
+        <p class="body">{(fightAct.enemy as any)?.name ?? 'Unknown'}</p>
+        <dl class="facts">
+          <div><dt>Time per kill</dt><dd class="num">{fmtSecs(timeOf(fightAct) ?? 0)}</dd></div>
+          <div><dt>XP per kill</dt><dd class="num">{fmtN(fightAct.xp ?? 0)}</dd></div>
+          <div><dt>Damage risk</dt><dd class="num">about {hitDmg(fightAct)} per kill · {fmtN(Math.floor(maxHp / hitDmg(fightAct)))} kills from full health</dd></div>
+        </dl>
+        {#if fightAct.drops?.length}<p class="meta">Drops: {#each fightAct.drops as d, i}{#if i}, {/if}{@render link(d.item)}{/each}</p>{/if}
+        {@render startCtl(fightAct)}
+      </section>
+      <div class="actions"><button type="button" class="btn ghost" onclick={closeItem}>Close</button></div>
+    </div>
+  </div>
+{:else if ref && it}
   <div class="scrim" onclick={closeItem} role="presentation">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="it-title" tabindex="-1" bind:this={dlg} onclick={(e) => e.stopPropagation()}>
@@ -167,23 +222,26 @@
       {/if}
 
       {#if grades}
-        <ul class="gr">{#each grades as q, i}{#if q > 0}<li><span>{GRADE_LABEL[i]}</span><b class="num">×{fmtN(q)}</b>
+        <ul class="gr">{#each grades as q, i}{#if q > 0}<li><span>{gradeName(i)}</span><b class="num">×{fmtN(q)}</b>
           {#if !ref.readOnly}<button type="button" class="btn" onclick={() => sellStack(i, q)}>Sell <span class="num">{fmtG(store?.sellPrices?.[ref.itemId]?.[i] ?? 0)}</span></button>{/if}</li>{/if}{/each}</ul>
       {/if}
 
-      {#each recipes as a (a.id)}
-        {@const short = Object.entries(a.inputs ?? {}).some(([id, n]) => have(id) < n)}
-        {@const lockd = levelOf(a.skill) < (a.level ?? 1)}
+      {#each panelActs as a (a.id)}
         <section>
-          <h3>Recipe</h3>
-          <p class="body">{skillName(a.skill)} Lv <span class="num">{a.level ?? 1}</span> · <span class="num">{fmtSecs(timeOf(a) ?? 0)}</span> · <span class="num">{fmtN(a.xp ?? 0)}</span> XP</p>
-          <ul class="ing">
-            {#each Object.entries(a.inputs ?? {}) as [id, n]}
-              <li>{@render link(id)} <span class="num" class:short={have(id) < n}>have {fmtN(have(id))} / need {n}</span></li>
-            {/each}
-          </ul>
-          {#if lockd}<p class="meta">Needs {skillName(a.skill)} Lv <span class="num">{a.level}</span>.</p>
-          {:else if !ref.readOnly}<button type="button" class="btn" disabled={short} onclick={() => make(a)}>Start making</button>{#if short}<p class="meta">{view?.extras?.disabledReasons?.actions?.[a.id] ?? 'Missing materials. Check the "have / need" lines above.'}</p>{/if}{/if}
+          <h3>{KIND_LABEL[a.kind] ?? 'Recipe'}</h3>
+          <p class="body">{skillName(a.skill)} Lv <span class="num">{a.level ?? 1}</span></p>
+          <dl class="facts">
+            <div><dt>Time per rep</dt><dd class="num">{fmtSecs(timeOf(a) ?? 0)}</dd></div>
+            <div><dt>XP per rep</dt><dd class="num">{fmtN(a.xp ?? 0)}</dd></div>
+          </dl>
+          {#if a.inputs && Object.keys(a.inputs).length}
+            <ul class="ing">
+              {#each Object.entries(a.inputs) as [id, n]}
+                <li>{@render link(id)} <span class="num" class:short={have(id) < n}>have {fmtN(have(id))} / need {n}</span></li>
+              {/each}
+            </ul>
+          {/if}
+          {@render startCtl(a)}
         </section>
       {/each}
       {#if gatheredBy.length}<p class="meta">Gathered by: {gatheredBy.map((a) => `${a.name} (${skillName(a.skill)} Lv ${a.level ?? 1})`).join(', ')}</p>{/if}
@@ -197,22 +255,27 @@
       {#if demand > 0}<p class="meta">Open contracts still want <span class="num">{fmtN(demand)}</span>.</p>{/if}
       {/if}
 
+      {#if note}<p class="meta" role="status">{note}</p>{/if}
       <div class="actions">
         <button type="button" class="btn ghost" onclick={closeItem}>Close</button>
-        {#if !hint && shopSlot && !ref.readOnly}<button type="button" class="btn primary" onclick={async () => { if (await buyFromShop(shopSlot)) closeItem(); }}>Buy <span class="num">{fmtG(shopSlot.price)}</span></button>{/if}
+        {#if !hint && shopSlot && !ref.readOnly}<button type="button" class="btn primary" onclick={async () => { if (await buyFromShop(shopSlot)) note = `Bought ${lastBuy.qty} for ${fmtG(lastBuy.gold)}.`; }}>Buy <span class="num">{fmtG(shopSlot.price)}</span></button>{/if}
         {#if !hint && g && inBag && !ref.readOnly}
           {#if isEq}
             <button type="button" class="btn" onclick={unequip}>Unequip</button>
           {:else}
             <button type="button" class="btn" onclick={sellGear}>Sell <span class="num">{fmtG(store?.gearSellPrices?.[g.uid] ?? 0)}</span></button>
-            <button type="button" class="btn danger" onclick={() => openSalvage([g.uid], gname())}>Salvage</button>
             {#if it.slot}<button type="button" class="btn primary" data-guide="equip" onclick={equip}>Equip</button>{/if}
           {/if}
         {/if}
       </div>
+      {#if !hint && g && inBag && !isEq && !ref.readOnly}
+        <div class="apart"><button type="button" class="btn ghost salv" onclick={() => openSalvage([g.uid], gname())}>Salvage…</button></div>
+      {/if}
     </div>
   </div>
 {/if}
+
+<QuantitySheet />
 
 <style>
   .scrim { position: fixed; inset: 0; z-index: 48; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
@@ -233,5 +296,10 @@
   .gr { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .gr li { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: var(--sunk); border: 1px solid var(--rule-2); }
   .gr li span { flex: 1; }
+  .facts { margin: 0; display: grid; gap: 2px; width: 100%; }
+  .facts div { display: flex; justify-content: space-between; gap: 8px; font-size: var(--t-sm); }
+  .facts dt { color: var(--ink-3); } .facts dd { margin: 0; text-align: right; }
+  .apart { padding-top: 8px; border-top: 1px solid var(--rule); display: flex; justify-content: flex-start; }
+  .salv { color: var(--bad); }
   .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 </style>
