@@ -208,7 +208,7 @@ input::placeholder { color: var(--ink-3); }
 /* card */
 .update, .shell main :is(.hero, .treasury, .card), .full section.rcard { border-image-source: url('./ui-art/card.png'); }
 .update { padding: 8px 10px; margin-inline: -4px; }
-.shell main :is(.hero, .treasury, .card), .full section.rcard { padding: 12px; }
+.shell main :is(.hero, .treasury, .card), .full section.rcard { padding: 16px; }
 /* button */
 .btn:not(.ghost) { border-image-source: url('./ui-art/btn.png'); padding: 6px 10px; }
 .btn:not(.ghost):hover:not(:disabled) { border-image-source: url('./ui-art/btn-hover.png'); }
