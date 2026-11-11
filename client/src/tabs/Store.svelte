@@ -145,7 +145,8 @@
 
   <section class="group">
     <h3>Sell to the store</h3>
-    <p class="note">Shop buys at <span class="num">{sellPct}%</span> of value. Crewmates and contracts pay more. <button type="button" class="link" onclick={onContracts}>See Contracts</button></p>
+    <p class="note">Shop buys at <span class="num">{sellPct}%</span> of value. Crewmates and contracts pay more.</p>
+    <button type="button" class="link" onclick={onContracts}>See Contracts</button>
     {#if sellGroups.length === 0 && sellGear.length === 0}
       <p class="muted">Nothing to sell yet.</p>
       <button type="button" class="btn next" onclick={() => (ui.goTab = 'Workshop')}>Go gather something</button>
@@ -193,11 +194,12 @@
   .group + .group { margin-top: 16px; }
   .group h3 { margin: 0 0 8px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
   .muted { margin: 0; padding: 12px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
-  .note { margin: 0 0 8px; color: var(--ink-3); font-size: var(--t-sm); }
+  .note { margin: 0 0 2px; line-height: 1.3; color: var(--ink-3); font-size: var(--t-sm); }
   .next { margin-top: 8px; }
   .link { background: none; border: 0; padding: 12px 0; min-height: 44px; color: var(--woad); font: inherit; font-weight: 700; text-decoration: underline; }
   .meta { color: var(--ink-3); font-size: var(--t-xs); }
 
+  .tiles > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 10px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink); }
   .tile:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }

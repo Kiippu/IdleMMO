@@ -50,8 +50,8 @@
   .first .lbl { font: 400 var(--t-xs)/1 var(--f-label); letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
   .first .what { font: 700 var(--t-lg)/1.1 var(--f-body); text-transform: none; letter-spacing: 0; }
   .after { margin: 0; color: var(--ink-2); font-size: var(--t-xs); }
-  .line { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; padding: 0 0 0 10px; background: var(--woad-soft); border: 1px solid var(--woad); }
-  .line .tx { flex: 1; min-width: 0; font-size: var(--t-sm); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .line { min-height: 44px; display: flex; align-items: center; gap: 6px; margin: 0 0 12px; padding: 0 0 0 10px; background: var(--woad-soft); border: 1px solid var(--woad); }
+  .line .tx { flex: 1; min-width: 0; padding: 4px 0; font-size: var(--t-sm); line-height: 1.25; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .line .num { color: var(--ink-2); margin-right: 4px; }
   .line .btn { padding: 0 10px; }
 </style>

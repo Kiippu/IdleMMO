@@ -32,14 +32,14 @@
 
 <div class="scene">
   <SceneStrip />
-  {#each floats as f (f.id)}<span class="float" style:color={`var(--r-${f.rarity})`}>{f.text}</span>{/each}
+  {#each floats as f (f.id)}<span class="float" style:border-left-color={`var(--r-${f.rarity})`}>{f.text}</span>{/each}
 </div>
 
 <style>
   .scene { position: relative; margin: 0 0 12px; }
   .float {
-    position: absolute; left: 50%; bottom: 40%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
-    padding: 1px 5px; background: var(--paper); border: 1px solid var(--rule); font: 700 var(--t-xs)/1.2 var(--f-num);
+    position: absolute; left: 50%; bottom: 62%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+    padding: 2px 6px; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-left-width: 4px; font: 700 var(--t-xs)/1.2 var(--f-num);
     animation: floatup 800ms ease-out forwards; z-index: 2;
   }
   @keyframes floatup { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -22px); } }

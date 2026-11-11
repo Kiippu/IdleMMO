@@ -64,7 +64,7 @@
   let needed = $derived(new Set<string>((view?.contracts ?? []).filter((c: any) => c.status === 'open' && !c.mine && c.canFill?.ok === false && (c.remaining ?? 0) > 0 && c.capacity > 0).map((c: any) => c.itemId)));
   let ready = $derived.by(() => {
     const score = (a: Action) => (outId(a) && needed.has(outId(a)!) ? 1e6 : 0) + (a.xp ?? 0) / Math.max(0.5, timeOf(a) ?? 1);
-    return actionsAll.filter((a) => startable(a) && a.id !== activeId).sort((a, b) => score(b) - score(a)).slice(0, 3);
+    return actionsAll.filter((a) => skillOf(a.skill)?.tier === cat && startable(a) && a.id !== activeId).sort((a, b) => score(b) - score(a)).slice(0, 3);
   });
 
   async function start(id: string) {
