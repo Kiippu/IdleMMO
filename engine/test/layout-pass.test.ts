@@ -116,3 +116,53 @@ describe('level-ups roll into one log line per skill', () => {
     expect(lines[0].level).toBe(E.skillLevel(s, 'mining'));
   });
 });
+
+describe('raid recap view', () => {
+  it('turnout pay + contribution pay − cap cut = gold; chest loot as ids + qty; a next-week hint', async () => {
+    const { E, s } = await away(7 * DAY, (E, s) => E.start(s, 'mine_copper'));
+    const recap = E.lastRecap(s);
+    const v = E.recapView(s);
+    expect(v.id).toBe(recap.id);
+    expect(v.pay.hasSplit).toBe(true);
+    expect(v.pay.gold).toBe(recap.payout.gold);
+    expect(v.pay.turnoutPay + v.pay.contributionPay - v.pay.capCut).toBe(v.pay.gold);
+    expect(v.pay.turnoutPay).toBeGreaterThan(0);
+    expect(v.pay.pointShare).toBe(recap.payout.split.pointShare);
+    expect(v.pay.crewTreasury).toBe(recap.payout.crewGold);
+    expect(v.pay.treasuryShare + v.pay.capCut).toBe(v.pay.crewTreasury);
+    const rawChest = recap.payout.chests.flatMap((c: any) => c.items).reduce((a: number, x: any) => a + x.qty, 0);
+    expect(v.chestLoot.reduce((a: number, x: any) => a + x.qty, 0)).toBe(rawChest);
+    expect(v.chests.length).toBe(recap.payout.chests.length);
+    for (const x of v.loot) { expect(typeof x.itemId).toBe('string'); expect(x.qty).toBeGreaterThan(0); }
+    expect(new Set(v.loot.map((x: any) => x.itemId)).size).toBe(v.loot.length);
+    expect(v.nextWeekHint).toEqual(v.hints[0] ?? null);
+    expect(E.derivedExtras(s).lastRecapView.id).toBe(recap.id);
+  });
+
+  it('cap overflow shows as capCut; old recaps without a split still read', async () => {
+    const h = await freshEngine(1);
+    const s = h.E.newState();
+    s.raid.recaps = [{ id: 'R1', week: 1, joined: true, won: false, faints: 2, contribution: { weekShare: 0 },
+      tiers: { list: [{ tier: 'bronze', share: 0.01, label: 'Bronze', pctText: '1.00%' }] },
+      debrief: { gaps: [{ check: 'healing', text: 'Healing ran dry by wave 2', suggestion: { itemId: 'mint_tonic' } }] },
+      payout: { gold: 900, pool: 5000, crewGold: 400, chests: [{ at: 0.25, items: [{ itemId: 'coal', grade: 1, qty: 3 }, { itemId: 'coal', grade: 2, qty: 2 }] }], items: [] } }];
+    const v = h.E.recapView(s, 'R1');
+    expect(v.pay).toMatchObject({ gold: 900, turnoutPay: 900, contributionPay: 0, capCut: 0, hasSplit: false, pointShare: null });
+    expect(v.chestLoot).toEqual([{ itemId: 'coal', name: 'Coal', qty: 5, rarity: expect.any(String) }]);
+    expect(v.hints.map((x: any) => x.kind)).toEqual(['survive', 'tier', 'crew']);
+    expect(v.hints[2].text).toContain('Contracts');
+    s.raid.recaps[0].payout.split = { floor: 1000, byContribution: 3000, pointShare: 0.4, uncapped: 4000, cap: 2500, cutToTreasury: 1500 };
+    s.raid.recaps[0].payout.gold = 2500;
+    const v2 = h.E.recapView(s);
+    expect(v2.pay).toMatchObject({ turnoutPay: 1000, contributionPay: 3000, capCut: 1500, capped: true, gold: 2500, pointShareText: '40%' });
+  });
+
+  it('a player who sat out gets the join hint', async () => {
+    const h = await freshEngine(1);
+    const s = h.E.newState();
+    s.raid.recaps = [{ id: 'R2', week: 1, joined: false, payout: { gold: 0 } }];
+    expect(h.E.recapView(s).nextWeekHint.kind).toBe('join');
+    s.raid.recaps = [];
+    expect(h.E.recapView(s)).toBeNull();
+  });
+});

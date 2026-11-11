@@ -259,6 +259,8 @@ export interface DerivedExtras {
   raidPrep: RaidPrep;
   gatherSecs: Record<string, number | null>;
   codex: Codex;
+  /** E.recapView(state) for the newest recap, or null (layout pass 2026-11-11) */
+  lastRecapView: RecapView | null;
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
@@ -303,6 +305,43 @@ export interface OfflineSummary {
   loot: ReturnLoot[];
   /** sums to `gold`; 'other' = anything the named sources don't explain (escrow refunds, ...) */
   goldBySource: GoldBySource[];
+}
+
+// Raid recap view: E.recapView(state, recapId?) → RecapView | null (newest recap when no id); also
+//   DerivedExtras.lastRecapView. Read-only over state.raid.recaps.
+export interface RecapPay {
+  /** what you got: turnoutPay + contributionPay - capCut */
+  gold: number;
+  /** ECON.raidEvenShare (25%) of the payable pool, split evenly among those who turned out */
+  turnoutPay: number;
+  /** ECON.raidContribShare (75%) of the payable pool x pointShare */
+  contributionPay: number;
+  /** what your income cap (cap) cut; it went to the crew treasury */
+  capCut: number; cap: number | null; capped: boolean;
+  /** your share of the crew's check points (what contributionPay is split by); use this, not payout.yourShare */
+  pointShare: number | null; pointShareText: string | null;
+  evenShare: number; contribShare: number;
+  pool: number; poolCapped: boolean;
+  /** all gold the treasury got from this raid (treasuryShare + capCut) */
+  crewTreasury: number; treasuryShare: number;
+  /** false for recaps written before 2026-11-09 (whole amount shown as turnoutPay) */
+  hasSplit: boolean;
+}
+export interface RecapItem { itemId: string; name: string; qty: number; rarity: RarityId }
+export type RecapHintKind = 'join' | 'survive' | 'tier' | 'crew';
+export interface RecapHint { kind: RecapHintKind; text: string; tier?: ContributionTier; check?: string; itemId?: string | null }
+export interface RecapView {
+  id: string; week: number; won: boolean; joined: boolean;
+  pay: RecapPay;
+  /** per chest: checkpoint (0..1) and its items summed over grades */
+  chests: { at: number; items: RecapItem[] }[];
+  /** all chest items summed over chests and grades */
+  chestLoot: RecapItem[];
+  /** every payout item (floor + tier + chests) summed over grades */
+  loot: RecapItem[];
+  /** join → survive (fainted) → tier (share needed for the next tier) → crew (first debrief gap + item to hand in) */
+  hints: RecapHint[];
+  nextWeekHint: RecapHint | null;
 }
 
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */

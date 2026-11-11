@@ -203,5 +203,7 @@ E.storeSellGear = function (state, uid) {
 // One call for the worker's per-snapshot derived bundle (2026-11-08 additions). Read-only apart from
 // rolling the store stock when the game-clock hour changes.
 E.derivedExtras = function (state) {
-  return { store: E.storeView(state), events: E.events(state), raidPrep: E.raidPrep(state), gatherSecs: E.gatherSecs(state), codex: E.codex(state) };
+  return { store: E.storeView(state), events: E.events(state), raidPrep: E.raidPrep(state), gatherSecs: E.gatherSecs(state), codex: E.codex(state),
+    // layout pass 2026-11-11
+    lastRecapView: E.recapView(state) };
 };
