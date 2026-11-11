@@ -3,6 +3,7 @@
 import type { Req, FromWorker, OfflineSummary } from './protocol';
 import { engine } from './store.svelte';
 
+export type StoreAllResult = { ok: boolean; reason: string; qty: number; gold: number; grades: { grade: number; qty: number; gold: number }[] };
 export type StoreResult = { ok: boolean; reason: string; qty: number; gold: number; itemId?: string; uids?: string[] };
 
 export type SalvagePreview = { items: Array<{ itemId: string; grade: number; qtyMin: number; qtyMax: number; expected: number }>; gearCount: number; blocked: Array<{ uid: string; reason: string }> };
@@ -81,6 +82,7 @@ export const engineClient = {
     rpc<StoreResult>({ id: nextId(), type: 'storeBuy', slot, qty }),
   storeSell: (itemId: string, grade: number, qty: number) =>
     rpc<StoreResult>({ id: nextId(), type: 'storeSell', itemId, grade, qty }),
+  storeSellAll: (itemId: string) => rpc<StoreAllResult>({ id: nextId(), type: 'storeSellAll', itemId }),
   storeSellGear: (uid: string) => rpc<StoreResult>({ id: nextId(), type: 'storeSellGear', uid }),
   salvagePreview: (uids: string[], allowProtected: boolean) =>
     rpc<SalvagePreview>({ id: nextId(), type: 'salvagePreview', uids, allowProtected }),

@@ -64,6 +64,7 @@ export type Req =
   | { id: string; type: 'storeBuy'; slot: number; qty: number }
   | { id: string; type: 'storeSell'; itemId: string; grade: number; qty: number }
   | { id: string; type: 'storeSellGear'; uid: string }
+  | { id: string; type: 'storeSellAll'; itemId: string }
   | { id: string; type: 'salvagePreview'; uids: string[]; allowProtected: boolean }
   | { id: string; type: 'salvage'; uids: string[]; allowProtected: boolean }
   | { id: string; type: 'lockIn' }

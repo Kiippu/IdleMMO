@@ -34,7 +34,10 @@
 
   // One entry per item; each holds its grades so the list stays short.
   type SellGroup = { id: string; name: string; rarity: string; total: number; value: number; grades: Array<{ grade: number; qty: number; price: number }> };
+  // The engine groups the bag for us (extras.sellList); the local fallback only covers an engine without it.
   let sellGroups = $derived.by(() => {
+    const list = engine.derived?.extras?.sellList;
+    if (list) return list.filter((r) => r.kind !== 'gear').map((r): SellGroup => ({ id: r.itemId, name: r.name, rarity: r.rarity, total: r.qty, value: r.gold, grades: r.grades.map((g) => ({ grade: g.grade, qty: g.qty, price: g.price })) }));
     const out: SellGroup[] = [];
     for (const id of Object.keys(inv)) {
       if (itemsMap[id]?.kind === 'gear') continue;
@@ -79,16 +82,11 @@
       confirmLabel: `Sell for ${fmtG(g.value)}`,
     });
     if (!ok) return;
-    let got = 0, sold = 0, fail = '';
-    for (const gr of g.grades) {
-      try {
-        const res = await engineClient.storeSell(g.id, gr.grade, gr.qty);
-        if (res.ok === false) { fail = res.reason; break; }
-        got += res.gold; sold += res.qty ?? gr.qty;
-      } catch (err) { console.error('storeSell failed', err); fail = 'Something went wrong.'; break; }
-    }
-    if (sold) { toast(`Sold ${fmtN(sold)} ${g.name} for ${fmtG(got)}`); markDone('sell'); }
-    if (fail) void noticeSheet('Could not sell everything', fail);
+    try {
+      const res = await engineClient.storeSellAll(g.id);
+      if (res.ok === false) { void noticeSheet('Could not sell', res.reason); return; }
+      toast(`Sold ${fmtN(res.qty)} ${g.name} for ${fmtG(res.gold)}`); markDone('sell');
+    } catch (err) { console.error('storeSellAll failed', err); }
   }
   async function sellOneGear(g: any) {
     const price = store?.gearSellPrices?.[g.uid] ?? 0;

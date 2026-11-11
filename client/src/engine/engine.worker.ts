@@ -144,6 +144,11 @@ async function handle(req: Req): Promise<unknown> {
       E.save(state);
       return res;
     }
+    case 'storeSellAll': {
+      const res = E.storeSellAll(state, req.itemId);
+      E.save(state);
+      return res;
+    }
     case 'storeSellGear': {
       const res = E.storeSellGear(state, req.uid);
       E.save(state);
