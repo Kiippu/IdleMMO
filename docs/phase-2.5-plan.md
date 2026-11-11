@@ -18,6 +18,7 @@ Work is done by Claude from claude.ai against this folder, not by Claude Code.
 5. **Contract stock raises contribution.** Vault food/potions used to heal and buff a member count toward that
    member's contribution. The raid draws only what it needs, not the whole stock.
 6. **Speed matches the prototype artifact** (owner liked it): `speedFactor: 1`; keep offline at 12 h, 10%.
+   *Superseded 2026-11-11:* XP per level x5, offline 1.5x active speed with no cap (fun-test tuning; see CLAUDE.md).
    Action list and active card must show the same time per rep.
 7. **Remove dev shortcuts:** War Room "start raid now" on any day (`startRaidNow`/`canStartNow`), the
    "canStartNow" developer text, the "Week 1 · result?" placeholder.
@@ -39,3 +40,13 @@ After 2.5: a full UI/UX review of how the game should *present like a game* (art
 lost UX-review items: top bar, workshop rows with inputs/icons, market time-to-gather + search/filter/sort,
 raid screen portrait/weakness/chest thresholds, bag grid, item sheet, crew feed, guided first hour,
 log sheet). Then phase 3 art.
+
+### Status (2026-11-11)
+Done on `main`: the UI/UX pass (`ui/ux-pass`, review in chat 2026-11-08) and the quality pass (`qol/pass`).
+- Top bar → sticky top strip; workshop rows with inputs (have/need), Ready now, category chips, skill accordions;
+  Market → NPC Shop with time-to-gather (player market parked to phase 5); raid screen hero card, weakness chip,
+  chest checkpoints, prep/live/recap, full recap sheet; bag grid + filters; one item sheet everywhere + Codex;
+  guided first hour; Log sheet; number legibility (Atkinson for digits); return fountain; salvage.
+- Not done: crew activity feed; in-game credits screen; item icons, boss portraits, crew sprites and framed UI art
+  (phase 3).
+

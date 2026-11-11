@@ -216,8 +216,8 @@ hidden until touched. One shared item sheet from every item tap; draft descripti
 Next: phase 3 art (icons per item with tints OK, LPC crew sprites hitting the node when assisting, full UI art
 overhaul: framed panels replace flat paper — owner confirmed 2026-11-11).
 
-Open: credits screen in game; guide progress not in the save export; Workshop/Shop not yet seen on the live tunnel.
+Open: crew activity feed (agreed in the UI review, not built yet); credits screen in game; guide progress not in the save export; Workshop/Shop not yet seen on the live tunnel.
 
-Next: merge `ui/ux-pass` → `main` (ask first), then phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
+Next: phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
 art pack (DawnBringer 32 remap), LPC hero layer composite driven by equipped slots in SceneStrip (the
 placeholder goes away), per-action animation variety, `art/CREDITS.md` + in-game credits screen.
