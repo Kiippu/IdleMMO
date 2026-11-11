@@ -13,7 +13,7 @@ import { mondayOf, addDays, windowFor, weekStartOf } from './clock';
 import { curRecord } from './server';
 import { normRules } from './raid-rules';
 import { ensureV5 } from './crew-economy';
-import { isProfession, rawSkillLevel, SPEC_CAP_LEVEL } from './skills';
+import { isProfession, rawSkillLevel, SPEC_CAP_LEVEL, xpCurveMult } from './skills';
 import { marketEnabled, parkMarket } from './market';
 import { ensureEvents, pushEvent } from './events';
 import { normStore } from './store';
@@ -34,7 +34,9 @@ E.newState = function () {
     raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, last: null, resolvedWeek: 0, satOutWeek: 0 },
     log: [], seq: 1,
     // 2026-11-08 additive v6 fields: player event log (events.ts) and the NPC general store (store.ts)
-    events: [], eventSeq: 0, store: null
+    events: [], eventSeq: 0, store: null,
+    // the xpCurveMult this save's XP is stored at (2026-11-11); migrate rescales when it differs
+    xpScale: xpCurveMult()
   };
   skillDefs().forEach((d) => { s.skills[d.id] = { xp: 0 }; });
   const st = D().starter || {};
@@ -80,6 +82,11 @@ export function migrate(raw) {
   ['gold', 'week', 'hp', 'focus', 'createdAt', 'lastSeen', 'seq'].forEach((k) => { out[k] = num(raw[k], fresh[k]); });
   out.week = Math.max(1, Math.floor(out.week)); out.focus = clamp(out.focus, 0, 100);
   out.skills = {}; skillDefs().forEach((d) => { out.skills[d.id] = { xp: Math.max(0, num(raw.skills[d.id] && raw.skills[d.id].xp, 0)) }; });
+  // XP curve change (2026-11-11): stored XP was earned against the curve x raw.xpScale (1 before the
+  // field existed). Rescale so every skill keeps its level and its progress within the level. Idempotent.
+  const xpFrom = Math.max(0.01, num(raw.xpScale, 1)); const xpTo = xpCurveMult();
+  if (xpFrom !== xpTo) skillDefs().forEach((d) => { out.skills[d.id].xp = Math.round(out.skills[d.id].xp * xpTo / xpFrom); });
+  out.xpScale = xpTo;
   // v5+ spec field: carry over if present and well-formed; v1/v3/v4 saves get the default.
   let specNote = '';
   const rawSpec = (raw.spec && typeof raw.spec === 'object') ? raw.spec : {};

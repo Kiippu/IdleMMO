@@ -6,7 +6,7 @@ import { ctx } from './context';
 
 // ---------------------------------------------------------------- data access
 export const CFG_DEFAULTS = {
-  saveKey: 'guildwright-proto-v1', startingGold: 150, xpMult: 4, offlineCapSec: 43200, maxLevel: 99,
+  saveKey: 'guildwright-proto-v1', startingGold: 150, xpMult: 4, xpCurveMult: 1, offlineCapSec: 43200, maxLevel: 99,
   marketTax: 0.05, pityThreshold: 40,
   baseHp: 60, hpPerCombatLevel: 4,
   // Every action's `sec` is multiplied by this factor at actionTimeWith. Phase 2.5 sets it

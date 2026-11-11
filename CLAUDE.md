@@ -56,6 +56,10 @@ Game design
   (tier ≤2) each game hour, weighted to the player's levels; sells at 1.5x (resources) / 2x (gear) value, buys
   anything at 0.4x. Old open listings return to the bag on load. Bond-token-for-gold exchange needs a home by launch.
 - Weekly market-tax buff removed (old saves get the repairs buff).
+- Fun-testing tuning (2026-11-11, revisit before launch): XP per level x5 (`config.xpCurveMult`; old saves have stored
+  XP rescaled once via `state.xpScale`, levels kept); level 70 ≈ 27 h active per skill. Offline catch-up runs at 1.5x
+  active speed with NO time cap (`offlineRate`); long gaps step hour by hour, gathering past 20k reps bulk-steps,
+  combat/crafting past 20k reps rests, crewmates' own jobs simulated for the last 12 h only.
 - Name stays Guildwright.
 Tech
 - Stack: Svelte 5 UI, plain Canvas 2D scenes, Vite, rules engine in TypeScript running in a Web Worker.

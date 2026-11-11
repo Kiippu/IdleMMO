@@ -9,7 +9,10 @@ import { nowOf } from './clock';
 import { pushEvent } from './events';
 
 // ---------------------------------------------------------------- skills / XP
+// xpTable is the prototype curve (unscaled); thresholds are xpTable x cfg.xpCurveMult (owner 2026-11-11:
+// 2 = twice the XP per level). The cache holds only the base curve, so changing the mult needs no rebuild.
 export const xpTable = [0, 0];
+export const xpCurveMult = () => Math.max(0.01, num(cfg().xpCurveMult, 1));
 E.xpForLevel = function (level) {
   level = Math.floor(num(level, 1));
   if (level <= 1) return 0;
@@ -19,7 +22,7 @@ E.xpForLevel = function (level) {
     for (let l = 1; l < L; l++) pts += Math.floor(l + 300 * Math.pow(2, l / 7));
     xpTable.push(Math.floor(pts / 4));
   }
-  return xpTable[level];
+  return Math.round(xpTable[level] * xpCurveMult());
 };
 E.levelFor = function (xp) {
   xp = num(xp, 0); const max = Math.max(1, num(cfg().maxLevel, 99));
