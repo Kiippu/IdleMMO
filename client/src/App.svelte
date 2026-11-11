@@ -4,6 +4,7 @@
   import { engine } from './engine/store.svelte';
   import { initEngineClient, engineClient } from './engine/client';
   import { registerServiceWorker } from './pwa';
+  import { initSound, play } from './sound';
   import Workshop from './tabs/Workshop.svelte';
   import Stores from './tabs/Stores.svelte';
   import WarRoom from './tabs/WarRoom.svelte';
@@ -38,6 +39,17 @@
   let menuOpen = $state(false);
   let seeded = false;
   $effect(() => { if (ui.goTab) { active = ui.goTab as Tab; ui.goTab = null; } });
+
+  $effect(() => initSound());
+
+  // Level-up chime: a skill level rises during live play (not on boot or offline catch-up).
+  let lastLevels: Record<string, number> | null = null;
+  $effect(() => {
+    const lv = engine.derived?.skillLevels;
+    if (!engine.ready || !lv) return;
+    if (lastLevels && !engine.offline && Object.keys(lv).some((k) => lv[k] > (lastLevels![k] ?? lv[k]))) play('levelUp');
+    lastLevels = { ...lv };
+  });
 
   $effect(() => {
     void initEngineClient().catch((err) => { bootError = String(err?.message ?? err); });

@@ -43,7 +43,7 @@
       <ul class="items">
         <li>
           <button type="button" class="item toggle" role="switch" aria-checked={settings.muted} onclick={() => setSetting('muted', !settings.muted)}>
-            <span>Mute sound</span><small>{settings.muted ? 'On. The game stays quiet.' : 'Off. There is no sound yet; this is ready for it.'}</small>
+            <span>Mute sound</span><small>{settings.muted ? 'On. The game stays quiet.' : 'Off. Soft taps, chimes and level-ups.'}</small>
             <b class="sw" class:on={settings.muted} aria-hidden="true">{settings.muted ? 'On' : 'Off'}</b>
           </button>
         </li>

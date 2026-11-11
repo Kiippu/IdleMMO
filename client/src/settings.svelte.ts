@@ -1,13 +1,9 @@
 // Player settings, persisted in localStorage (not in the game save).
-const KEY = 'guildwright-settings-v1';
-type Settings = { muted: boolean; reduceMotion: boolean };
+import { parseSettings, SETTINGS_KEY as KEY, DEFAULT_SETTINGS, type Settings } from './settings-core';
 
 function load(): Settings {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return { muted: false, reduceMotion: false, ...JSON.parse(raw) };
-  } catch { /* storage blocked */ }
-  return { muted: false, reduceMotion: false };
+  try { return parseSettings(localStorage.getItem(KEY)); } catch { /* storage blocked */ }
+  return { ...DEFAULT_SETTINGS };
 }
 export const settings = $state<Settings>(load());
 
