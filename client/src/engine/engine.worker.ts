@@ -7,11 +7,10 @@ declare const self: DedicatedWorkerGlobalScope;
 
 import { createEngine, mulberry32, DATA } from '@guildwright/engine';
 import { createIdbStorage } from '../save/idbStorage';
-import { importLegacyLocalStorage } from '../save/v4Import';
+import { importLegacyLocalStorage, SAVE_KEY } from '../save/v4Import';
 import { exportSave, importSave } from '../save/exportImport';
 import type { Req, FromWorker, OfflineSummary, EngineEvent, Derived } from './protocol';
 
-const SAVE_KEY = 'guildwright-proto-v1';
 const TICK_SEC = 1;
 
 let E: any = null;
@@ -72,7 +71,7 @@ function stopTicking() {
   tickTimer = null;
 }
 
-async function init(): Promise<{ offline: OfflineSummary | null; defaultTab: 'workshop' | 'raid' }> {
+async function init(legacySave: string | null): Promise<{ offline: OfflineSummary | null; defaultTab: 'workshop' | 'raid'; legacyImported: boolean }> {
   storage = createIdbStorage();
   await storage.hydrate([SAVE_KEY]);
 
@@ -87,7 +86,7 @@ async function init(): Promise<{ offline: OfflineSummary | null; defaultTab: 'wo
     data: DATA,
   });
 
-  importLegacyLocalStorage(storage.storage, SAVE_KEY);
+  const legacyImported = importLegacyLocalStorage(storage.storage, SAVE_KEY, legacySave);
 
   state = E.load() ?? E.newState();
   const res = E.applyOffline(state, Date.now()) as { seconds: number; summary: OfflineSummary } | null;
@@ -97,13 +96,13 @@ async function init(): Promise<{ offline: OfflineSummary | null; defaultTab: 'wo
   E.save(state);
   await storage.flush();
   startTicking();
-  return { offline, defaultTab };
+  return { offline, defaultTab, legacyImported };
 }
 
 async function handle(req: Req): Promise<unknown> {
   switch (req.type) {
     case 'init':
-      return await init();
+      return await init(req.legacySave ?? null);
     case 'start':
       E.start(state, req.actionId);
       return undefined;
