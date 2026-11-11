@@ -8,7 +8,7 @@
   import RequestSheet from '../overlays/RequestSheet.svelte';
   
   import { markDone } from '../guide.svelte';
-  import { fmtG, fmtN } from '../format';
+  import { fmtG, fmtN, fmtAgo } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
 
   let sub = $state<'roster' | 'jobs' | 'contracts' | 'treasury'>('roster');
@@ -23,6 +23,9 @@
   let gearNames = $derived<Record<string, string>>(view?.gearNames ?? {});
   let contracts = $derived<any[]>(view?.contracts ?? []);
   let spec = $derived(view?.spec ?? null);
+  let feed = $derived(view?.extras?.crewActivity ?? []);
+  let feedMore = $state(false);
+  let shownFeed = $derived(feedMore ? feed : feed.slice(0, 5));
   let cooldown = $derived(view?.specCooldown ?? { ms: 0, text: '', ready: true });
   let gold = $derived(Math.floor(snap?.gold ?? 0));
   const skillList: { id: string; name: string }[] = (DATA as any).skills;
@@ -115,6 +118,26 @@
 </nav>
 
 {#if sub === 'roster'}
+  <section class="group">
+    <h3>Crew activity</h3>
+    {#if feed.length === 0}
+      <p class="muted">Nothing yet. Crewmates' jobs, hand-ins and raid news will show up here.</p>
+    {:else}
+      <ul class="list feed">
+        {#each shownFeed as e (`${e.t}|${e.who}|${e.text}`)}
+          <li class:mine={e.mine}>
+            <div class="row">
+              <span class="name"><b>{e.who}</b> {e.text}</span>
+              {#if e.gold}<span class="delta {e.gold > 0 ? 'pos' : 'neg'} num">{e.gold > 0 ? '+' : '−'}{fmtG(Math.abs(e.gold))}</span>{/if}
+            </div>
+            <p class="meta num">{fmtAgo(e.t, view?.now ?? Date.now())}</p>
+          </li>
+        {/each}
+      </ul>
+      {#if feed.length > 5}<button type="button" class="btn next" onclick={() => (feedMore = !feedMore)}>{feedMore ? 'Show less' : 'Show more'}</button>{/if}
+    {/if}
+  </section>
+
   <section class="group">
     <h3>Members</h3>
     {#if members.length === 0}
@@ -355,6 +378,8 @@
   .wide { width: 100%; margin-top: 8px; }
   .why { margin: 6px 0 0; color: var(--ink-2); font-size: var(--t-xs); }
   .next { margin-top: 8px; }
+  .feed li.mine { border-color: var(--woad); }
+  .feed .name { font-weight: 400; line-height: 1.25; }
   .pbar { height: 6px; margin-top: 6px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
   .pbar div { height: 100%; background: var(--woad); }
   .pbar.gold div { background: var(--brass-fill); }

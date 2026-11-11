@@ -10,6 +10,7 @@
   import Store from './tabs/Store.svelte';
   import Toast from './overlays/Toast.svelte';
   import { ui } from './ui.svelte';
+  import { toast } from './overlays/toasts.svelte';
   import GettingStarted from './overlays/GettingStarted.svelte';
   import WorkshopScene from './scene/WorkshopScene.svelte';
   import Crew from './tabs/Crew.svelte';
@@ -45,6 +46,22 @@
       seeded = true;
       if (engine.defaultTab === 'raid') active = 'War Room';
     }
+  });
+
+  // Toast a line for new crew activity that is not yours. The first read and big catch-up batches only set the baseline.
+  const seenFeed = new Set<string>();
+  let feedPrimed = false;
+  $effect(() => {
+    const feed = engine.derived?.extras?.crewActivity;
+    if (!engine.ready || !feed) return;
+    const fresh = feed.filter((e) => !seenFeed.has(`${e.t}|${e.who}|${e.text}`));
+    feed.forEach((e) => seenFeed.add(`${e.t}|${e.who}|${e.text}`));
+    if (!feedPrimed) { feedPrimed = true; return; }
+    if (engine.offline) return;
+    const theirs = fresh.filter((e) => !e.mine);
+    if (theirs.length === 0 || theirs.length > 3) return;
+    const e = theirs[0];
+    toast(theirs.length > 1 ? `${e.who}: ${e.text} (+${theirs.length - 1} more in Crew)` : `${e.who}: ${e.text}`);
   });
 
   // Tab badges from existing snapshot/derived data only. `n` is shown as a number; no `n` means a plain dot.
