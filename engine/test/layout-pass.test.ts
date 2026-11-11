@@ -219,3 +219,31 @@ describe('crew activity feed', () => {
     }
   });
 });
+
+describe('shop sell list + sell all grades', () => {
+  it('groups bag stacks by item with per-grade qty and value; sell all empties every grade', async () => {
+    const h = await freshEngine(1);
+    const { E } = h;
+    const s = E.newState();
+    s.inv.copper_ore = [2, 5, 0, 1, 0];
+    const list = E.storeSellList(s);
+    const row = list.find((r: any) => r.itemId === 'copper_ore');
+    expect(row.qty).toBe(8);
+    expect(row.grades.map((g: any) => [g.grade, g.qty])).toEqual([[0, 2], [1, 5], [3, 1]]);
+    for (const g of row.grades) { expect(g.price).toBe(E.storeSellPrice('copper_ore', g.grade)); expect(g.gold).toBe(g.qty * g.price); }
+    expect(row.gold).toBe(row.grades.reduce((a: number, g: any) => a + g.gold, 0));
+    expect(list.every((r: any) => r.kind !== 'gear')).toBe(true);
+    for (let i = 1; i < list.length; i++) expect(list[i - 1].name.localeCompare(list[i].name)).toBeLessThanOrEqual(0);
+    expect(E.derivedExtras(s).sellList).toEqual(list);
+    const gold0 = s.gold;
+    const r = E.storeSellAll(s, 'copper_ore');
+    expect(r).toMatchObject({ ok: true, qty: 8, gold: row.gold });
+    expect(s.gold).toBe(gold0 + row.gold);
+    expect(E.itemCount(s, 'copper_ore')).toBe(0);
+    expect(E.storeSellList(s).some((x: any) => x.itemId === 'copper_ore')).toBe(false);
+    expect(E.events(s, 1)[0]).toMatchObject({ cat: 'gold', itemId: 'copper_ore', qty: 8, gold: row.gold });
+    expect(E.events(s, 1)[0].text).toContain('(all grades)');
+    expect(E.storeSellAll(s, 'copper_ore').ok).toBe(false);
+    expect(E.storeSellAll(s, 'nope').ok).toBe(false);
+  });
+});

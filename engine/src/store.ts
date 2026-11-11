@@ -200,10 +200,40 @@ E.storeSellGear = function (state, uid) {
   return { ok: true, reason: '', qty: 1, gold };
 };
 
+// ---- sell list (layout pass 2026-11-11): bag stacks grouped by item across grades, with per-grade qty and
+// what the store pays. Stackables only; gear is sold piece by piece (storeSellGear).
+E.storeSellList = function (state) {
+  const out = [];
+  Object.keys(state.inv || {}).forEach((id) => {
+    const it = item(id); if (!it || !isStackable(it)) return;
+    const row = state.inv[id] || [];
+    const gs = [0, 1, 2, 3, 4].map((g) => ({ grade: g, gradeName: (grades()[g] || {}).name || '', qty: Math.max(0, Math.floor(num(row[g], 0))), price: storeSellPrice(id, g) }))
+      .filter((x) => x.qty > 0).map((x) => Object.assign(x, { gold: x.qty * x.price }));
+    if (!gs.length) return;
+    out.push({ itemId: id, name: it.name || id, kind: it.kind, rarity: it.rarity || 'common',
+      qty: gs.reduce((a, x) => a + x.qty, 0), gold: gs.reduce((a, x) => a + x.gold, 0), grades: gs });
+  });
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+};
+/** sell every grade of one stackable item to the store in one go */
+E.storeSellAll = function (state, itemId) {
+  const it = item(itemId); const fail = (reason) => ({ ok: false, reason, qty: 0, gold: 0, grades: [] });
+  if (!it) return fail('Unknown item.');
+  if (!isStackable(it)) return fail('Sell gear with storeSellGear.');
+  const row = state.inv[itemId] || zeros5(); const sold = [];
+  [0, 1, 2, 3, 4].forEach((g) => { const q = Math.max(0, Math.floor(num(row[g], 0))); if (q > 0) sold.push({ grade: g, qty: q, gold: storeSellPrice(itemId, g) * q }); });
+  if (!sold.length) return fail(`You have no ${lcFirst(it.name)}.`);
+  const qty = sold.reduce((a, x) => a + x.qty, 0); const gold = sold.reduce((a, x) => a + x.gold, 0);
+  sold.forEach((x) => { state.inv[itemId][x.grade] -= x.qty; });
+  cleanInv(state, itemId); state.gold = num(state.gold, 0) + gold;
+  pushEvent(state, 'gold', `Sold ${qty} ${it.name}${sold.length > 1 ? ' (all grades)' : ` (${(grades()[sold[0].grade] || {}).name || 'Standard'})`} to the general store for ${fmtGold(gold)}.`, { itemId, qty, gold });
+  return { ok: true, reason: '', qty, gold, grades: sold };
+};
+
 // One call for the worker's per-snapshot derived bundle (2026-11-08 additions). Read-only apart from
 // rolling the store stock when the game-clock hour changes.
 E.derivedExtras = function (state) {
   return { store: E.storeView(state), events: E.events(state), raidPrep: E.raidPrep(state), gatherSecs: E.gatherSecs(state), codex: E.codex(state),
     // layout pass 2026-11-11
-    lastRecapView: E.recapView(state), crewActivity: E.crewActivity(state) };
+    lastRecapView: E.recapView(state), crewActivity: E.crewActivity(state), sellList: E.storeSellList(state) };
 };

@@ -263,6 +263,8 @@ export interface DerivedExtras {
   lastRecapView: RecapView | null;
   /** E.crewActivity(state) — last 10 (layout pass 2026-11-11) */
   crewActivity: CrewActivity[];
+  /** E.storeSellList(state) (layout pass 2026-11-11) */
+  sellList: SellListRow[];
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
@@ -361,6 +363,13 @@ export interface CrewActivity {
   mine: boolean;
   gold?: number; itemId?: string; qty?: number;
 }
+
+// Shop sell list: E.storeSellList(state) → SellListRow[] (also DerivedExtras.sellList), stackables in the bag
+//   grouped by item, sorted by name. E.storeSellAll(state, itemId) → StoreSellAllResult sells every grade at once
+//   (one event-log line). Gear stays piece by piece (storeSellGear).
+export interface SellListGrade { grade: number; gradeName: string; qty: number; /** store pays per unit */ price: number; gold: number }
+export interface SellListRow { itemId: string; name: string; kind: string; rarity: RarityId; qty: number; /** all grades */ gold: number; grades: SellListGrade[] }
+export interface StoreSellAllResult { ok: boolean; reason: string; qty: number; gold: number; grades: { grade: number; qty: number; gold: number }[] }
 
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */
 export const Engine: any;
