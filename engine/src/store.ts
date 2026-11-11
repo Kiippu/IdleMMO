@@ -205,5 +205,5 @@ E.storeSellGear = function (state, uid) {
 E.derivedExtras = function (state) {
   return { store: E.storeView(state), events: E.events(state), raidPrep: E.raidPrep(state), gatherSecs: E.gatherSecs(state), codex: E.codex(state),
     // layout pass 2026-11-11
-    lastRecapView: E.recapView(state) };
+    lastRecapView: E.recapView(state), crewActivity: E.crewActivity(state) };
 };

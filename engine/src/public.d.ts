@@ -261,6 +261,8 @@ export interface DerivedExtras {
   codex: Codex;
   /** E.recapView(state) for the newest recap, or null (layout pass 2026-11-11) */
   lastRecapView: RecapView | null;
+  /** E.crewActivity(state) — last 10 (layout pass 2026-11-11) */
+  crewActivity: CrewActivity[];
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
@@ -342,6 +344,22 @@ export interface RecapView {
   /** join → survive (fainted) → tier (share needed for the next tier) → crew (first debrief gap + item to hand in) */
   hints: RecapHint[];
   nextWeekHint: RecapHint | null;
+}
+
+// Crew feed: E.crewActivity(state, n = 10) → CrewActivity[] (newest first); also DerivedExtras.crewActivity.
+//   Merges state.crew.feed, state.crew.jobsDone (additive v6 field: crewmates' finished jobs, last 20) and
+//   your own 'crew' event-log lines, without duplicates.
+export type CrewActivityKind = 'contract' | 'payout' | 'vault' | 'request' | 'role' | 'raid' | 'job' | 'assist' | 'you' | string;
+export interface CrewActivity {
+  /** game-clock ms */
+  t: number;
+  kind: CrewActivityKind;
+  /** crewmate name, 'You', 'Town', 'Raid' or 'Crew' */
+  who: string;
+  text: string;
+  /** you did it */
+  mine: boolean;
+  gold?: number; itemId?: string; qty?: number;
 }
 
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */

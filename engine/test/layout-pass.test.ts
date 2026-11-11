@@ -166,3 +166,56 @@ describe('raid recap view', () => {
     expect(h.E.recapView(s)).toBeNull();
   });
 });
+
+describe('crew activity feed', () => {
+  it('merges crew feed, finished crewmate jobs and your assists; newest first, no twins', async () => {
+    const h = await freshEngine(1);
+    const { E } = h;
+    const s = E.newState();
+    const job = E.crewJobs(s).find((j: any) => j.canAssist.ok);
+    expect(job).toBeTruthy();
+    E.assist(s, job.id);
+    for (let i = 0; i < 4 * 3600 && (s.crew.jobsDone?.length ?? 0) < 3; i++) { h.advance(1000); E.tick(s, 1); }
+    expect(s.crew.jobsDone.length).toBeGreaterThan(0);
+    const act = E.crewActivity(s, 50);
+    expect(act.length).toBeGreaterThan(0);
+    for (let i = 1; i < act.length; i++) expect(act[i - 1].t).toBeGreaterThanOrEqual(act[i].t);
+    expect(act.some((x: any) => x.kind === 'job')).toBe(true);
+    const helped = s.crew.jobsDone.find((j: any) => j.assisted > 0);
+    expect(helped).toBeTruthy();
+    expect(act.some((x: any) => x.kind === 'job' && x.gold === helped.tip && /You helped with/.test(x.text))).toBe(true);
+    expect(act.some((x: any) => /job is finished/.test(x.text))).toBe(false); // the event-log twin is dropped
+    expect(act.some((x: any) => x.kind === 'assist')).toBe(true);
+    expect(act.some((x: any) => /^Started helping/.test(x.text) && x.mine)).toBe(true);
+    expect(E.crewActivity(s).length).toBeLessThanOrEqual(10);
+    expect(E.derivedExtras(s).crewActivity.length).toBeLessThanOrEqual(10);
+    // survives save + load (additive v6 field)
+    E.save(s);
+    const back = E.load();
+    expect(back.crew.jobsDone.length).toBe(s.crew.jobsDone.length);
+  });
+
+  it('a contract hand-in shows once (from the crew feed)', async () => {
+    const h = await freshEngine(1);
+    const { E } = h;
+    const s = E.newState();
+    const k = E.listContracts(s).find((c: any) => c.status === 'open' && c.source === 'town');
+    expect(k).toBeTruthy();
+    s.inv[k.itemId] = [0, 0, 3, 0, 0];
+    const r = E.fillContract(s, k.id, 3);
+    expect(r.ok).toBe(true);
+    const act = E.crewActivity(s, 50).filter((x: any) => x.text.includes('filled') || x.text.startsWith('Filled'));
+    expect(act.filter((x: any) => x.mine).length).toBe(1);
+    expect(act[0].kind).toBe('contract');
+  });
+
+  it('old saves without jobsDone load and give an empty-safe feed', async () => {
+    for (const f of ['v4-save.json', 'v5-phase2-save.json', 'v6-phase25-save.json']) {
+      const h = await freshEngine(3, START + 3600000);
+      const s = h.E.migrate(fixture(f));
+      expect(s.v).toBe(6);
+      expect(Array.isArray(h.E.crewActivity(s))).toBe(true);
+      expect(h.E.derivedExtras(s)).toBeTruthy();
+    }
+  });
+});

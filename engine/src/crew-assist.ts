@@ -9,6 +9,7 @@ import { addXp } from './skills';
 import { rarityOdds } from './actions';
 import { schedule } from './clock';
 import { ensureCrewV5 } from './crew-economy';
+import { noteJobDone } from './crew-activity';
 
 // ---------------------------------------------------------------- crew assist (v2, SPEC 4.1)
 export const STATIONS = {
@@ -110,6 +111,7 @@ export function finishJob(state, job, act, events) {
     logq(state, 'info', `${job.owner}'s ${act.name} job is finished. You helped with ${job.assisted} and got a ${fmtGold(tip)} tip.`);
     pushEvent(state, 'crew', `${job.owner}'s ${act.name} job is finished. You helped with ${job.assisted}: +${fmtGold(tip)} tip.`, { gold: tip });
   }
+  noteJobDone(state, job, act, outId, tip);
   if (state.active && state.active.jobId === job.id) { state.active = null; events.push({ type: 'stopped', reason: 'Job finished.' }); }
 }
 // advances every open job; playerMult scales the player's contribution (1 live, offlineRate offline)
@@ -200,7 +202,7 @@ export function migrateCrew(out, rc) {
       }),
       nextPostIn: clamp(num(rc.nextPostIn, 60), 0, 600)
     };
-    ['playerRank', 'vault', 'treasury', 'requisitions', 'contracts', 'withdrawRequests', 'feed', 'withdrawn', 'schedule', 'seenReqIds', 'reqSimIn', 'npcReqIn', 'contractSimIn'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
+    ['playerRank', 'vault', 'treasury', 'requisitions', 'contracts', 'withdrawRequests', 'feed', 'withdrawn', 'schedule', 'seenReqIds', 'reqSimIn', 'npcReqIn', 'contractSimIn', 'jobsDone'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
     ensureCrewV5(out);
   } else makeCrew(out);
 }
