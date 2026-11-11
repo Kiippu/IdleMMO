@@ -199,16 +199,16 @@ input::placeholder { color: var(--ink-3); }
 /* ================= Phase 3 pixel frames (5 component types) =================
    9-slice PNGs (2px source border drawn at 2x = 4px) via border-image. Centres stay transparent, so the
    paper / sunk / woad tokens still colour the fill. Lists, rows and tabs stay unframed. */
-.btn:not(.ghost), .update, .shell main :is(.hero, .treasury, .card),
-.shell :is(div,span)[role="progressbar"], .shell .hpbar, :is(button,span,div).tile.tile {
+.btn:not(.ghost), .update, .shell main :is(.hero, .treasury, .card), .full section.rcard,
+.shell :is(div,span)[role="progressbar"], .shell .hpbar, :is(button,span,div).tile.tile:is([style*="--r-"],.empty,.hintt) {
   border-style: solid; border-width: 4px; border-color: transparent;
   border-image-slice: 2; border-image-width: 4px; border-image-repeat: stretch;
   background-clip: padding-box; image-rendering: pixelated;
 }
 /* card */
-.update, .shell main :is(.hero, .treasury, .card) { border-image-source: url('./ui-art/card.png'); }
+.update, .shell main :is(.hero, .treasury, .card), .full section.rcard { border-image-source: url('./ui-art/card.png'); }
 .update { padding: 8px 10px; margin-inline: -4px; }
-.shell main :is(.hero, .treasury, .card) { padding: 12px; }
+.shell main :is(.hero, .treasury, .card), .full section.rcard { padding: 12px; }
 /* button */
 .btn:not(.ghost) { border-image-source: url('./ui-art/btn.png'); padding: 6px 10px; }
 .btn:not(.ghost):hover:not(:disabled) { border-image-source: url('./ui-art/btn-hover.png'); }
@@ -225,7 +225,6 @@ input::placeholder { color: var(--ink-3); }
 .shell :is(div,span)[role="progressbar"].sm { height: 12px; }
 .shell :is(div,span)[role="progressbar"] > *, .shell .hpbar > * { box-shadow: inset 0 2px 0 rgba(255, 255, 255, .35); }
 /* slot (item tiles): rarity read from the inline --ink-r custom property */
-:is(button,span,div).tile.tile { border-image-source: url('./ui-art/slot-none.png'); }
 :is(button,span,div).tile.tile[style*="--r-common"] { border-image-source: url('./ui-art/slot-common.png'); }
 :is(button,span,div).tile.tile[style*="--r-uncommon"] { border-image-source: url('./ui-art/slot-uncommon.png'); }
 :is(button,span,div).tile.tile[style*="--r-rare"] { border-image-source: url('./ui-art/slot-rare.png'); }
@@ -247,3 +246,5 @@ div.sheet[role="dialog"] {
 .tabbar .lbl { display: block; }
 .shell .hpbar { height: 12px; }
 :is(button,span,div).tile.tile:is(.empty,.hintt) { border-style: solid; border-width: 4px; border-color: transparent; }
+/* Slot tiles: a fixed 44px box (36px inside the 4px frame) so a 32px icon sits on whole pixels at any column width. */
+.shell :is(button,span).tile.tile:is([style*="--r-"],.empty,.hintt) { width: 44px; height: 44px; min-height: 44px; aspect-ratio: auto; justify-self: center; }

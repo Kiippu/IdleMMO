@@ -54,13 +54,13 @@
       </div>
     </header>
 
-    <section>
+    <section class="rcard">
       <h3>Boss HP</h3>
       <div class="meter hp"><div style="width: {bar(recap.hpPctAfter)}"></div></div>
       <p class="line"><span class="num">{pct(recap.hpPctBefore)} → {pct(recap.hpPctAfter)}</span><span class="num">−{pct(dealt)}</span></p>
     </section>
 
-    <section>
+    <section class="rcard">
       <h3>Chests claimed</h3>
       {#if chests.length === 0}<p class="muted">No checkpoints reached.</p>
       {:else}
@@ -81,7 +81,7 @@
       {/if}
     </section>
 
-    <section>
+    <section class="rcard">
       <h3>Your part</h3>
       <p class="line"><span>Tier</span><b>{view?.tierLabel ?? recap.tierLabel ?? recap.tier}</b></p>
       <p class="line"><span>Turnout</span><b class="num">{pct(pay?.turnout)}</b></p>
@@ -90,7 +90,7 @@
       <div class="meter"><div style="width: {bar(pay?.crewContribution ?? pay?.contribution)}"></div></div>
     </section>
 
-    <section>
+    <section class="rcard">
       <h3>Gold</h3>
       <p class="big num">+{fmtG(vp?.gold ?? pay?.gold ?? 0)}</p>
       {#if vp?.hasSplit}
@@ -103,7 +103,7 @@
     </section>
 
     {#if members.length}
-      <section>
+      <section class="rcard">
         <h3>Crew stock, per member</h3>
         <ul class="rows">
           {#each members as m}
