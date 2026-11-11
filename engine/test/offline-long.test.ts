@@ -64,4 +64,26 @@ describe('long offline catch-up', () => {
     const npcFills = s.crew.contracts.filter((k: any) => k.week === 1).reduce((a: number, k: any) => a + k.submissions.filter((x: any) => x.who !== 'You').length, 0);
     expect(npcFills).toBeGreaterThan(0);
   });
+
+  it('save created Monday, 6 days offline: the weekend raid resolves and pays (locked in or auto-locked)', async () => {
+    for (const lock of [true, false]) {
+      const { E, s, r } = await away(6, 1, (E: any, st: any) => { if (lock) E.lockIn(st); E.start(st, 'mine_copper'); });
+      expect(r.summary.raids.length).toBe(1);
+      const recap = E.lastRecap(s);
+      expect(recap).toBeTruthy(); expect(recap.week).toBe(1); expect(recap.joined).toBe(true); expect(recap.auto).toBe(!lock);
+      expect(s.raid.satOutWeek).toBe(0);
+      const ev = E.events(s, 200);
+      expect(ev.some((e: any) => e.cat === 'raid')).toBe(true);
+      if (recap.payout.gold > 0) expect(ev.some((e: any) => e.cat === 'gold' && e.gold === recap.payout.gold)).toBe(true);
+      // log lines are stamped at the raid's start (game clock), not at the end of the absence
+      expect(ev.find((e: any) => e.cat === 'raid' && /Raid on|defeated/.test(e.text)).t).toBeLessThanOrEqual(recap.windowStart + 3600000);
+    }
+  });
+
+  it('4.5 days from Monday 09:00 ends Friday 21:00: before the Saturday window, so no raid yet', async () => {
+    const { E, s, r } = await away(4.5);
+    expect(r.summary.raids.length).toBe(0);
+    expect(E.lastRecap(s)).toBeNull();
+    expect(E.raidStatus(s).secToStart).toBeGreaterThan(0);
+  });
 });
