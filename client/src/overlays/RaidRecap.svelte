@@ -78,10 +78,10 @@
 
     <section>
       <h3>Your part</h3>
-      <p class="line"><span>Tier</span><b>{recap.tierLabel ?? recap.tier}</b></p>
+      <p class="line"><span>Tier</span><b>{view?.tierLabel ?? recap.tierLabel ?? recap.tier}</b></p>
       <p class="line"><span>Turnout</span><b class="num">{pct(pay?.turnout)}</b></p>
       <div class="meter"><div style="width: {bar(pay?.turnout)}"></div></div>
-      <p class="line"><span>Crew contribution</span><b class="num">{pct(pay?.crewContribution ?? pay?.contribution)}</b></p>
+      <p class="line"><span>{vp?.crewContributionText ?? `Crew filled ${pct(pay?.crewContribution ?? pay?.contribution)} of what the raid needed`}</span></p>
       <div class="meter"><div style="width: {bar(pay?.crewContribution ?? pay?.contribution)}"></div></div>
     </section>
 
@@ -89,10 +89,9 @@
       <h3>Gold</h3>
       <p class="big num">+{fmtG(vp?.gold ?? pay?.gold ?? 0)}</p>
       {#if vp?.hasSplit}
-        <p class="line"><span>Turnout pay</span><b class="num">{fmtG(vp.turnoutPay)}</b></p>
-        <p class="line"><span>Contribution pay{vp.pointShareText ? ` (your ${vp.pointShareText} of crew points)` : vp.pointShare != null ? ` (your ${pct(vp.pointShare)} of crew points)` : ''}</span><b class="num">{fmtG(vp.contributionPay)}</b></p>
-        {#if vp.capped && vp.capCut > 0}<p class="line"><span>Income cap{vp.cap != null ? ` (${fmtG(vp.cap)})` : ''}</span><b class="num neg">−{fmtG(vp.capCut)}</b></p>
-          <p class="muted">The cut went to the crew treasury.</p>{/if}
+        <p class="line"><span>Turnout pay ({pct(vp.evenShare)}, shared evenly)</span><b class="num">{fmtG(vp.turnoutPay)}</b></p>
+        <p class="line"><span>Contribution pay{vp.pointShareText ? ` (your ${vp.pointShareText} of the crew's points)` : vp.pointShare != null ? ` (your ${pct(vp.pointShare)} of the crew's points)` : ''}</span><b class="num">{fmtG(vp.contributionPay)}</b></p>
+        {#if vp.capCut > 0}<p class="line"><span>Over your cap, sent to the crew treasury</span><b class="num neg">−{fmtG(vp.capCut)}</b></p>{/if}
       {/if}
       <p class="muted">Pool <span class="num">{fmtG(vp?.pool ?? pay?.pool ?? 0)}</span>{pay?.capped || vp?.poolCapped ? ' · crew cap reached' : ''}</p>
       <p class="line"><span>Crew treasury share</span><b class="num">{fmtG(vp?.crewTreasury ?? pay?.crewGold ?? 0)}</b></p>

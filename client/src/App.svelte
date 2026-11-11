@@ -61,7 +61,7 @@
     const theirs = fresh.filter((e) => !e.mine);
     if (theirs.length === 0 || theirs.length > 3) return;
     const e = theirs[0];
-    toast(theirs.length > 1 ? `${e.who}: ${e.text} (+${theirs.length - 1} more in Crew)` : `${e.who}: ${e.text}`);
+    toast(theirs.length > 1 ? `${e.full ?? `${e.who}: ${e.text}`} (+${theirs.length - 1} more in Crew)` : (e.full ?? `${e.who}: ${e.text}`));
   });
 
   // Tab badges from existing snapshot/derived data only. `n` is shown as a number; no `n` means a plain dot.

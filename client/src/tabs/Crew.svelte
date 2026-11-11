@@ -128,7 +128,7 @@
         {#each shownFeed as e (`${e.t}|${e.who}|${e.text}`)}
           <li class:mine={e.mine}>
             <div class="row">
-              <span class="name"><b>{e.who}</b> {e.text}</span>
+              <span class="name"><b class="who">{e.who}</b> {e.text}</span>
               {#if e.gold}<span class="delta {e.gold > 0 ? 'pos' : 'neg'} num">{e.gold > 0 ? '+' : '−'}{fmtG(Math.abs(e.gold))}</span>{/if}
             </div>
             <p class="meta num">{fmtAgo(e.t, view?.now ?? Date.now())}</p>
