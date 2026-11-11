@@ -7,7 +7,7 @@
 // 1. A new SW is detected. It enters the "installed, waiting" state because
 //    sw.js intentionally does NOT call self.skipWaiting() on install.
 // 2. We invoke the onUpdate callback with a `restart` function.
-// 3. The UI shows a toast. When the user clicks it, restart() posts
+// 3. The UI shows an inline banner (App.svelte). When the user clicks it, restart() posts
 //    { type: 'skipWaiting' } to the waiting SW, waits for the browser to
 //    switch controllers, then reloads the page.
 

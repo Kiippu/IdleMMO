@@ -1,5 +1,30 @@
-/* Design tokens copied from the legacy index.html :root block. */
+/* Design tokens. :root is DARK (the default for everyone); [data-theme="light"] is the opt-in light set.
+   The theme choice lives in Menu > Settings and never follows prefers-color-scheme. */
 :root {
+  color-scheme: dark;
+  --plaster: #10141c; --grain: rgba(180, 200, 255, .045); --paper: #1a212d; --sunk: #141a24;
+  --ink: #ece8dc; --ink-2: #b0b5c1; --ink-3: #98a0b0; --rule: #3a4457; --rule-2: #2a3242;
+  --woad: #9db1ff; --woad-soft: #243050; --on-woad: #0c1121; --brass: #eec45f; --brass-fill: #e0ae3c;
+  --hp: #ff6a5d; --focus: #4dd0c7; --ok: #6ccf87; --warn: #f0b458; --bad: #ff7a70;
+  --scrim: rgba(3, 5, 10, .68); --shadow: rgba(0, 0, 0, .5);
+  --r-common: #aab0ba; --r-uncommon: #69cf7a; --r-rare: #6eaaff; --r-epic: #c991ff; --r-legendary: #ffb547; --r-mythic: #ff668e;
+
+  --f-display: "Pixelify Sans", "Silkscreen", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-label: "Silkscreen", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Every digit in the UI uses this: pixel fonts make 5 read as 9. */
+  --f-num: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --t-xs: 11px; --t-sm: 13px; --t-md: 15px; --t-lg: 18px; --t-xl: 24px; --t-xxl: 32px;
+  --gut-l: max(16px, env(safe-area-inset-left, 0px));
+  --gut-r: max(16px, env(safe-area-inset-right, 0px));
+  --col: 460px;
+  --tabbar-h: 60px;
+  --px: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px),
+        calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+:root[data-theme="light"] {
+  color-scheme: light;
   --plaster: #e2e5dc;
   --grain: rgba(40, 52, 70, .07);
   --paper: #f6f7f2;
@@ -28,40 +53,6 @@
   --r-epic: #8336bd;
   --r-legendary: #ad5a00;
   --r-mythic: #c21a4b;
-
-  --f-display: "Pixelify Sans", "Silkscreen", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --f-label: "Silkscreen", system-ui, -apple-system, "Segoe UI", sans-serif;
-  /* Every digit in the UI uses this: pixel fonts make 5 read as 9. */
-  --f-num: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-
-  --t-xs: 11px; --t-sm: 13px; --t-md: 15px; --t-lg: 18px; --t-xl: 24px; --t-xxl: 32px;
-  --gut-l: max(16px, env(safe-area-inset-left, 0px));
-  --gut-r: max(16px, env(safe-area-inset-right, 0px));
-  --col: 460px;
-  --tabbar-h: 60px;
-  --px: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px),
-        calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --plaster: #10141c; --grain: rgba(180, 200, 255, .045); --paper: #191f2a; --sunk: #141922;
-    --ink: #ebe7da; --ink-2: #a3a8b4; --ink-3: #8a90a0; --rule: #2e3645; --rule-2: #232a36;
-    --woad: #91a7ff; --woad-soft: #222c47; --on-woad: #0c1121; --brass: #eabf58; --brass-fill: #e0ae3c;
-    --hp: #ff6a5d; --focus: #4dd0c7; --ok: #6ccf87; --warn: #f0b458; --bad: #ff7a70;
-    --scrim: rgba(3, 5, 10, .66); --shadow: rgba(0, 0, 0, .45);
-    --r-common: #a8aeb8; --r-uncommon: #69cf7a; --r-rare: #69a7ff; --r-epic: #c58bff; --r-legendary: #ffb547; --r-mythic: #ff668e;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --plaster: #10141c; --grain: rgba(180, 200, 255, .045); --paper: #191f2a; --sunk: #141922;
-  --ink: #ebe7da; --ink-2: #a3a8b4; --ink-3: #8a90a0; --rule: #2e3645; --rule-2: #232a36;
-  --woad: #91a7ff; --woad-soft: #222c47; --on-woad: #0c1121; --brass: #eabf58; --brass-fill: #e0ae3c;
-  --hp: #ff6a5d; --focus: #4dd0c7; --ok: #6ccf87; --warn: #f0b458; --bad: #ff7a70;
-  --scrim: rgba(3, 5, 10, .66); --shadow: rgba(0, 0, 0, .45);
-  --r-common: #a8aeb8; --r-uncommon: #69cf7a; --r-rare: #69a7ff; --r-epic: #c58bff; --r-legendary: #ffb547; --r-mythic: #ff668e;
-  color-scheme: dark;
 }
 
 /* ---------- base ---------- */
@@ -101,6 +92,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--sunk); border: 1px solid var(--woad);
 }
 .update p { margin: 0; color: var(--ink); }
+.update .btn { flex: none; }
 .bad { color: var(--bad); }
 .panel {
   margin-top: 16px; padding: 16px;
@@ -143,7 +135,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   text-align: center;
 }
 .btn:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); color: var(--woad); }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
 .btn.primary { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
 .btn.primary:hover:not(:disabled) { background: var(--woad); color: var(--on-woad); filter: brightness(1.1); }
 .btn.ghost { background: transparent; }

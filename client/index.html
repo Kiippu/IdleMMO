@@ -4,11 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Guildwright</title>
-    <meta name="theme-color" content="#2a479e" />
+    <meta name="theme-color" content="#10141c" />
     <meta name="description" content="A cozy idle MMO about gathering, crafting and trading in a medieval guild town." />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon.svg" />
+    <script>
+      // Apply the saved theme before first paint (dark is the default).
+      try { var t = JSON.parse(localStorage.getItem('guildwright-settings-v1') || '{}').theme; document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark'); if (t === 'light') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#e2e5dc'); } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+    </script>
   </head>
   <body>
     <div id="app"></div>

@@ -37,11 +37,18 @@
       <ul class="items">
         <li><button type="button" class="item" onclick={() => go(onLog)}><span>Log</span><small>What you found and earned</small></button></li>
         <li><button type="button" class="item" onclick={() => go(onSave)}><span>Save</span><small>Back up or move your game</small></button></li>
-        <li><button type="button" class="item" onclick={() => (view = 'settings')}><span>Settings</span><small>Sound and motion</small></button></li>
+        <li><button type="button" class="item" onclick={() => (view = 'settings')}><span>Settings</span><small>Theme, sound and motion</small></button></li>
         <li><button type="button" class="item" onclick={() => (view = 'credits')}><span>Credits</span><small>Art, fonts and licences</small></button></li>
       </ul>
     {:else if view === 'settings'}
       <ul class="items">
+        <li class="theme">
+          <span id="theme-l">Theme</span><small>Dark is the default.</small>
+          <div class="seg" role="group" aria-labelledby="theme-l">
+            <button type="button" class="btn" aria-pressed={settings.theme === 'dark'} onclick={() => setSetting('theme', 'dark')}>Dark</button>
+            <button type="button" class="btn" aria-pressed={settings.theme === 'light'} onclick={() => setSetting('theme', 'light')}>Light</button>
+          </div>
+        </li>
         <li>
           <button type="button" class="item toggle" role="switch" aria-checked={settings.muted} onclick={() => setSetting('muted', !settings.muted)}>
             <span>Mute sound</span><small>{settings.muted ? 'On. The game stays quiet.' : 'Off. Soft taps, chimes and level-ups.'}</small>
@@ -90,6 +97,11 @@
   .item:hover { background: var(--woad-soft); border-color: var(--woad); }
   .item span { font: 700 var(--t-md)/1.1 var(--f-body); }
   .item small { color: var(--ink-3); font-size: var(--t-xs); }
+  .theme { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; min-height: 56px; padding: 8px 12px; border: 1px solid var(--rule); background: var(--sunk); }
+  .theme span { font: 700 var(--t-md)/1.1 var(--f-body); }
+  .theme small { grid-column: 1; color: var(--ink-3); font-size: var(--t-xs); }
+  .theme .seg { grid-column: 2; grid-row: 1 / span 2; display: flex; }
+  .theme .seg .btn { min-width: 64px; }
   .toggle { grid-template-columns: 1fr auto; }
   .toggle small { grid-column: 1; }
   .sw { grid-row: 1 / span 2; grid-column: 2; align-self: center; min-width: 48px; text-align: center; padding: 6px 8px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-2); font: 700 var(--t-sm)/1 var(--f-body); }

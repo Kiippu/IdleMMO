@@ -18,12 +18,13 @@ export interface AudioLike {
 export interface SfxDeps { makeContext: () => AudioLike | null; isMuted: () => boolean; isHidden: () => boolean; now?: () => number }
 
 const MASTER = 0.5;     // overall ceiling; every voice below is also gentle
-const MIN_GAP_MS = 45;  // taps cannot machine-gun
+/** Minimum gap per sound so a burst of events (a 50-item fountain) is one sound, not fifty. */
+const MIN_GAP_MS: Record<SfxName, number> = { tap: 45, collect: 260, levelUp: 0, fountain: 600 };
 
 export function createSfx(deps: SfxDeps) {
   let unlocked = false;
   let ctx: AudioLike | null = null;
-  let lastTap = -1e9;
+  const last: Partial<Record<SfxName, number>> = {};
   const now = deps.now ?? (() => Date.now());
 
   const open = () => canPlay({ unlocked, muted: deps.isMuted(), hidden: deps.isHidden() });
@@ -58,7 +59,8 @@ export function createSfx(deps: SfxDeps) {
     },
     play(name: SfxName): boolean {
       if (!open() || !ctx) return false;
-      if (name === 'tap') { const t = now(); if (t - lastTap < MIN_GAP_MS) return false; lastTap = t; }
+      const t = now(); const gap = MIN_GAP_MS[name];
+      if (gap > 0) { if (t - (last[name] ?? -1e9) < gap) return false; last[name] = t; }
       if (ctx.state === 'suspended') void ctx.resume();
       recipes[name](ctx, ctx.currentTime);
       return true;

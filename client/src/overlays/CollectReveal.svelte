@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { gradeName } from '../engine/grades';
   import ItemIcon from '../art/ItemIcon.svelte';
   import { iconEl } from '../art/iconDom';
   import { reducedMotion } from '../settings.svelte';
@@ -10,7 +11,6 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { fmtG, fmtN, fmtDuration, rarityRank } from '../format';
-  const GRADE = ['Rough', 'Fine', 'Sharp', 'Keen', 'Pristine'];
   import { openItem } from './itemRef.svelte';
   import { play } from '../sound';
 
@@ -156,7 +156,7 @@
           <span class="hm">
             <small>Best find</small>
             <span class="hn" style:color={`var(--r-${best.rarity})`}>{best.name}</span>
-            <small>{best.grade != null ? `${GRADE[best.grade] ?? ''} · ` : ''}{best.rarity[0].toUpperCase() + best.rarity.slice(1)}{best.qty > 1 ? ` · ×${fmtN(best.qty)}` : ''}</small>
+            <small>{best.grade != null ? `${gradeName(best.grade)} · ` : ''}{best.rarity[0].toUpperCase() + best.rarity.slice(1)}{best.qty > 1 ? ` · ×${fmtN(best.qty)}` : ''}</small>
           </span>
         </button>
       {/if}
@@ -177,7 +177,7 @@
         <p class="sub">The game ticked but nothing changed. You weren't working on anything.</p>
       {/if}
 
-      {#if summary.stoppedReason}<p class="stopped">{summary.stoppedReason}</p>{/if}
+      {#if summary.stoppedReason}<p class="stopped" class:done={summary.stoppedDone}>{summary.stoppedReason}</p>{/if}
 
       {#if !finished}<p class="hint">Tap anywhere to skip</p>{/if}
       </div>
@@ -224,6 +224,7 @@
   li.flash { animation: flash 700ms ease-out; }
   @keyframes flash { 0% { background: color-mix(in srgb, var(--ink-r) 35%, var(--paper)); border-color: var(--ink-r); } 100% { background: var(--paper); } }
   @media (prefers-reduced-motion: reduce) { li.flash { animation: none; } }
+  .stopped.done { color: var(--ok); }
   .stopped { margin: 0; padding: 8px; background: var(--sunk); border: 1px solid var(--rule); color: var(--warn); font-size: var(--t-sm); }
   .hint { margin: 0; text-align: center; color: var(--ink-3); font-size: var(--t-sm); }
   .foot { position: sticky; bottom: 0; margin: 0 calc(var(--gut-r) * -1) 0 calc(var(--gut-l) * -1); padding: 12px var(--gut-r) max(12px, env(safe-area-inset-bottom)) var(--gut-l); background: var(--plaster); border-top: 1px solid var(--rule); }

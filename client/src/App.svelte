@@ -1,5 +1,5 @@
 <script lang="ts">
-    import TopStrip from './TopStrip.svelte';
+  import TopStrip from './TopStrip.svelte';
   import LogSheet from './overlays/LogSheet.svelte';
   import { engine } from './engine/store.svelte';
   import { initEngineClient, engineClient } from './engine/client';
@@ -9,9 +9,8 @@
   import Stores from './tabs/Stores.svelte';
   import WarRoom from './tabs/WarRoom.svelte';
   import Store from './tabs/Store.svelte';
-  import Toast from './overlays/Toast.svelte';
+  import Fountain from './overlays/Fountain.svelte';
   import { ui } from './ui.svelte';
-  import { toast } from './overlays/toasts.svelte';
   import GettingStarted from './overlays/GettingStarted.svelte';
   import WorkshopScene from './scene/WorkshopScene.svelte';
   import Crew from './tabs/Crew.svelte';
@@ -39,6 +38,9 @@
   let menuOpen = $state(false);
   let seeded = false;
   $effect(() => { if (ui.goTab) { active = ui.goTab as Tab; ui.goTab = null; } });
+  // A tab switch starts at the top of the page.
+  let prevTab: Tab = 'Workshop';
+  $effect(() => { const t = active; if (t !== prevTab) { prevTab = t; window.scrollTo(0, 0); } });
 
   $effect(() => initSound());
 
@@ -64,22 +66,6 @@
       seeded = true;
       if (engine.defaultTab === 'raid') active = 'War Room';
     }
-  });
-
-  // Toast a line for new crew activity that is not yours. The first read and big catch-up batches only set the baseline.
-  const seenFeed = new Set<string>();
-  let feedPrimed = false;
-  $effect(() => {
-    const feed = engine.derived?.extras?.crewActivity;
-    if (!engine.ready || !feed) return;
-    const fresh = feed.filter((e) => !seenFeed.has(`${e.t}|${e.who}|${e.text}`));
-    feed.forEach((e) => seenFeed.add(`${e.t}|${e.who}|${e.text}`));
-    if (!feedPrimed) { feedPrimed = true; return; }
-    if (engine.offline) return;
-    const theirs = fresh.filter((e) => !e.mine);
-    if (theirs.length === 0 || theirs.length > 3) return;
-    const e = theirs[0];
-    toast(theirs.length > 1 ? `${e.full ?? `${e.who}: ${e.text}`} (+${theirs.length - 1} more in Crew)` : (e.full ?? `${e.who}: ${e.text}`));
   });
 
   // Tab badges from existing snapshot/derived data only. `n` is shown as a number; no `n` means a plain dot.
@@ -110,11 +96,12 @@
     const onHide = () => { void engineClient.pause(); };
     document.addEventListener('visibilitychange', onVis);
     window.addEventListener('pagehide', onHide);
-    window.addEventListener('beforeunload', onHide);
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) void engineClient.resume(); };
+    window.addEventListener('pageshow', onShow);
     return () => {
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pagehide', onHide);
-      window.removeEventListener('beforeunload', onHide);
+      window.removeEventListener('pageshow', onShow);
     };
   });
 
@@ -122,11 +109,11 @@
 
 <div class="shell">
   {#if engine.ready}
-    <TopStrip onMenu={() => (menuOpen = true)} onStart={() => (active = 'Workshop')} />
+    <TopStrip onMenu={() => (menuOpen = true)} />
   {/if}
 
   {#if updateReady}
-    <div class="update">
+    <div class="update" role="status">
       <p>A new version is ready.</p>
       <button type="button" class="btn primary" onclick={updateReady}>Restart</button>
     </div>
@@ -161,7 +148,7 @@
 <ItemSheet />
 <SalvageSheet />
 <ConfirmSheet />
-<Toast />
+<Fountain />
 
 {#if menuOpen}
   <MenuSheet onClose={() => (menuOpen = false)} onLog={() => (logOpen = true)} onSave={() => (saveMenuOpen = true)} />
@@ -179,8 +166,8 @@
   <nav class="tabbar" aria-label="Main">
     <div class="row">
       {#each tabs as tab}
-        <button type="button" aria-current={active === tab ? 'page' : undefined} onclick={() => (active = tab)}>
-          <img class="ico" src={tabIcon[tab]} alt="" width="32" height="32" /><span class="lbl">{tab}</span>{#if badges[tab]}{#if badges[tab].n != null}<span class="count num" aria-hidden="true">{badges[tab].n > 9 ? '9+' : badges[tab].n}</span>{:else}<span class="dot" aria-hidden="true"></span>{/if}<span class="sr">{badges[tab].text}</span>{/if}
+        <button type="button" aria-label={badges[tab] ? `${tab}, ${badges[tab].text}` : tab} aria-current={active === tab ? 'page' : undefined} onclick={() => (active = tab)}>
+          <img class="ico" src={tabIcon[tab]} alt="" width="32" height="32" /><span class="lbl">{tab}</span>{#if badges[tab]}{#if badges[tab].n != null}<span class="count num" aria-hidden="true">{badges[tab].n > 9 ? '9+' : badges[tab].n}</span>{:else}<span class="dot" aria-hidden="true"></span>{/if}{/if}
         </button>
       {/each}
     </div>

@@ -1,5 +1,5 @@
 // Player settings, persisted in localStorage (not in the game save).
-import { parseSettings, SETTINGS_KEY as KEY, DEFAULT_SETTINGS, type Settings } from './settings-core';
+import { parseSettings, SETTINGS_KEY as KEY, DEFAULT_SETTINGS, type Settings, type Theme } from './settings-core';
 
 function load(): Settings {
   try { return parseSettings(localStorage.getItem(KEY)); } catch { /* storage blocked */ }
@@ -7,8 +7,14 @@ function load(): Settings {
 }
 export const settings = $state<Settings>(load());
 
+/** Browser chrome colour per theme (matches --plaster in app.css). */
+export const THEME_COLOR: Record<Theme, string> = { dark: '#10141c', light: '#e2e5dc' };
 function apply() {
-  if (typeof document !== 'undefined') document.documentElement.toggleAttribute('data-reduce-motion', settings.reduceMotion);
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  root.toggleAttribute('data-reduce-motion', settings.reduceMotion);
+  root.setAttribute('data-theme', settings.theme);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[settings.theme]);
 }
 export function setSetting<K extends keyof Settings>(k: K, v: Settings[K]) {
   settings[k] = v;

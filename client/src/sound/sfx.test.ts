@@ -75,11 +75,15 @@ describe('sfx gating', () => {
 
 describe('parseSettings', () => {
   it('defaults when empty or broken', () => {
-    expect(parseSettings(null)).toEqual({ muted: false, reduceMotion: false });
-    expect(parseSettings('{nope')).toEqual({ muted: false, reduceMotion: false });
+    expect(parseSettings(null)).toEqual({ muted: false, reduceMotion: false, theme: 'dark' });
+    expect(parseSettings('{nope')).toEqual({ muted: false, reduceMotion: false, theme: 'dark' });
+  });
+  it('reads the theme and ignores bad values', () => {
+    expect(parseSettings('{"theme":"light"}').theme).toBe('light');
+    expect(parseSettings('{"theme":"pink"}').theme).toBe('dark');
   });
   it('reads the muted flag and ignores wrong types', () => {
     expect(parseSettings('{"muted":true}').muted).toBe(true);
-    expect(parseSettings('{"muted":"yes","reduceMotion":1}')).toEqual({ muted: false, reduceMotion: false });
+    expect(parseSettings('{"muted":"yes","reduceMotion":1}')).toEqual({ muted: false, reduceMotion: false, theme: 'dark' });
   });
 });
