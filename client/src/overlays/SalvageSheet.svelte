@@ -65,6 +65,9 @@
         <p class="meta">Working it out…</p>
       {:else}
         <p class="body"><span class="num">{pv.gearCount}</span> {pv.gearCount === 1 ? 'piece' : 'pieces'} will be broken down. This cannot be undone.</p>
+        {#if pv.blocked.length}
+          <p class="meta"><span class="num">{pv.blocked.length}</span> of the <span class="num">{uids.length}</span> shown {pv.blocked.length === 1 ? 'is' : 'are'} kept: equipped, in a loadout, or rare or better. Tick "Include protected" to break {pv.blocked.length === 1 ? 'it' : 'them'} down too.</p>
+        {/if}
         {#if pv.items.length}
           <h3>You will get about</h3>
           <ul class="lines">
@@ -100,7 +103,7 @@
   .lines li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; background: var(--sunk); border: 1px solid var(--rule-2); font-size: var(--t-sm); }
   small { color: var(--ink-3); font-weight: 400; }
   .ln { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-  .chk { display: flex; gap: 10px; align-items: center; min-height: 48px; padding: 4px 0; font-size: var(--t-sm); cursor: pointer; }
+  .chk { display: flex; gap: 12px; align-items: center; min-height: 48px; padding: 4px 8px; background: var(--sunk); border: 1px solid var(--rule); font-size: var(--t-sm); cursor: pointer; }
   .chk input { width: 24px; height: 24px; min-height: 0; accent-color: var(--woad); }
   .actions { display: flex; gap: 8px; position: sticky; bottom: calc(-16px - env(safe-area-inset-bottom, 0px)); margin: 0 calc(var(--gut-r) * -1) calc(-16px - env(safe-area-inset-bottom, 0px)) calc(var(--gut-l) * -1); padding: 10px var(--gut-r) calc(12px + env(safe-area-inset-bottom, 0px)) var(--gut-l); background: var(--paper); border-top: 1px solid var(--rule); } .actions .btn { flex: 1; }
 </style>

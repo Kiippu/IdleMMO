@@ -173,7 +173,7 @@
   .ready li, .r1 { display: flex; gap: 6px; align-items: stretch; }
   .arow { display: grid; gap: 2px; }
   .inputs { display: flex; flex-wrap: wrap; gap: 0 12px; }
-  .inp { min-height: 32px; padding: 0; border: 0; background: none; font: 400 var(--t-xs)/1.2 var(--f-num); color: var(--ink-3); text-decoration: underline; text-align: left; }
+  .inp { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; border: 0; background: none; font: 400 var(--t-xs)/1.2 var(--f-num); color: var(--ink-3); text-decoration: underline; text-align: left; }
   .chips { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; margin: 0 0 12px; }
   .chip { padding: 0 4px; }
 
