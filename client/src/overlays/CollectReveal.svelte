@@ -1,5 +1,6 @@
 <script lang="ts">
   import ItemIcon from '../art/ItemIcon.svelte';
+  import { iconEl } from '../art/iconDom';
   import { reducedMotion } from '../settings.svelte';
   import { untrack } from 'svelte';
   // Full-screen "While you were away" sheet. The engine already applied the gains;
@@ -23,7 +24,7 @@
 
   let summary = $derived(engine.offline);
 
-  type Row = { itemId?: string; uid?: string | null; key: string; label: string; value: number; fmt: (n: number) => string; rarity?: string; group: 'total' | 'item' | 'skill' | 'craft'; sub?: string };
+  type Row = { itemId?: string; uid?: string | null; key: string; label: string; value: number; fmt: (n: number) => string; rarity?: string; skillId?: string; group: 'total' | 'item' | 'skill' | 'craft'; sub?: string };
   let rows = $derived.by<Row[]>(() => {
     const s = summary;
     if (!s) return [];
@@ -37,7 +38,7 @@
     if (s.assisted) out.push({ key: 'assisted', label: 'Crew assists', value: s.assisted, fmt: n, group: 'total' });
     if (s.tips) out.push({ key: 'tips', label: 'Crew tips', value: s.tips, fmt: fmtG, group: 'total' });
     // One line per skill, however many levels it gained. The top skill is the headline above, so it is not repeated here.
-    for (const k of (s.skills ?? []).slice(1)) out.push({ key: `k:${k.skill}`, label: k.headline, value: 0, fmt: () => '', group: 'skill' });
+    for (const k of (s.skills ?? []).slice(1)) out.push({ key: `k:${k.skill}`, label: k.headline, value: 0, fmt: () => '', group: 'skill', skillId: k.skill });
     // Loot grouped by item, highest value first (the engine includes raid payout items).
     for (const l of s.loot ?? []) out.push({ itemId: l.itemId, uid: l.uids?.[0] ?? null, key: `i:${l.itemId}`, label: l.name, value: l.qty, fmt: (v) => `+${n(v)}`, rarity: l.rarity, group: 'item' });
     Object.entries(s.crafts).filter(([, q]) => q > 0)
@@ -90,15 +91,16 @@
   function launchFountain() {
     if (!layer || reduced() || typeof layer.animate !== 'function') return;
     const list = rows.filter((r) => r.group === 'item' || r.group === 'craft');
-    const parts: Array<{ letter: string; rank: number; color: string }> = list.slice(0, MAX_P - 1).map((r) => ({ letter: r.group === 'craft' ? '★' : (r.label[0] ?? '?'), rank: rarityRank(r.rarity), color: `var(--r-${r.rarity ?? 'common'})` }));
-    if (list.length > MAX_P - 1) parts.push({ letter: `+${list.length - (MAX_P - 1)}`, rank: 0, color: 'var(--ink)' });
+    const parts: Array<{ id?: string; named?: string; more?: string; rank: number; color: string }> = list.slice(0, MAX_P - 1).map((r) => ({ id: r.itemId, named: r.itemId ? undefined : 'craft', rank: rarityRank(r.rarity), color: `var(--r-${r.rarity ?? 'common'})` }));
+    if (list.length > MAX_P - 1) parts.push({ more: `+${list.length - (MAX_P - 1)}`, rank: 0, color: 'var(--ink)' });
     if (parts.length === 0) return;
     const W = layer.clientWidth, H = layer.clientHeight;
     const ox = W / 2, oy = H;
     parts.forEach((pt, i) => {
-      const size = 26 + pt.rank * 5;
+      const size = 38 + pt.rank * 3;
       const el = document.createElement('span');
-      el.className = 'fp'; el.textContent = pt.letter;
+      el.className = 'fp';
+      if (pt.more) el.textContent = pt.more; else el.appendChild(iconEl({ id: pt.id, named: pt.named }, pt.id ? (DATA as any).items?.[pt.id] : undefined));
       el.style.cssText = `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px;border-color:${pt.color};color:${pt.color};` + (pt.rank >= 2 ? `box-shadow:0 0 ${6 + pt.rank * 4}px ${pt.color};` : '');
       layer!.appendChild(el);
       const vx = (Math.random() - 0.5) * W * 0.9;              // sideways spread
@@ -145,7 +147,7 @@
         {#if summary.weeks}
           <p class="sub"><span class="num">{summary.weeks}</span> {summary.weeks === 1 ? 'week' : 'weeks'} passed on the calendar.</p>
         {/if}
-        {#if headline}<p class="headline">{headline}</p>{/if}
+        {#if headline}<p class="headline">{#if summary.skills?.[0]?.skill}<ItemIcon skill={summary.skills[0].skill} />{/if}<span>{headline}</span></p>{/if}
       </header>
 
       {#if best}
@@ -164,7 +166,7 @@
           {#each rows as r, i (r.key)}
  <li class:flash={flash(r, i)} class="g-{r.group}" class:tap={!!r.itemId} style:--ink-r={r.rarity ? `var(--r-${r.rarity})` : 'var(--ink)'} style:opacity={skipped || prog(i) > 0 ? 1 : 0}>
               <div class="line">
-                {#if r.itemId}<button type="button" class="rowbtn" onclick={(e) => { e.stopPropagation(); openItem({ itemId: r.itemId!, ...(r.uid ? { uid: r.uid } : {}) }); }}><span class="lab" style:color={`var(--r-${r.rarity})`}>{r.label}</span><span class="val num">{r.fmt(shown(r, i))}</span></button>{:else}<span class="lab" style:color={r.rarity && r.group !== 'total' ? `var(--r-${r.rarity})` : undefined}>{r.label}</span>{/if}
+                {#if r.itemId}<button type="button" class="rowbtn" onclick={(e) => { e.stopPropagation(); openItem({ itemId: r.itemId!, ...(r.uid ? { uid: r.uid } : {}) }); }}><ItemIcon id={r.itemId} rarity={r.rarity} /><span class="lab" style:color={`var(--r-${r.rarity})`}>{r.label}</span><span class="val num">{r.fmt(shown(r, i))}</span></button>{:else}{#if r.group === 'craft'}<ItemIcon named="craft" rarity={r.rarity} />{:else if r.group === 'skill' && r.skillId}<ItemIcon skill={r.skillId} />{/if}<span class="lab" style:color={r.rarity && r.group !== 'total' ? `var(--r-${r.rarity})` : undefined}>{r.label}</span>{/if}
                 {#if r.group !== 'skill' && !r.itemId}<span class="val num">{r.fmt(shown(r, i))}</span>{/if}
               </div>
               {#if r.sub}<p class="src">{r.sub}</p>{/if}
@@ -202,7 +204,10 @@
   ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   li { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); }
   .g-total { background: var(--sunk); }
-  .line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .line { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .line :global(.ii), .rowbtn :global(.ii) { margin-right: 4px; }
+  .rowbtn .lab { flex: 1; }
+  .headline { display: flex; align-items: center; gap: 8px; }
   .lab { font: 500 var(--t-md)/1.2 var(--f-body); color: var(--ink); }
   .lb { min-height: 44px; padding: 0; border: 0; background: none; text-align: left; }
   .g-total .lab { color: var(--ink-2); }

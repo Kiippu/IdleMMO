@@ -29,3 +29,9 @@ export function resolveNamed(name: string): ResolvedIcon {
   const i = ICONS.named[name];
   return i !== undefined ? at(i, false, null) : at(ICONS.generic.item, true, null);
 }
+
+/** Named icon key for a skill given its id or display name ('Mining'); null when unknown. */
+export function skillKey(idOrName: string, skills: { id: string; name: string }[]): string | null {
+  const k = skills.find((s) => s.id === idOrName || s.name.toLowerCase() === idOrName.toLowerCase());
+  return k && ICONS.named[`skill:${k.id}`] !== undefined ? `skill:${k.id}` : null;
+}

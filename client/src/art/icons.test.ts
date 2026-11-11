@@ -46,3 +46,17 @@ describe('icon fallback', () => {
     expect(r.col + r.row * ICONS.cols).toBe(r.index);
   });
 });
+
+describe('skill and fight icons', () => {
+  const skills: { id: string }[] = (DATA as any).skills;
+  it('every skill has a named icon', () => {
+    for (const k of skills) expect(ICONS.named[`skill:${k.id}`], k.id).toBeDefined();
+  });
+  it('every fight action has its own icon and there is a generic fight icon', () => {
+    const fights = ((DATA as any).actions as any[]).filter((a) => a.enemy);
+    expect(fights.length).toBeGreaterThan(0);
+    for (const a of fights) expect(ICONS.named[`fight:${a.id}`], a.id).toBeDefined();
+    expect(ICONS.named.fight).toBeDefined();
+    expect(ICONS.named.craft).toBeDefined();
+  });
+});

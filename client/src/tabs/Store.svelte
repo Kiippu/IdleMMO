@@ -157,6 +157,7 @@
           <li class="grp">
             <div class="ghead">
               <button type="button" class="sinfo" onclick={() => openItem({ itemId: g.id })}>
+                <ItemIcon id={g.id} rarity={g.rarity} />
                 <span class="name" style:color={`var(--r-${g.rarity})`}>{g.name}</span>
                 <span class="meta"><span class="num">×{fmtN(g.total)}</span> · worth <span class="num">{fmtG(g.value)}</span> to the shop</span>
               </button>
@@ -176,6 +177,7 @@
         {#each sellGear as g (g.uid)}
           <li>
             <button type="button" class="sinfo" onclick={() => openItem({ itemId: g.itemId, uid: g.uid })}>
+              <ItemIcon id={g.itemId} rarity={g.rarity} />
               <span class="name" style:color={`var(--r-${g.rarity})`}>{engine.derived?.gearNames?.[g.uid] ?? itemName(g.itemId)}</span>
               <span class="meta">{cap(g.rarity)} gear</span>
             </button>
@@ -211,7 +213,9 @@
 
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--paper); border: 1px solid var(--rule); }
-  .sinfo { display: grid; gap: 2px; min-width: 0; flex: 1; min-height: 44px; padding: 0; border: 0; background: none; text-align: left; align-content: center; }
+  .sinfo :global(.ii) { grid-row: 1 / span 2; }
+  .sinfo .name, .sinfo .meta { grid-column: 2; }
+  .sinfo { display: grid; grid-template-columns: 32px 1fr; column-gap: 8px; align-items: center; min-width: 0; flex: 1; min-height: 44px; padding: 0; border: 0; background: none; text-align: left; align-content: center; }
   .name { font: 700 var(--t-sm)/1.1 var(--f-body); }
   .list li.grp { display: grid; gap: 6px; }
   .ghead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

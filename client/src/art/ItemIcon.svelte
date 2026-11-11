@@ -3,14 +3,16 @@
   // Rarity is also shown by a corner shape (not colour alone): circle uncommon, square rare, diamond epic,
   // triangle legendary, star mythic. Grade 1 to 4 adds that many pips bottom left. `silhouette` hides the detail.
   import { DATA } from '@guildwright/engine';
-  import { resolveIcon, resolveNamed, ICONS } from './icons';
+  import { resolveIcon, resolveNamed, skillKey, ICONS } from './icons';
   import atlas from './icons.png';
 
-  type Props = { id?: string; named?: string; size?: 32 | 64; rarity?: string; grade?: number | null; silhouette?: boolean };
-  let { id, named, size = 32, rarity, grade = null, silhouette = false }: Props = $props();
+  type Props = { id?: string; named?: string; skill?: string; size?: 32 | 64; rarity?: string; grade?: number | null; silhouette?: boolean };
+  let { id, named, skill, size = 32, rarity, grade = null, silhouette = false }: Props = $props();
 
   const items: Record<string, { sprite?: string; kind?: string; tint?: string }> = (DATA as any).items ?? {};
-  const r = $derived(named ? resolveNamed(named) : resolveIcon(id ?? '', id ? items[id] : undefined));
+  const skills: { id: string; name: string }[] = (DATA as any).skills ?? [];
+  const nm = $derived(skill ? (skillKey(skill, skills) ?? 'skill') : named);
+  const r = $derived(nm ? resolveNamed(nm) : resolveIcon(id ?? '', id ? items[id] : undefined));
   const sc = $derived(size / ICONS.cell);
   const bg = $derived(`${-r.col * size}px ${-r.row * size}px / ${ICONS.cols * size}px ${ICONS.rows * size}px`);
   const shape = $derived(rarity && rarity !== 'common' ? rarity : null);

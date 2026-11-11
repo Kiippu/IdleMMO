@@ -92,8 +92,8 @@
   {@const running = activeId === a.id}
   <li class="arow" class:running>
     <div class="r1">
-    <button type="button" class="action main" data-kind={a.kind} data-ic={out ? '1' : undefined} aria-pressed={running} disabled={sh} onclick={() => start(a.id)}>
-      {#if out}<span class="aic"><ItemIcon id={out} rarity={itemRarity[out] ?? 'common'} /></span>{/if}
+    <button type="button" class="action main" data-kind={a.kind} data-ic={out || a.enemy ? '1' : undefined} aria-pressed={running} disabled={sh} onclick={() => start(a.id)}>
+      {#if out}<span class="aic"><ItemIcon id={out} rarity={itemRarity[out] ?? 'common'} /></span>{:else if a.enemy}<span class="aic"><ItemIcon named="fight:{a.id}" /></span>{/if}
       <span class="a-name" style:color={out ? `var(--r-${itemRarity[out] ?? 'common'})` : undefined}>{out ? itemName(out) : label(a)}{#if out && label(a) !== itemName(out)}<small>{` · ${label(a)}`}</small>{/if}</span>
       <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
     </button>
@@ -120,8 +120,8 @@
     <ul>
       {#each ready as a (a.id)}
         <li>
-          <button type="button" class="action main" data-ic={outId(a) ? '1' : undefined} onclick={() => start(a.id)}>
-            {#if outId(a)}<span class="aic"><ItemIcon id={outId(a)!} rarity={itemRarity[outId(a)!] ?? 'common'} /></span>{/if}
+          <button type="button" class="action main" data-ic={outId(a) || a.enemy ? '1' : undefined} onclick={() => start(a.id)}>
+            {#if outId(a)}<span class="aic"><ItemIcon id={outId(a)!} rarity={itemRarity[outId(a)!] ?? 'common'} /></span>{:else if a.enemy}<span class="aic"><ItemIcon named="fight:{a.id}" /></span>{/if}
             <span class="a-name" style:color={outId(a) ? `var(--r-${itemRarity[outId(a)!] ?? 'common'})` : undefined}>{outId(a) ? itemName(outId(a)!) : a.name}</span>
             <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
           </button>
@@ -143,7 +143,7 @@
   <section class="skill" class:isopen={!!open[skill.id]}>
     <h4>
       <button type="button" class="head" aria-expanded={!!open[skill.id]} aria-controls="sk-{skill.id}" onclick={() => (open[skill.id] = !open[skill.id])}>
-        <span class="sq" aria-hidden="true">{skill.name[0]}</span>
+        <span class="sq" aria-hidden="true"><ItemIcon skill={skill.id} /></span>
         <span class="mid">
           <span class="skill-name">{skill.name}{#if can}<i class="dot" aria-label="Something can be made now"></i>{/if}</span>
           <span class="xp" role="progressbar" aria-label="{skill.name} XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((prog?.pct ?? 0) * 100)}><i style="width: {Math.round((prog?.pct ?? 0) * 100)}%"></i></span>
@@ -180,7 +180,7 @@
   .skill { margin-bottom: 8px; background: var(--paper); border: 1px solid var(--rule); }
   h4 { margin: 0; }
   .head { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; background: transparent; text-align: left; }
-  .sq { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 2px solid var(--woad); color: var(--woad); background: var(--sunk); font: 700 var(--t-md)/1 var(--f-display); }
+  .sq { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid var(--woad); background: var(--sunk); }
   .mid { flex: 1; min-width: 0; display: grid; gap: 6px; }
   .skill-name { font: 600 var(--t-md)/1.1 var(--f-display); color: var(--ink); display: inline-flex; align-items: center; gap: 6px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brass-fill); display: inline-block; }
