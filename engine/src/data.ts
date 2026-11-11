@@ -528,11 +528,13 @@ export const DATA: any = {
     saveKey: 'guildwright-proto-v1',
     startingGold: 150,
     xpMult: 4,
-    // Owner decision 2026-11-11: levelling was too fast. Every level's XP threshold is x this (2 = double).
+    // Owner decision 2026-11-11: levelling was too fast. Every level's XP threshold is x this (owner 2026-11-11: 5).
     // Saves keep their levels: migrate() rescales stored XP by xpCurveMult / state.xpScale.
-    xpCurveMult: 2,
-    offlineCapSec: 43200,
-    offlineRate: 0.1,       // offline catch-up runs at 10% speed, capped at 12 h (offlineCapSec)
+    xpCurveMult: 5,
+    // Owner decision 2026-11-11: offline is more rewarding than watching. Catch-up runs at 1.5x active
+    // speed with no time limit (offlineCapSec 0 = unlimited; was 12 h at 10% speed).
+    offlineCapSec: 0,
+    offlineRate: 1.5,
     maxLevel: 99,
     marketTax: 0.05,
     // Player market parked 2026-11-08 (the NPC general store replaces it). The code stays; with this

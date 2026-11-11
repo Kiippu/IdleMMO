@@ -1,16 +1,16 @@
-// Phase 2.5: speed matches the prototype (speedFactor 1); offline catch-up stays at 12 h, 10%.
+// Phase 2.5: speed matches the prototype (speedFactor 1). Offline (owner 2026-11-11): 1.5x active speed, no time cap.
 // E.actionTime is the single time-per-rep function; the active card (E.activeInfo) reads it,
 // so the action list and the active card always show the same time per rep.
 import { describe, expect, it } from 'vitest';
 import { freshEngine } from './engine-helpers';
 
 describe('speed factor (phase 2.5)', () => {
-  it('cfg.speedFactor is 1 and offline is capped at 12 h at 10% speed', async () => {
+  it('cfg.speedFactor is 1; offline runs at 1.5x with no cap', async () => {
     const { mod } = await freshEngine();
     const cfg = mod.DATA.config || {};
     expect(cfg.speedFactor).toBe(1);
-    expect(cfg.offlineCapSec).toBe(12 * 3600);
-    expect(cfg.offlineRate).toBe(0.1);
+    expect(cfg.offlineCapSec).toBe(0);
+    expect(cfg.offlineRate).toBe(1.5);
   });
 
   it('E.actionTime equals the prototype seconds on a fresh state', async () => {
@@ -30,17 +30,17 @@ describe('speed factor (phase 2.5)', () => {
     expect(info.secLeft).toBeCloseTo(E.actionTime(s, 'mine_copper'), 9);
   });
 
-  it('offline catch-up stops at 12 h and runs at 10% speed', async () => {
+  it('offline catch-up has no cap and runs at 1.5x active speed', async () => {
     const { E, advance, now } = await freshEngine();
     const s = E.newState();
     s.lastSeen = now();
     E.start(s, 'mine_copper');
-    advance(48 * 3600000);
+    advance(8 * 3600000);
     const r = E.applyOffline(s, now());
-    expect(r.seconds).toBe(12 * 3600);
-    const reps = Object.values(r.summary.items).reduce((a: number, b: any) => a + b, 0) as number;
-    // 12 h x 10% = 4320 s of work at ~3 s per rep ≈ 1440 reps (yield per rep may exceed 1)
-    expect(reps).toBeGreaterThan(1000);
-    expect(reps).toBeLessThan(1440 * 4);
+    expect(r.seconds).toBe(8 * 3600);
+    const ore = r.summary.items.copper_ore as number;
+    // 8 h x 1.5 = 43,200 s of work at ~3 s per rep ≈ 14,400 reps (yield bonus can add a few)
+    expect(ore).toBeGreaterThan(14400 * 0.95);
+    expect(ore).toBeLessThan(14400 * 1.3);
   });
 });
