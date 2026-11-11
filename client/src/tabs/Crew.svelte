@@ -1,11 +1,11 @@
 <script lang="ts">
+  import { MIN_GRADE_LABELS } from '../engine/grades';
   import ItemIcon from '../art/ItemIcon.svelte';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
   import { DATA, H } from '@guildwright/engine';
   import { ui } from '../ui.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
-  import { toast } from '../overlays/toasts.svelte';
   import RequestSheet from '../overlays/RequestSheet.svelte';
   
   import { markDone } from '../guide.svelte';
@@ -69,7 +69,7 @@
     try {
       const res = await engineClient.fillContract(c.id, qty);
       if (res && res.ok === false) { await noticeSheet('Could not fill', res.reason); }
-      else if (res) { toast(`Handed in ${res.accepted ?? qty}${res.gold ? `, +${fmtG(res.gold)}` : ''}`); }
+      else if (res) { msg = `Handed in ${res.accepted ?? qty}${res.gold ? `, +${fmtG(res.gold)}` : ''}.`; }
     } catch (err) { console.error('fillContract failed', err); }
   }
   async function doSwitch() {
@@ -87,7 +87,7 @@
       if (!res || res.ok !== false) pickSkill = '';
     } catch (err) { console.error('switchSpec failed', err); }
   }
-  const GRADES = ['Any grade', 'Fine+', 'Sharp+', 'Keen+', 'Pristine'];
+  const GRADES = MIN_GRADE_LABELS;
   let requestOpen = $state(false);
   const sortedContracts = $derived([...contracts].sort((x, y) => Number(!!y.canFill?.ok) - Number(!!x.canFill?.ok)));
   async function cancelRequest(c: any) {
@@ -102,6 +102,18 @@
     if (e.gear || e.uid) return gearNames[e.uid] ?? e.reason ?? 'Gear';
     return `${itemName(e.itemId)} × ${q}`;
   }
+
+  function rewardText(r: any): string {
+    if (!r) return '';
+    const parts: string[] = [];
+    if (r.xp) parts.push(`${fmtN(Math.round(r.xp * 10) / 10)} ${skillName(r.skill)} XP per rep`);
+    if (Math.round(r.gold * 100) >= 1) parts.push(`${fmtG(Math.round(r.gold * 100) / 100)} per rep`);
+    for (const it of r.items ?? []) parts.push(`${it.qty} ${itemName(it.itemId)}`);
+    return parts.join(', ');
+  }
+  const actionsById = new Map(((DATA as any).actions as any[]).map((a) => [a.id, a]));
+  let activeName = $derived(snap?.active ? (actionsById.get(snap.active.actionId)?.name ?? 'your current job') : '');
+  let firstAssistId = $derived(jobs.find((j) => j.canAssist?.ok)?.id ?? null);
 
   async function assist(jobId: string) {
     try {
@@ -153,6 +165,7 @@
               <div>
                 <span class="name">{m.name}</span>
                 {#if m.isYou && m.name?.trim().toLowerCase() !== 'you'}<span class="meta grade">you</span>{/if}
+                {#if m.npc}<span class="tag standin" title="A temporary stand-in that helps fill contracts until real crewmates join">Stand-in</span>{/if}
               </div>
               <span class="meta rank">{m.rankName}</span>
             </div>
@@ -215,10 +228,15 @@
             </div>
             <div class="row sub">
               <span class="meta">ETA <span class="num">{fmtDuration(j.etaSec)}</span>{j.station ? ` · ${j.station}` : ''}</span>
+            </div>
+            {#if rewardText(j.reward)}<p class="meta">You get: <b class="gets">{rewardText(j.reward)}</b></p>{/if}
+            {#if snap?.active && j.canAssist?.ok && !j.assisting}<p class="meta">Assisting stops your current job ({activeName}).</p>{/if}
+            <div class="row sub">
+              <span></span>
               <button
                 type="button"
                 class="btn"
-                data-guide="assist"
+                data-guide={j.canAssist?.ok && j.id === firstAssistId ? 'assist' : undefined}
                 aria-pressed={j.assisting}
                 disabled={!j.canAssist?.ok}
                 onclick={() => assist(j.id)}
@@ -279,11 +297,15 @@
                 {#if c.canCancel}<button type="button" class="btn" onclick={() => cancelRequest(c)}>Cancel</button>{/if}
               </div>
             {:else if c.status === 'open'}
-              <button type="button" class="btn primary wide" disabled={!c.canFill?.ok || mx < 1} title={c.canFill?.reason ?? ''} onclick={() => fill(c)}>
-                <span class="num">Hand in {mx} (+{fmtG(mx * (c.rewardPer ?? 0))})</span>
-              </button>
-              {#if !c.canFill?.ok || mx < 1}
-                <p class="why">{reasons?.contracts?.[c.id] || c.canFill?.reason || (c.have < 1 ? `You have none to hand in. Make or gather some ${c.itemName ?? itemName(c.itemId)} first.` : (c.remaining ?? 0) < 1 ? 'This contract has nothing left to fill.' : 'The crew stock cannot take any more of this right now.')}</p>
+              {#if c.canFill?.ok && mx >= 1}
+                <button type="button" class="btn primary wide" data-guide={c.itemId === 'bread' ? 'contract' : undefined} onclick={() => fill(c)}>
+                  <span class="num">Hand in {mx} (+{fmtG(mx * (c.rewardPer ?? 0))})</span>
+                </button>
+              {:else}
+                <button type="button" class="btn wide" data-guide={c.itemId === 'bread' ? 'contract' : undefined} onclick={() => openItem({ itemId: c.itemId })}>
+                  {c.have < 1 ? `How to get ${c.itemName ?? itemName(c.itemId)}` : 'See details'}
+                </button>
+                <p class="why">{reasons?.contracts?.[c.id] || c.canFill?.reason || (c.have < 1 ? `You have none to hand in. Tap above to see how to make or gather some.` : (c.remaining ?? 0) < 1 ? 'This contract has nothing left to fill.' : 'The crew stock cannot take any more of this right now.')}</p>
               {/if}
             {:else}
               <p class="meta">{c.status === 'filled' ? 'Filled.' : c.status === 'cancelled' ? 'Cancelled.' : 'Closed.'}</p>
@@ -294,7 +316,7 @@
     {/if}
   </section>
   {#if requestOpen}
-    <RequestSheet {gold} onClose={() => (requestOpen = false)} onDone={(t) => { msg = t; toast(t); }} />
+    <RequestSheet {gold} onClose={() => (requestOpen = false)} onDone={(t) => { msg = t; }} />
   {/if}
 {:else}
   <section class="group">
@@ -320,9 +342,10 @@
             <div class="row">
               <span class="name">{#if entry.itemId || entry.uid}{entry.qty < 0 ? '−' : '+'} {rowText(entry)}{:else}{entry.who ?? 'Crew'}{/if}</span>
               {#if entry.delta || entry.gold}
-                {@const sgn = entry.delta ? Math.sign(entry.delta) : entry.kind === 'contract-escrow' ? -1 : entry.kind === 'contract-release' ? 1 : 0}
+                {@const neutral = entry.kind === 'escrow' || entry.kind === 'release' || entry.kind === 'contract-escrow' || entry.kind === 'contract-release'}
+                {@const sgn = neutral ? 0 : entry.delta ? Math.sign(entry.delta) : 0}
                 <span class={`delta ${sgn > 0 ? 'pos' : sgn < 0 ? 'neg' : 'plain'}`}>
-                  {sgn > 0 ? '+' : sgn < 0 ? '−' : ''}{fmtG(Math.abs(entry.delta || entry.gold))}
+                  {sgn > 0 ? '+' : sgn < 0 ? '−' : ''}{fmtG(Math.abs(entry.delta || entry.gold))}{neutral ? (entry.kind.endsWith('escrow') ? ' held' : ' released') : ''}
                 </span>
               {/if}
             </div>
@@ -366,6 +389,8 @@
 
   .brass { color: var(--brass); font: inherit; }
   .tag { display: inline-block; margin-right: 6px; padding: 1px 5px; border: 1px solid var(--rule); background: var(--sunk); font: 400 var(--t-xs)/1.3 var(--f-label); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
+  .standin { margin-left: 6px; color: var(--woad); border-color: var(--woad); background: var(--woad-soft); }
+  .gets { color: var(--ink); font-weight: 700; }
   .delta.plain { color: var(--ink-2); }
   .form { display: grid; gap: 10px; }
   .meta.first { margin-top: 0; }

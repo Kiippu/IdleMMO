@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { GRADE_NAMES } from '../engine/grades';
   import ItemIcon from '../art/ItemIcon.svelte';
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
@@ -8,16 +9,13 @@
   import { openSalvage } from '../overlays/salvage.svelte';
   import { fmtG, fmtN } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
-  import { toast } from '../overlays/toasts.svelte';
   import { markDone } from '../guide.svelte';
 
   type Item = { id: string; name: string; slot?: string; kind?: string; value?: number; stats?: Record<string, number> };
   type Gear = { uid: string; itemId: string; rarity: string; quality: number; dur: number; maxDur: number };
   type Tile = { key: string; letter: string; name: string; rarity: string; qty?: number; kind: 'stack' | 'gear'; id: string; gear?: Gear; grades?: number[]; cat: 'Materials' | 'Gear' | 'Food & potions'; value: number; order: number };
 
-  const SLOTS = ['weapon', 'offhand', 'head', 'chest', 'legs', 'ring'] as const;
-  const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring' };
-  const GRADE_LABEL = ['Rough', 'Fine', 'Sharp', 'Keen', 'Pristine'];
+  const GRADE_LABEL = GRADE_NAMES;
   const STAT_NAME: Record<string, string> = { atk: 'attack', def: 'defence', heal: 'heal', hp: 'HP' };
   const CATS = ['All', 'Materials', 'Gear', 'Food & potions'] as const;
 
@@ -35,7 +33,6 @@
   let store = $derived<any>(view?.extras?.store ?? null);
   let equipped = $derived<Record<string, string | null>>(snap?.equipped ?? {});
   let bag = $derived<Gear[]>((snap?.gear ?? []) as Gear[]);
-  let bagByUid = $derived(new Map(bag.map((g) => [g.uid, g] as const)));
   let inv = $derived<Record<string, number[]>>(snap?.inv ?? {});
   let vault = $derived(snap?.crew?.vault ?? { inv: {}, gear: [] });
   let status = $derived(view?.raidStatus ?? null);
@@ -65,6 +62,7 @@
   let vaultTiles = $derived(tiles(vault.inv ?? {}, (vault.gear ?? []) as Gear[], false));
   const RANK = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
   const RARS = ['all', ...RANK];
+  const nextOf = <T,>(list: readonly T[], cur: T): T => list[(list.indexOf(cur) + 1) % list.length];
   const SORTS = [['newest', 'Newest'], ['rarity', 'Rarity'], ['name', 'Name'], ['qty', 'Quantity'], ['value', 'Value']] as const;
   const shown = (list: Tile[], f: BagFilter) => {
     const q = f.q.trim().toLowerCase();
@@ -92,6 +90,7 @@
     return { known, total, groups: ['Materials', 'Gear', 'Food & potions'].map((n) => cats[n]).filter(Boolean) };
   });
   let mineVis = $derived(shown(mineTiles, bagFilter));
+  let mineGear = $derived(mineVis.filter((t) => t.kind === 'gear'));
   let vaultVis = $derived(shown(vaultTiles, vaultFilter));
 
 </script>
@@ -99,11 +98,11 @@
 {#snippet filters(f: BagFilter)}
   <div class="filters">
     <div class="sw"><input type="search" class="search" placeholder="Search by name" aria-label="Search by name" bind:value={f.q} />{#if f.q}<button type="button" class="clr" aria-label="Clear search" onclick={() => (f.q = '')}>×</button>{/if}</div>
-    <select aria-label="Rarity" bind:value={f.rarity}>{#each RARS as r}<option value={r}>{r === 'all' ? 'Any rarity' : r[0].toUpperCase() + r.slice(1)}</option>{/each}</select>
-    <select aria-label="Sort" bind:value={f.sort}>{#each SORTS as [v, l]}<option value={v}>Sort: {l}</option>{/each}</select>
+    <button type="button" class="btn ghost cyc" aria-label="Sort order: {SORTS.find((x) => x[0] === f.sort)?.[1]}. Tap to change" onclick={() => (f.sort = nextOf(SORTS.map((x) => x[0]), f.sort))}>{SORTS.find((x) => x[0] === f.sort)?.[1]}</button>
   </div>
-  <div class="chips" role="group" aria-label="Category">
+  <div class="chips" role="group" aria-label="Filter">
     {#each CATS as c}<button type="button" class="btn chip" aria-pressed={f.cat === c} onclick={() => (f.cat = c)}>{c}</button>{/each}
+    <button type="button" class="btn chip rar" class:on={f.rarity !== 'all'} style:--ink-r={f.rarity === 'all' ? undefined : `var(--r-${f.rarity})`} aria-label="Rarity filter: {f.rarity === 'all' ? 'any' : f.rarity}. Tap to change" onclick={() => (f.rarity = nextOf(RARS, f.rarity))}>{f.rarity === 'all' ? 'Any rarity' : cap(f.rarity)}</button>
   </div>
 {/snippet}
 
@@ -119,7 +118,7 @@
     <ul class="grid">
       {#each list as t (t.key)}
         <li>
-          <button type="button" class="tile" data-gear={t.kind === "gear" ? "1" : undefined} style:--ink-r={`var(--r-${t.rarity})`} onclick={() => openItem({ itemId: t.id, uid: t.gear?.uid, readOnly })} aria-label="{t.name}{t.qty ? `, ${t.qty}` : ''}">
+          <button type="button" class="tile" data-gear={t.kind === "gear" ? "1" : undefined} style:--ink-r={`var(--r-${t.rarity})`} onclick={() => openItem({ itemId: t.id, uid: t.gear?.uid, readOnly })} aria-label="{t.name}{t.qty ? `, quantity ${t.qty}` : ''}">
             <ItemIcon id={t.id} rarity={t.rarity} />
             {#if t.qty}<span class="qty num">{t.qty > 999 ? '999+' : t.qty}</span>{/if}
           </button>
@@ -137,30 +136,15 @@
 
 {#if sub === 'mine'}
   <section class="group">
-    <h3>Equipped</h3>
-    <ul class="eq">
-      {#each SLOTS as slot}
-        {@const uid = equipped[slot]}
-        {@const g = uid ? bagByUid.get(uid) : null}
-        <li>
-          {#if g}
-            <button type="button" class="tile" style:--ink-r={`var(--r-${g.rarity})`} onclick={() => openItem({ itemId: g.itemId, uid: g.uid })} aria-label="{SLOT_LABEL[slot]}: {gname(g)}">
-              <ItemIcon id={g.itemId} rarity={g.rarity} />
-            </button>
-          {:else}
-            <span class="tile empty" aria-label="{SLOT_LABEL[slot]}: empty"><span class="letter">·</span></span>
-          {/if}
-          <small>{SLOT_LABEL[slot]}</small>
-        </li>
-      {/each}
-    </ul>
-  </section>
-
-  <section class="group">
     <h3>Bag</h3>
     {@render filters(bagFilter)}
-    {#if mineVis.filter((t) => t.kind === 'gear').length}<button type="button" class="btn danger salv" onclick={() => openSalvage(mineVis.filter((t) => t.kind === 'gear').map((t) => t.gear!.uid), `${mineVis.filter((t) => t.kind === 'gear').length} shown`)}>Salvage shown ({mineVis.filter((t) => t.kind === 'gear').length})</button>{/if}
     {@render grid(mineVis, false, bagFilter, mineTiles.length)}
+    {#if mineGear.length}
+      <div class="foot">
+        <button type="button" class="btn ghost" onclick={() => openSalvage(mineGear.map((t) => t.gear!.uid), `${mineGear.length} shown`)}>Salvage gear…</button>
+        <p class="meta">Breaks the <span class="num">{mineGear.length}</span> gear {mineGear.length === 1 ? 'piece' : 'pieces'} shown into materials. You confirm first.</p>
+      </div>
+    {/if}
   </section>
 {:else if sub === 'codex'}
   <section class="group">
@@ -193,27 +177,26 @@
   .group + .group { margin-top: 16px; }
   .group h3 { margin: 0 0 8px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
   .muted { margin: 0; padding: 12px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-  .chip { flex: none; padding: 0 12px; }
+  .chips { display: flex; flex-wrap: nowrap; gap: 6px; margin: 0 calc(-1 * var(--gut-r, 0px)) 8px 0; padding-right: var(--gut-r, 0px); overflow-x: auto; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; padding: 0 12px; white-space: nowrap; }
+  .chip.rar.on { border-color: var(--ink-r); color: var(--ink-r); }
+  .foot { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
+  .foot .meta { margin: 0; color: var(--ink-3); font-size: var(--t-xs); }
+  .cyc { flex: none; padding: 0 12px; white-space: nowrap; }
 
   .tile { position: relative; width: 100%; aspect-ratio: 1; min-height: 44px; display: grid; place-items: center; padding: 0; background: var(--paper); border: 2px solid var(--ink-r, var(--rule)); color: var(--ink-r, var(--ink)); }
   .tile:hover { background: var(--woad-soft); }
-  .tile.empty { border: 1px dashed var(--rule); color: var(--ink-3); }
-  .letter { font: 700 var(--t-lg)/1 var(--f-display); }
   .qty { position: absolute; right: 1px; bottom: 1px; padding: 0 3px; background: var(--ink); color: var(--paper); font: 700 11px/1.3 var(--f-num); }
   .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-  .eq { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
-  .eq li { display: grid; gap: 2px; justify-items: center; }
-  .eq small { color: var(--ink-3); font-size: 10px; }
 
   .tile.hintt { background: var(--sunk); opacity: .75; color: var(--ink-3); border-style: dashed; }
   h4 { margin: 12px 0 6px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
   .cprog { margin: 0 0 6px; font-weight: 700; }
   .pbar { height: 8px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
   .pbar div { height: 100%; background: var(--woad); }
-  .salv { width: 100%; margin-bottom: 8px; }
-  .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-  .sw { grid-column: 1 / -1; position: relative; }
+  .filters { display: flex; gap: 6px; margin-bottom: 6px; }
+  .sw { flex: 1; min-width: 0; position: relative; }
   .search { width: 100%; padding-right: 44px; }
   .clr { position: absolute; right: 0; top: 0; width: 44px; height: 44px; border: 0; background: none; color: var(--ink-2); font: 700 var(--t-lg)/1 var(--f-body); }
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { GRADE_NAMES } from '../engine/grades';
   import ItemIcon from '../art/ItemIcon.svelte';
   // General store: the town's NPC shop. Hourly stock at a mark-up; sells your spare items at a floor price.
   import { DATA } from '@guildwright/engine';
@@ -9,13 +10,12 @@
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
-  import { buyFromShop } from '../overlays/shopActions';
-  import { toast } from '../overlays/toasts.svelte';
+  import { buyFromShop, lastBuy } from '../overlays/shopActions';
 
   type Props = { onContracts: () => void };
   let { onContracts }: Props = $props();
 
-  const GRADE_LABEL = ['Rough', 'Fine', 'Sharp', 'Keen', 'Pristine'];
+  const GRADE_LABEL = GRADE_NAMES;
   const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring' };
   const itemsMap: Record<string, any> = (DATA as any).items;
   const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
@@ -54,16 +54,26 @@
 
   function gatherText(s: any): string {
     if (s.gatherSecs == null) return "Can't make yet";
-    return `~${fmtSecs(s.gatherSecs)} to gather yourself`;
+    return `~${fmtSecs(s.gatherSecs)} to ${s.kind === 'gear' ? 'make' : 'gather'} yourself`;
   }
+
+  // Buy / Sell switch. ui.shopSub (set by the guide) can jump straight to Sell.
+  let view = $state<'buy' | 'sell'>('buy');
+  $effect(() => { const v = ui.shopSub; if (v) { view = v; ui.shopSub = null; } });
+  // Inline feedback instead of toasts: one polite line under the switch.
+  let msg = $state('');
+  let msgBad = $state(false);
+  function say(t: string, bad = false) { msg = t; msgBad = bad; }
 
   function report(res: StoreResult | undefined, okText: string) {
     if (!res) return;
-    if (res.ok === false) { void noticeSheet('Could not complete', res.reason); return; }
-    toast(okText);
+    if (res.ok === false) { say(res.reason || 'Could not complete.', true); return; }
+    say(okText);
   }
 
-  const buy = (s: any) => buyFromShop(s);
+  async function buy(s: any) {
+    if (await buyFromShop(s)) say(`Bought ${lastBuy.qty} ${s.name} for ${fmtG(lastBuy.gold)}.`);
+  }
 
   async function sell(r: { id: string; name: string; grade: number; qty: number; price: number }) {
     const qty = await askNumber({
@@ -73,7 +83,7 @@
       confirmLabel: 'Sell',
     });
     if (qty == null) return;
-    try { const res = await engineClient.storeSell(r.id, r.grade, qty); report(res, `Sold ${qty} ${r.name} for ${fmtG(res.gold)}`); if (res.ok) markDone('sell'); }
+    try { const res = await engineClient.storeSell(r.id, r.grade, qty); report(res, `Sold ${qty} ${r.name} for ${fmtG(res.gold)}.`); if (res.ok) markDone('sell'); }
     catch (err) { console.error('storeSell failed', err); }
   }
   async function sellAllGrades(g: SellGroup) {
@@ -85,15 +95,15 @@
     if (!ok) return;
     try {
       const res = await engineClient.storeSellAll(g.id);
-      if (res.ok === false) { void noticeSheet('Could not sell', res.reason); return; }
-      toast(`Sold ${fmtN(res.qty)} ${g.name} for ${fmtG(res.gold)}`); markDone('sell');
+      if (res.ok === false) { say(res.reason || 'Could not sell.', true); return; }
+      say(`Sold ${fmtN(res.qty)} ${g.name} for ${fmtG(res.gold)}.`); markDone('sell');
     } catch (err) { console.error('storeSellAll failed', err); }
   }
   async function sellOneGear(g: any) {
     const price = store?.gearSellPrices?.[g.uid] ?? 0;
     const name = engine.derived?.gearNames?.[g.uid] ?? itemName(g.itemId);
     if (!(await confirmSheet({ title: `Sell ${name}?`, body: `The shop pays ${fmtG(price)} (${sellPct}% of value). A crewmate or contract may pay more.`, confirmLabel: `Sell for ${fmtG(price)}`, danger: true }))) return;
-    try { const res = await engineClient.storeSellGear(g.uid); report(res, `Sold ${name} for ${fmtG(res.gold)}`); if (res.ok) markDone('sell'); }
+    try { const res = await engineClient.storeSellGear(g.uid); report(res, `Sold ${name} for ${fmtG(res.gold)}.`); if (res.ok) markDone('sell'); }
     catch (err) { console.error('storeSellGear failed', err); }
   }
   const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
@@ -106,6 +116,13 @@
 {:else}
   <p class="fresh"><span>Fresh stock in <span class="num">{fmtDuration((store.refreshesAt - now) / 1000)}</span></span> <span class="have">You have <span class="num brass">{fmtG(gold)}</span></span></p>
 
+  <div class="seg" role="group" aria-label="Shop mode">
+    <button type="button" class="btn" aria-pressed={view === 'buy'} onclick={() => (view = 'buy')}>Buy</button>
+    <button type="button" class="btn" aria-pressed={view === 'sell'} onclick={() => (view = 'sell')}>Sell</button>
+  </div>
+  <p class="fb" class:bad={msgBad} role="status" aria-live="polite">{msg}</p>
+
+  {#if view === 'buy'}
   <section class="group">
     <h3>Resources</h3>
     <ul class="tiles">
@@ -144,6 +161,7 @@
     </ul>
   </section>
 
+  {:else}
   <section class="group">
     <h3>Sell to the store</h3>
     <p class="note">Shop buys at <span class="num">{sellPct}%</span> of value. Crewmates and contracts pay more.</p>
@@ -153,8 +171,8 @@
       <button type="button" class="btn next" onclick={() => (ui.goTab = 'Workshop')}>Go gather something</button>
     {:else}
       <ul class="list">
-        {#each sellGroups as g (g.id)}
-          <li class="grp">
+        {#each sellGroups as g, gi (g.id)}
+          <li class="grp" data-guide={gi === 0 ? 'sell' : undefined}>
             <div class="ghead">
               <button type="button" class="sinfo" onclick={() => openItem({ itemId: g.id })}>
                 <ItemIcon id={g.id} rarity={g.rarity} />
@@ -174,8 +192,8 @@
             </div>
           </li>
         {/each}
-        {#each sellGear as g (g.uid)}
-          <li>
+        {#each sellGear as g, i (g.uid)}
+          <li data-guide={sellGroups.length === 0 && i === 0 ? 'sell' : undefined}>
             <button type="button" class="sinfo" onclick={() => openItem({ itemId: g.itemId, uid: g.uid })}>
               <ItemIcon id={g.itemId} rarity={g.rarity} />
               <span class="name" style:color={`var(--r-${g.rarity})`}>{engine.derived?.gearNames?.[g.uid] ?? itemName(g.itemId)}</span>
@@ -187,6 +205,7 @@
       </ul>
     {/if}
   </section>
+  {/if}
 {/if}
 
 <style>
@@ -227,4 +246,9 @@
   .tl { display: flex; flex-direction: column; }
   .tl .tile { flex: 1; }
   .buy { width: 100%; margin-top: 4px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 8px; }
+  .seg .btn { border-left-width: 0; }
+  .seg .btn:first-child { border-left-width: 1px; }
+  .fb { margin: 0 0 8px; min-height: 1.3em; color: var(--ok); font-size: var(--t-sm); font-weight: 700; }
+  .fb.bad { color: var(--bad); }
 </style>

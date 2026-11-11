@@ -2,11 +2,11 @@
 import { DATA } from '@guildwright/engine';
 import { engine } from '../engine/store.svelte';
 import { engineClient } from '../engine/client';
+import { GRADE_NAMES } from '../engine/grades';
 import { fmtG } from '../format';
 import { askNumber, noticeSheet } from './confirm.svelte';
-import { toast } from './toasts.svelte';
 
-const GRADE_LABEL = ['Rough', 'Fine', 'Sharp', 'Keen', 'Pristine'];
+const GRADE_LABEL = GRADE_NAMES;
 const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring' };
 const itemsMap: Record<string, any> = (DATA as any).items;
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
@@ -22,6 +22,9 @@ function statDiff(itemId: string): string {
     .map((x) => `${x.d > 0 ? '+' : '−'}${Math.abs(x.d)} ${names[x.k]}`);
   return worn ? (parts.length ? `vs your worn piece: ${parts.join(', ')}` : 'Same stats as your worn piece') : 'Slot is empty: all stats are new';
 }
+
+/** Result of the last successful buy, so the caller can show inline feedback. */
+export const lastBuy = { qty: 0, gold: 0 };
 
 export async function buyFromShop(s: any): Promise<boolean> {
   const gold = Math.floor(engine.snapshot?.gold ?? 0);
@@ -39,7 +42,7 @@ export async function buyFromShop(s: any): Promise<boolean> {
   try {
     const res = await engineClient.storeBuy(s.slot, qty);
     if (res.ok === false) { await noticeSheet('Could not complete', res.reason); return false; }
-    toast(`Bought ${qty} ${s.name} for ${fmtG(res.gold)}`);
+    lastBuy.qty = qty; lastBuy.gold = res.gold;
     return true;
   } catch (err) { console.error('storeBuy failed', err); return false; }
 }

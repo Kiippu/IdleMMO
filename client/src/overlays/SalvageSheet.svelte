@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { GRADE_NAMES } from '../engine/grades';
   import ItemIcon from '../art/ItemIcon.svelte';
   // Salvage gear into materials. Preview first; protected pieces (equipped, in a loadout, rare+) are skipped unless opted in.
   import { DATA } from '@guildwright/engine';
@@ -6,11 +7,10 @@
   import { engineClient, type SalvagePreview } from '../engine/client';
   import { fmtN } from '../format';
   import { salvageReq, closeSalvage } from './salvage.svelte';
-  import { toast } from './toasts.svelte';
   import { noticeSheet } from './confirm.svelte';
   import { closeItem } from './itemRef.svelte';
 
-  const GRADE = ['Rough', 'Fine', 'Sharp', 'Keen', 'Pristine'];
+  const GRADE = GRADE_NAMES;
   const itemsMap: Record<string, { name?: string }> = (DATA as any).items;
   const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
   const itemName = (id: string) => itemsMap[id]?.name ?? id;
@@ -19,10 +19,11 @@
   let allow = $state(false);
   let pv = $state<SalvagePreview | null>(null);
   let busy = $state(false);
+  let done = $state<string | null>(null);
   let seq = 0;
 
   $effect(() => {
-    if (!uids) { pv = null; allow = false; return; }
+    if (!uids) { pv = null; allow = false; done = null; return; }
     const my = ++seq; const a = allow; const u = [...uids];
     engineClient.salvagePreview(u, a).then((r) => { if (my === seq) pv = r; }).catch((e) => console.error(e));
   });
@@ -37,8 +38,8 @@
       const res = await engineClient.salvage([...uids], allow);
       if (!res.ok) { await noticeSheet('Could not salvage', res.reason); return; }
       const sum = res.items.reduce((a, i) => a + i.qty, 0);
-      toast(`Salvaged ${res.salvaged} ${res.salvaged === 1 ? 'piece' : 'pieces'} into ${fmtN(sum)} materials`);
-      closeSalvage(); closeItem();
+      done = `Salvaged ${res.salvaged} ${res.salvaged === 1 ? 'piece' : 'pieces'} into ${fmtN(sum)} materials.`;
+      closeItem();
     } catch (e) { console.error(e); } finally { busy = false; }
   }
   let dlg = $state<HTMLElement | null>(null);
@@ -61,7 +62,9 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div class="sheet cs-sheet" role="dialog" aria-modal="true" aria-labelledby="sv-title" tabindex="-1" bind:this={dlg} onclick={(e) => e.stopPropagation()}>
       <h2 id="sv-title">Salvage {salvageReq.label || (uids.length === 1 ? 'this piece' : 'shown gear')}</h2>
-      {#if !pv}
+      {#if done}
+        <p class="body ok" role="status">{done}</p>
+      {:else if !pv}
         <p class="meta">Working it out…</p>
       {:else}
         <p class="body"><span class="num">{pv.gearCount}</span> {pv.gearCount === 1 ? 'piece' : 'pieces'} will be broken down. This cannot be undone.</p>
@@ -82,11 +85,15 @@
           {#if pv.blocked.length > 8}<p class="meta">and <span class="num">{pv.blocked.length - 8}</span> more.</p>{/if}
         {/if}
       {/if}
-      <label class="chk"><input type="checkbox" bind:checked={allow} /> <span>Include protected (equipped, loadouts, rare+)</span></label>
-      {#if !pv || pv.gearCount === 0}<p class="meta">{!pv ? 'Working out what you would get…' : 'Nothing to salvage. Tick "Include protected" to see equipped and rare gear.'}</p>{/if}
+      {#if !done}<label class="chk"><input type="checkbox" bind:checked={allow} /> <span>Include protected (equipped, loadouts, rare+)</span></label>{/if}
+      {#if !done && (!pv || pv.gearCount === 0)}<p class="meta">{!pv ? 'Working out what you would get…' : 'Nothing to salvage. Tick "Include protected" to see equipped and rare gear.'}</p>{/if}
       <div class="actions">
-        <button type="button" class="btn ghost" onclick={closeSalvage}>Cancel</button>
-        <button type="button" class="btn danger solid" disabled={!pv || pv.gearCount === 0 || busy} onclick={confirm}>Salvage <span class="num">{pv?.gearCount ?? 0}</span></button>
+        {#if done}
+          <button type="button" class="btn primary" onclick={closeSalvage}>Done</button>
+        {:else}
+          <button type="button" class="btn ghost" onclick={closeSalvage}>Cancel</button>
+          <button type="button" class="btn danger solid" disabled={!pv || pv.gearCount === 0 || busy} onclick={confirm}>Salvage <span class="num">{pv?.gearCount ?? 0}</span></button>
+        {/if}
       </div>
     </div>
   </div>
@@ -99,6 +106,7 @@
   h3 { margin: 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
   .meta { margin: 0; color: var(--ink-3); }
   .body { margin: 0; color: var(--ink); }
+  .body.ok { color: var(--ok); font-weight: 700; }
   .lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
   .lines li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; background: var(--sunk); border: 1px solid var(--rule-2); font-size: var(--t-sm); }
   small { color: var(--ink-3); font-weight: 400; }

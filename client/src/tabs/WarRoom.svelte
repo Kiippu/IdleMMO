@@ -6,6 +6,7 @@
   import { ui } from '../ui.svelte';
   import { askText, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import RaidRecap from '../overlays/RaidRecap.svelte';
+  import Gear from './war/Gear.svelte';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
 
@@ -54,7 +55,29 @@
     if (status.phase === 'done') return status.nextRaidAt ? `Next raid in ${fmtDuration((status.nextRaidAt - Date.now()) / 1000)}` : 'Settled';
     return `Opens in ${fmtDuration(status.secToStart)}`;
   });
-  let statMax = $derived(stats ? Math.max(1, stats.atk, stats.def, stats.heal) : 1);
+  let ready = $derived<any>((view?.extras as any)?.readiness ?? null);
+  const ROLE_NAME: Record<string, string> = { guardian: 'Guardian', mender: 'Mender', striker: 'Striker' };
+  let reqPower = $derived<number>(ready?.req ?? boss?.reqPower ?? 0);
+  let bestPower = $derived<number>(ready?.best ?? stats?.power ?? 0);
+  let readyFrac = $derived(reqPower > 0 ? Math.min(1, bestPower / reqPower) : 1);
+  let readyOk = $derived<boolean>(ready ? !!ready.ok : bestPower >= reqPower);
+  const ITEMS: Record<string, any> = (DATA as any).items;
+  // Food the raid will use: what is already in the pouch, else what lock-in packs from the bag (healing food and potions).
+  let foodList = $derived.by(() => {
+    const tot = (a: number[] | undefined) => (a ?? []).reduce((x, y) => x + (y || 0), 0);
+    const out: Array<{ id: string; name: string; qty: number }> = [];
+    const pouch = (snap?.raid as any)?.pouch ?? {};
+    const src = Object.keys(pouch).some((id) => tot(pouch[id]) > 0) ? pouch : (snap?.inv ?? {});
+    for (const id of Object.keys(src)) {
+      const it = ITEMS[id]; const n = tot(src[id]);
+      if (!it || n <= 0 || (it.kind !== 'food' && it.kind !== 'potion')) continue;
+      if (src === snap?.inv && !(it.heal > 0)) continue;
+      out.push({ id, name: it.name, qty: n });
+    }
+    return out.sort((a, b) => b.qty - a.qty);
+  });
+  let foodFromPouch = $derived(Object.keys((snap?.raid as any)?.pouch ?? {}).some((id) => ((snap?.raid as any).pouch[id] ?? []).some((n: number) => n > 0)));
+  let loadoutsOpen = $state(false);
   const stanceNow = $derived(STANCES.find((x) => x.id === rules.stance));
   const tacticNow = $derived(TACTICS.find((x) => x.id === rules.tactic));
   async function toggleLock() {
@@ -109,14 +132,17 @@
 </nav>
 
 {#if sub === 'loadout'}
-  <section class="group">
+  {#if readOnly && lockReason}<p class="lock-note">{lockReason}</p>{/if}
+  <Gear />
+
+  <details class="group saved" bind:open={loadoutsOpen}>
+    <summary><h3>Saved loadouts <span class="num">({loadouts.length})</span></h3></summary>
     <div class="group-head">
-      <h3>Saved loadouts</h3>
+      <p class="meta">Save what you wear now to swap back in one tap.</p>
       <button type="button" class="btn" onclick={saveCurrentGear}>Save current gear</button>
     </div>
-    {#if readOnly && lockReason}<p class="lock-note">{lockReason}</p>{/if}
     {#if loadouts.length === 0}
-      <p class="muted">No loadouts yet. Save your current gear to make a one-tap swap for later.</p>
+      <p class="muted">No loadouts yet. Wear a set you like, then tap Save current gear.</p>
     {:else}
       <ul class="list">
         {#each loadouts as l (l.id)}
@@ -133,7 +159,7 @@
         {/each}
       </ul>
     {/if}
-  </section>
+  </details>
 {:else}
   <section class="group">
     {#if boss}
@@ -154,14 +180,16 @@
           {#each cps as c}<i class="tick" style="left: {Math.round((1 - c.at) * 100)}%"></i>{/each}
         </div>
         <p class="meta">HP <span class="num">{fmtN(Math.max(0, hpFrac * boss.maxHp))} / {fmtN(boss.maxHp)}</span>{#if boss.reqPower}{' '}· Req power <span class="num">{fmtN(Math.round(boss.reqPower))}</span>{/if}</p>
+        {#if boss.weakTo}<p class="meta">Wear gear with {boss.weakTo} damage to hit its weak spot for extra damage.</p>{/if}
         {#if cps.length}
+          <p class="meta">Bonus chests open as the crew wears the boss down.</p>
           <ul class="chests">
             {#each cps as c}
               {@const got = liveHp != null ? dealt >= c.at - 1e-9 : c.reached}
               {@const st = got ? 'claimed' : c === (liveHp != null ? cps.find((x) => dealt < x.at - 1e-9) : nextCp) ? 'next' : 'locked'}
               <li class={st}>
                 <span class="num">{Math.round(c.at * 100)}%</span>
-                <small>{st === 'claimed' ? 'Claimed' : st === 'next' ? `${Math.max(1, Math.ceil((c.at - dealt) * 100))}% to go` : 'Locked'}</small>
+                <small>{st === 'claimed' ? 'Chest claimed' : st === 'next' ? `${Math.max(1, Math.ceil((c.at - dealt) * 100))}% more damage to open` : 'Not reached yet'}</small>
               </li>
             {/each}
           </ul>
@@ -201,14 +229,21 @@
     {#if readOnly}<p class="lock-note">{lockReason || 'Raid prep is locked while the raid runs.'}</p>{/if}
     <section class="group">
       <h3>Your readiness</h3>
+      <article class="ready" class:ok={readyOk}>
+        <p class="power"><span>Your power <b class="num">{fmtN(Math.round(bestPower))}</b></span><span>needs <b class="num">{fmtN(Math.round(reqPower))}</b></span></p>
+        <div class="bar sm" role="progressbar" aria-label="Your power against the power needed" aria-valuemin="0" aria-valuemax={Math.round(reqPower)} aria-valuenow={Math.round(Math.min(bestPower, reqPower))}><div class="fill {readyOk ? 'okf' : 'woad'}" style="width: {Math.round(readyFrac * 100)}%"></div></div>
+        <p class="meta">{#if ready?.bestRole}Counted as a <b>{ROLE_NAME[ready.bestRole] ?? ready.bestRole}</b>, your strongest role with this gear. {/if}{readyOk ? 'You are strong enough for this boss.' : 'You are under-powered for this boss. Better gear helps.'}</p>
+        {#if ready?.tips?.length}<ul class="tips">{#each ready.tips as t}<li>{t}</li>{/each}</ul>{/if}
+      </article>
       {#if stats}
         <dl class="stats">
-          <div><dt>HP</dt><dd>{fmtN(hp)} / {fmtN(stats.maxHp)}</dd><span class="m"><i style="width: {stats.maxHp ? Math.min(100, Math.round(hp / stats.maxHp * 100)) : 0}%"></i></span></div>
-          <div><dt>Attack</dt><dd>{fmtN(Math.round(stats.atk))}</dd><span class="m"><i style="width: {Math.round(stats.atk / statMax * 100)}%"></i></span></div>
-          <div><dt>Defence</dt><dd>{fmtN(Math.round(stats.def))}</dd><span class="m"><i style="width: {Math.round(stats.def / statMax * 100)}%"></i></span></div>
-          <div><dt>Heal</dt><dd>{fmtN(Math.round(stats.heal))}</dd><span class="m"><i style="width: {Math.round(stats.heal / statMax * 100)}%"></i></span></div>
+          <div><dt>HP</dt><dd class="num">{fmtN(hp)} / {fmtN(stats.maxHp)}</dd></div>
+          <div><dt>Attack</dt><dd class="num">{fmtN(Math.round(stats.atk))}</dd></div>
+          <div><dt>Defence</dt><dd class="num">{fmtN(Math.round(stats.def))}</dd></div>
+          <div><dt>Heal</dt><dd class="num">{fmtN(Math.round(stats.heal))}</dd></div>
         </dl>
       {/if}
+      <button type="button" class="btn next" onclick={() => (sub = 'loadout')}>Change gear</button>
     </section>
 
     <section class="group">
@@ -229,16 +264,22 @@
 
     <section class="group">
       <h3>Eat threshold</h3>
-      <p class="meta">Pull food from the pouch when HP drops below this.</p>
+      <p class="meta">Eat food when your HP drops below this.</p>
       <div class="slider">
         <input type="range" aria-label="Eat threshold" min="30" max="80" step="5" value={Math.round(rules.eatAt * 100)} disabled={readOnly} oninput={pickEatAt} />
         <span class="slider-val num">{Math.round(rules.eatAt * 100)}%</span>
       </div>
+      {#if foodList.length}
+        <p class="meta">{foodFromPouch ? 'Packed for the raid' : 'Lock in packs your best healing food from the bag'}: {#each foodList as f, i}{i ? ', ' : ''}{f.name} <span class="num">×{fmtN(f.qty)}</span>{/each}.</p>
+      {:else}
+        <p class="meta">You have no food to eat. Cook some (try Bread) in the Workshop before the raid, or you will faint when your HP runs out.</p>
+        <button type="button" class="btn next" onclick={() => (ui.goTab = 'Workshop')}>Go to the Workshop</button>
+      {/if}
     </section>
 
     {#if prepPhase === 'prep'}
       <button type="button" class="btn wide" data-guide="lock" class:primary={!locked} onclick={toggleLock}>{locked ? 'Locked in. Tap to unlock' : 'Lock in'}</button>
-      {#if !locked}<p class="meta center">Unlocked players are locked in automatically when the raid opens.</p>{/if}
+      <p class="meta center">{locked ? 'Your gear, stance, tactic and food are sealed for this raid. Unlock to change them.' : 'Lock in seals your gear, stance, tactic and food, and packs your food. Doing it early lets you see warnings (like no food) while you can still fix them. You can unlock until the raid opens; if you do nothing, you are locked in automatically when it opens.'}</p>
     {:else}
       <p class="meta center">{locked ? 'You are locked in for this raid.' : 'You were locked in automatically.'}</p>
     {/if}
@@ -256,7 +297,6 @@
     letter-spacing: .08em; text-transform: uppercase;
   }
   .group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-  .group-head h3 { margin: 0; }
   .muted { margin: 0; padding: 12px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
   .meta { margin: 4px 0 0; color: var(--ink-3); font-size: var(--t-xs); }
   .meta.center { text-align: center; }
@@ -293,12 +333,26 @@
   .chests li.locked { opacity: .6; }
   .phases { margin: 8px 0 0; padding-left: 18px; font-size: var(--t-sm); color: var(--ink-2); }
 
-  .stats { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
-  .stats div { padding: 8px; background: var(--sunk); border: 1px solid var(--rule); display: grid; gap: 4px; }
+  .stats { margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .stats div { padding: 6px 8px; background: var(--sunk); border: 1px solid var(--rule); display: grid; gap: 3px; }
   .stats dt { margin: 0; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
   .stats dd { margin: 0; font-weight: 700; font-size: var(--t-md); line-height: 1; color: var(--ink); }
+  .ready { padding: 12px; background: var(--paper); border: 1px solid var(--rule); }
+  .ready.ok { border-color: var(--ok); }
+  .power { margin: 0 0 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: var(--ink-2); font-size: var(--t-sm); }
+  .power b { font-size: var(--t-xl); color: var(--ink); }
+  .ready .bar { margin-top: 0; }
+  .fill.okf { background: var(--ok); }
+  .tips { margin: 6px 0 0; padding-left: 18px; font-size: var(--t-sm); color: var(--ink-2); }
+  .stats { margin-top: 8px; }
+  .saved { margin-top: 16px; padding: 0; }
+  .saved summary { list-style: none; cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+  .saved summary::-webkit-details-marker { display: none; }
+  .saved summary h3 { margin: 0; }
+  .saved summary::before { content: '▸'; margin-right: 8px; color: var(--ink-3); }
+  .saved[open] summary::before { content: '▾'; }
+  .next { margin-top: 8px; }
   .m { height: 4px; background: var(--paper); border: 1px solid var(--rule); display: block; overflow: hidden; }
-  .m i { display: block; height: 100%; background: var(--woad); }
 
   .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; }
   .seg .btn { padding: 8px 4px; border-left-width: 0; }

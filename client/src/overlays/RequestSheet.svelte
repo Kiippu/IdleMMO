@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MIN_GRADE_LABELS } from '../engine/grades';
   // Post a crew request (paid from your own escrowed gold). Opens from Crew > Contracts "+ Request".
   import { DATA } from '@guildwright/engine';
   import { engineClient } from '../engine/client';
@@ -9,7 +10,7 @@
 
   const itemsMap: Record<string, { id?: string; name?: string; kind?: string }> = (DATA as any).items;
   const sellable = Object.values(itemsMap).filter((i) => i.kind !== 'gear' && i.id).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
-  const GRADES = ['Any grade', 'Fine+', 'Sharp+', 'Keen+', 'Pristine'];
+  const GRADES = MIN_GRADE_LABELS;
 
   let item = $state(''); let grade = $state(0); let qty = $state(10); let reward = $state(5);
   let err = $state('');
