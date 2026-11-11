@@ -41,23 +41,13 @@ export interface Derived {
   /** Game-clock ms (E.now) at the time of this snapshot; events[].t is on the same clock. */
   now: number;
   /** E.derivedExtras(state): {store, events (last 50, newest first), raidPrep, gatherSecs}. */
-  extras: { store: any; events: any[]; raidPrep: any; gatherSecs: Record<string, number | null>; codex?: { items: Record<string, { id: string; status: 'hidden' | 'hint' | 'known'; inputsSeen: number; inputsTotal: number; touched: boolean }>; demand: Record<string, number> } } | null;
+  extras: { store: any; events: any[]; raidPrep: any; gatherSecs: Record<string, number | null>; codex?: { items: Record<string, { id: string; status: 'hidden' | 'hint' | 'known'; inputsSeen: number; inputsTotal: number; touched: boolean }>; demand: Record<string, number> };
+    lastRecapView?: RecapView | null; crewActivity?: CrewActivity[]; sellList?: SellListRow[]; disabledReasons?: DisabledReasons } | null;
 }
 
-export interface OfflineSummary {
-  items: Record<string, number>;
-  xp: Record<string, number>;
-  gold: number;
-  crafts: Record<string, number>;
-  kills: number;
-  stoppedReason: string | null;
-  assisted: number;
-  tips: number;
-  raids: string[];
-  weeks: number;
-  /** Real seconds the player was away (added by the worker). */
-  awaySec?: number;
-}
+import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons } from '@guildwright/engine';
+/** Engine summary (items, xp, gold, skills, bestFind, loot, goldBySource, ...) plus the real seconds away added by the worker. */
+export type OfflineSummary = EngineOfflineSummary & { awaySec?: number };
 
 export type Req =
   | { id: string; type: 'init' }
