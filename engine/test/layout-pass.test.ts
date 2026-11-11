@@ -197,6 +197,14 @@ describe('crew activity feed', () => {
     expect(act.some((x: any) => x.kind === 'job' && x.gold === helped.tip && /You helped with/.test(x.text))).toBe(true);
     expect(act.some((x: any) => /job is finished/.test(x.text))).toBe(false); // the event-log twin is dropped
     expect(act.some((x: any) => x.kind === 'assist')).toBe(true);
+    // text never repeats the actor's name (QA: "Branka Branka finished ..."); full is the whole sentence
+    for (const x of act) {
+      expect(x.text.startsWith(x.who + ' ')).toBe(false);
+      expect(x.full.includes(x.text.slice(1))).toBe(true);
+    }
+    const jobLine = act.find((x: any) => x.kind === 'job');
+    expect(jobLine.text).toMatch(/^Finished \d+ /);
+    expect(jobLine.full).toBe(`${jobLine.who} ${jobLine.text[0].toLowerCase()}${jobLine.text.slice(1)}`);
     expect(act.some((x: any) => /^Started helping/.test(x.text) && x.mine)).toBe(true);
     expect(E.crewActivity(s).length).toBeLessThanOrEqual(10);
     expect(E.derivedExtras(s).crewActivity.length).toBeLessThanOrEqual(10);
@@ -218,6 +226,13 @@ describe('crew activity feed', () => {
     const act = E.crewActivity(s, 50).filter((x: any) => x.text.includes('filled') || x.text.startsWith('Filled'));
     expect(act.filter((x: any) => x.mine).length).toBe(1);
     expect(act[0].kind).toBe('contract');
+    expect(act[0].who).toBe('You');
+    expect(act[0].text).toMatch(/^Filled 3 /);
+    expect(act[0].full).toMatch(/^You filled 3 /);
+    // a crewmate's feed line loses its leading name too
+    s.crew.feed.unshift({ t: h.E.now(s), kind: 'contract', who: 'Branka', text: 'Branka filled 2 Coal for the crew, +10g.' });
+    const b = h.E.crewActivity(s, 1)[0];
+    expect(b).toMatchObject({ who: 'Branka', text: 'Filled 2 Coal for the crew, +10g.', full: 'Branka filled 2 Coal for the crew, +10g.' });
   });
 
   it('v4 / v5 / v6 fixtures load and every new view works on them', async () => {

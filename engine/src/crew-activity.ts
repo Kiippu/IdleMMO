@@ -6,7 +6,15 @@
 // Your event-log lines that the crew feed already carries (hand-ins, posting/cancelling a request, a
 // crewmate filling your request, a finished job you helped with) are dropped so nothing shows twice.
 /* eslint-disable */
-import { E, arr, num, itemName, fmtGold } from './core';
+import { E, arr, num, itemName, fmtGold, lcFirst } from './core';
+
+// Contract (2026-11-11, QA): `text` never starts with `who` (the client shows who as its own label);
+// `full` is the complete sentence for places that show one line without a name.
+const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+export function withoutActor(text, who) {
+  const t = String(text || '');
+  return who && t.startsWith(who + ' ') ? cap(t.slice(who.length + 1)) : t;
+}
 import { nowOf } from './clock';
 
 export const JOBS_DONE_CAP = 20;
@@ -28,17 +36,17 @@ export function normJobsDone(list) {
 export function crewActivity(state, n = CREW_ACTIVITY_N) {
   const cr = state && state.crew; if (!cr) return [];
   const out = [];
-  arr(cr.feed).forEach((f) => { if (f && f.text) out.push({ t: num(f.t, 0), kind: f.kind || 'crew', who: f.who || 'Crew', text: f.text, mine: f.who === 'You' }); });
+  arr(cr.feed).forEach((f) => { if (f && f.text) { const who = f.who || 'Crew'; out.push({ t: num(f.t, 0), kind: f.kind || 'crew', who, text: withoutActor(f.text, who), full: f.text, mine: who === 'You' }); } });
   normJobsDone(cr.jobsDone).forEach((j) => {
     const what = `${j.qty} ${itemName(j.itemId)}`;
-    const text = j.assisted > 0 ? `${j.owner} finished ${what}. You helped with ${j.assisted}${j.tip ? `: +${fmtGold(j.tip)} tip` : ''}.` : `${j.owner} finished ${what}.`;
-    const e: any = { t: num(j.t, 0), kind: 'job', who: j.owner, text, mine: false, itemId: j.itemId, qty: j.qty };
+    const text = j.assisted > 0 ? `Finished ${what}. You helped with ${j.assisted}${j.tip ? `: +${fmtGold(j.tip)} tip` : ''}.` : `Finished ${what}.`;
+    const e: any = { t: num(j.t, 0), kind: 'job', who: j.owner, text, full: `${j.owner} ${lcFirst(text)}`, mine: false, itemId: j.itemId, qty: j.qty };
     if (j.tip) e.gold = j.tip;
     out.push(e);
   });
   arr(state.events).forEach((e) => {
     if (!e || e.cat !== 'crew' || TWIN.test(e.text)) return;
-    const o: any = { t: num(e.t, 0), kind: String(e.merge || '').startsWith('assist:') ? 'assist' : 'you', who: 'You', text: e.text, mine: true };
+    const o: any = { t: num(e.t, 0), kind: String(e.merge || '').startsWith('assist:') ? 'assist' : 'you', who: 'You', text: withoutActor(e.text, 'You'), full: e.text, mine: true };
     if (e.gold != null) o.gold = e.gold; if (e.itemId) o.itemId = e.itemId; if (e.qty != null) o.qty = e.qty;
     out.push(o);
   });

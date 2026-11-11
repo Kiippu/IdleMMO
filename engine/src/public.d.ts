@@ -367,9 +367,12 @@ export interface CrewActivity {
   /** game-clock ms */
   t: number;
   kind: CrewActivityKind;
-  /** crewmate name, 'You', 'Town', 'Raid' or 'Crew' */
+  /** crewmate name, 'You', 'Town', 'Raid' or 'Crew'. Show it as its own label. */
   who: string;
+  /** the line WITHOUT the leading actor name ("Finished 7 Training sword."); never starts with `who` */
   text: string;
+  /** the whole sentence with the actor ("Branka finished 7 Training sword."), for one-line places */
+  full: string;
   /** you did it */
   mine: boolean;
   gold?: number; itemId?: string; qty?: number;
