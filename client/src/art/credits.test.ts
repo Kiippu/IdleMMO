@@ -38,7 +38,7 @@ describe('credits', () => {
       legs_plate: 'legs/armour/plate', t_plate: 'torso/armour/plate/male', t_chain: 'torso/chainmail', t_leather: 'torso/armour/leather',
       t_cloth: 'torso/clothes/longsleeve/longsleeve2', shirt: 'torso/clothes/longsleeve/longsleeve2', h_kettle: 'hat/helmet/kettle', h_mail: 'hat/helmet/mail', h_cap: 'hat/cloth/leather_cap', h_hood: 'hat/cloth/hood',
       sword: 'weapon/sword/arming', mace: 'weapon/blunt/mace', staff: 'weapon/magic/simple', bow: 'weapon/ranged/bow/normal',
-      pickaxe: 'tools/pickaxe', axe: 'tools/axe', hammer: 'tools/hammer',
+      pickaxe: 'tools/pickaxe', axe: 'tools/axe', hammer: 'tools/hammer', rod: 'tools/fishing_rod',
     };
     for (const key of Object.keys((hero as any).layers)) {
       const base = key.replace(/^c_/, '').replace(/_(fg|bg)$/, '').replace(/_(bronze|iron|steel|gold)$/, '');
