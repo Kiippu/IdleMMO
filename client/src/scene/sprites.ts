@@ -26,7 +26,7 @@ export function loadSceneArt() { return (pending ??= Promise.all([load(heroUrl),
 
 /** Foe sprite row for a combat action (16px, 4 idle frames, facing left); null when the action is not a fight. */
 export const FOES = foesMan as { map: Record<string, number>; default: number; frames: number; size: number };
-export const foeRow = (actionId: string | null, kind: string | null): number | null => (kind === 'combat' ? (actionId && FOES.map[actionId]) ?? FOES.default : null);
+export const foeRow = (actionId: string | null, kind: string | null): number | null => (kind === 'combat' ? (actionId ? FOES.map[actionId] : undefined) ?? FOES.default : null);
 
 // ---------------------------------------------------------------- actions -> backdrop / animation
 const BACKDROP_BY_SKILL: Record<string, string> = {
