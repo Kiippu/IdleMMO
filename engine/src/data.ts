@@ -538,7 +538,7 @@ export const DATA: any = {
     // Owner decision 2026-11-11: offline is more rewarding than watching. Catch-up runs at 1.5x active
     // speed with no time limit (offlineCapSec 0 = unlimited; was 12 h at 10% speed).
     offlineCapSec: 0,
-    offlineRate: 1.5,
+    offlineRate: 1,
     maxLevel: 99,
     marketTax: 0.05,
     // Player market parked 2026-11-08 (the NPC general store replaces it). The code stays; with this
