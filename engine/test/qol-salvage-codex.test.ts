@@ -1,10 +1,7 @@
 // QoL pass 2026-11-11: salvage by rarity, discovery (state.seen + codex), encyclopedia catalog.
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { freshEngine, START } from './engine-helpers';
 
-const fixture = (name: string) => JSON.parse(readFileSync(resolve(__dirname, 'fixtures', name), 'utf8'));
 const piece = (s: any, uid: string, itemId: string, rarity: string, quality = 50) => {
   const g = { uid, itemId, rarity, quality, affixes: [], dur: 100, maxDur: 100 }; s.gear.push(g); return g;
 };
@@ -95,13 +92,14 @@ describe('discovery and codex', () => {
     expect(E.codex(s).demand[k.itemId]).toBeGreaterThanOrEqual(k.capacity);
   });
 
-  it('migrate seeds seen from holdings and history; v4/v5/v6 fixtures load and round-trip', async () => {
+  it('loading seeds seen from holdings and history and round-trips', async () => {
     const h = await freshEngine(3, START + 3600000);
-    for (const f of ['v4-save.json', 'v5-phase2-save.json', 'v6-phase25-save.json']) {
-      const raw = fixture(f);
-      const s = h.E.migrate(raw);
-      expect(s.v).toBe(6);
-      Object.keys(s.inv).forEach((id) => expect(s.seen[id], `${f} ${id}`).toBe(true));
+    {
+      const base = h.E.newState();
+      base.inv.sapphire = [0, 2, 0, 0, 0]; base.seen = {};
+      const s = h.E.migrate(JSON.parse(JSON.stringify(base)));
+      expect(s.v).toBe(7);
+      Object.keys(s.inv).forEach((id) => expect(s.seen[id], id).toBe(true));
       s.gear.forEach((g: any) => expect(s.seen[g.itemId]).toBe(true));
       expect(() => h.E.tick(s, 1)).not.toThrow();
       expect(h.E.migrate(JSON.parse(JSON.stringify(s))).seen).toEqual(s.seen);

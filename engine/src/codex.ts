@@ -30,7 +30,7 @@ export function sweepSeen(state) {
   const v = state.crew && state.crew.vault;
   if (v) { invKeys(v.inv); arr(v.gear).forEach((g) => mark(g && g.itemId)); }
 }
-/** migrate(): seed from the save's current holdings and its event history */
+/** on load: the save's seen list, plus what it owns now and its event history */
 export function seedSeen(out, raw) {
   const prev = raw && raw.seen && typeof raw.seen === 'object' ? raw.seen : {};
   out.seen = {};

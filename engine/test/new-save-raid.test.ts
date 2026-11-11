@@ -2,8 +2,6 @@
 // for) a raid that started before the save existed. It sits that raid out and joins next week's.
 // Existing saves mid-raid still resolve their raid normally. Plus: gold in engine text is formatted.
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { freshEngine, START, DAY } from './engine-helpers';
 
 const SUNDAY_1845 = START + 6 * DAY + (18 * 60 + 45 - 9 * 60) * 60000; // Sun 8 Nov 2026 18:45 UTC (window Sat 10:00 → Sun 22:00)
@@ -39,17 +37,16 @@ describe('new save created mid-raid', () => {
     expect(h.E.lastRecap(s).week).toBe(1);
   });
 
-  it('existing saves mid-raid still resolve their raid (v5 and v6 fixtures)', async () => {
-    for (const f of ['v5-phase2-save.json', 'v6-phase25-save.json']) {
-      const h = await freshEngine(2, SUNDAY_1845);
-      const raw = JSON.parse(readFileSync(resolve(__dirname, 'fixtures', f), 'utf8'));
-      raw.raid.resolvedWeek = 0; raw.raid.current = null; // this week's raid not yet fought
-      const s = h.E.migrate(raw);
-      expect(s.week).toBe(1);
-      h.E.tick(s, 1);
-      const rc = h.E.lastRecap(s);
-      expect(rc && rc.week).toBe(1);
-    }
+  it('an existing v7 save reloaded mid-raid still resolves its raid', async () => {
+    const h = await freshEngine(2, START);
+    const made = h.E.newState(); // made early in the week: takes part
+    h.setNow(SUNDAY_1845);
+    const raw = JSON.parse(JSON.stringify(made));
+    const s = h.E.migrate(raw);
+    expect(s.week).toBe(1);
+    h.E.tick(s, 1);
+    const rc = h.E.lastRecap(s);
+    expect(rc && rc.week).toBe(1);
   });
 });
 

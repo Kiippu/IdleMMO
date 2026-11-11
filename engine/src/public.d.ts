@@ -169,6 +169,7 @@ export interface RecapStockFields {
 //   E.storeSell(state, itemId, grade, qty) → StoreSellResult; E.storeSellGear(state, uid) → StoreSellResult;
 //   E.storeBuyPrice(itemId, grade); E.storeSellPrice(itemId, grade).
 // Event log: E.events(state, n = 50) → GameEvent[] (newest first; state.events keeps the last 200).
+// Tick events: { type: 'levelup', skill, level, from } (from added 2026-11-11).
 // Player market parked: DATA.config.playerMarket = false; E.buy / E.list return { ok: false, reason }.
 export type RarityId = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 export type RaidPrepPhase = 'prep' | 'live' | 'recap';
@@ -185,6 +186,10 @@ export interface GameEvent {
   gold?: number;
   /** gear crafted / sold: the instance rarity */
   rarity?: RarityId;
+  /** level-up lines (cat 'skill', layout pass 2026-11-11): all levels gained in one E.tick or one
+   *  E.applyOffline roll into ONE line per skill. text "Mining levelled up 1 → 39." (or "Mining reached level 5."
+   *  for a single level). Older saved lines lack these fields. */
+  skill?: string; from?: number; level?: number;
 }
 export interface StoreSlot {
   /** pass to storeBuy */
@@ -254,8 +259,161 @@ export interface DerivedExtras {
   raidPrep: RaidPrep;
   gatherSecs: Record<string, number | null>;
   codex: Codex;
+  /** E.recapView(state) for the newest recap, or null (layout pass 2026-11-11) */
+  lastRecapView: RecapView | null;
+  /** E.crewActivity(state) — last 10 (layout pass 2026-11-11) */
+  crewActivity: CrewActivity[];
+  /** E.storeSellList(state) (layout pass 2026-11-11) */
+  sellList: SellListRow[];
+  /** E.disabledReasons(state) (layout pass 2026-11-11) */
+  disabledReasons: DisabledReasons;
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
+
+// ---- Phase 3 layout pass (2026-11-11). Additive.
+// Return moment: E.applyOffline(state, nowMs) → { seconds, summary: OfflineSummary }. The worker already
+//   spreads `summary` into its `offline` message, so these fields arrive with no worker change.
+export interface ReturnSkillLine {
+  skill: string; name: string;
+  /** effective level before / after the catch-up (spec cap applied) */
+  from: number; to: number;
+  xp: number;
+  /** action ids whose level requirement is in (from, to] */
+  unlocked: string[]; unlockedCount: number;
+  /** "Mining 1 → 39, 4 new nodes unlocked" (nodes / recipes / foes by skill tier); "Mining +1,200 XP" when no level */
+  headline: string;
+}
+export interface ReturnLoot {
+  itemId: string; name: string; qty: number;
+  /** qty per grade 0..4 (gear: quality grade of each crafted piece) */
+  byGrade: number[];
+  /** item rarity (gear: the best rolled rarity) */
+  rarity: RarityId;
+  /** total gold value (E.itemValue per grade; gear E.gearValue) */
+  value: number;
+  /** part of qty that came from raid floor/tier/chest payouts */
+  raidQty: number;
+  gear: boolean; uids?: string[];
+}
+export interface ReturnBestFind { itemId: string; name: string; grade: number | null; qty: number; rarity: RarityId; value: number; uid: string | null }
+export type GoldSource = 'combat' | 'sales' | 'raid' | 'tips' | 'other';
+export interface GoldBySource { source: GoldSource; label: string; gold: number }
+export interface OfflineSummary {
+  /** itemId → qty from actions (raid loot is not in here; see loot) */
+  items: Record<string, number>;
+  xp: Record<string, number>; gold: number; crafts: Record<string, number>; kills: number;
+  stoppedReason: string | null; assisted: number; tips: number; raids: string[]; weeks: number;
+  /** sorted by levels gained, then XP */
+  skills: ReturnSkillLine[];
+  /** rarest item gained, ties by unit value; null when nothing was gained */
+  bestFind: ReturnBestFind | null;
+  /** grouped by item id, highest total value first; includes raid payout items */
+  loot: ReturnLoot[];
+  /** sums to `gold`; 'other' = anything the named sources don't explain (escrow refunds, ...) */
+  goldBySource: GoldBySource[];
+}
+
+// Raid recap view: E.recapView(state, recapId?) → RecapView | null (newest recap when no id); also
+//   DerivedExtras.lastRecapView. Read-only over state.raid.recaps.
+export interface RecapPay {
+  /** what you got: turnoutPay + contributionPay - capCut */
+  gold: number;
+  /** ECON.raidEvenShare (25%) of the payable pool, split evenly among those who turned out */
+  turnoutPay: number;
+  /** ECON.raidContribShare (75%) of the payable pool x pointShare */
+  contributionPay: number;
+  /** what your income cap (cap) cut; it went to the crew treasury */
+  capCut: number; cap: number | null; capped: boolean;
+  /** your share of the crew's check points (what contributionPay is split by); use this, not payout.yourShare */
+  pointShare: number | null; pointShareText: string | null;
+  evenShare: number; contribShare: number;
+  pool: number; poolCapped: boolean;
+  /** all gold the treasury got from this raid (treasuryShare + capCut) */
+  crewTreasury: number; treasuryShare: number;
+  /** false for recaps written before 2026-11-09 (whole amount shown as turnoutPay) */
+  hasSplit: boolean;
+  /** the CREW's fill of what the raid needed (0..1, scales the pool) — not yours; pair it with crewContributionText */
+  crewContribution: number;
+  /** "Crew filled 77% of what the raid needed" */
+  crewContributionText: string;
+  /** "Your part of the crew's points: 3.7%" (null for old recaps) */
+  pointShareLabel: string | null;
+}
+export interface RecapItem { itemId: string; name: string; qty: number; rarity: RarityId }
+export type RecapHintKind = 'join' | 'survive' | 'tier' | 'crew';
+export interface RecapHint { kind: RecapHintKind; text: string; tier?: ContributionTier; check?: string; itemId?: string | null }
+export interface RecapView {
+  id: string; week: number; won: boolean; joined: boolean;
+  tier: ContributionTier;
+  /** 'No tier yet' | 'Bronze' | ... (+ ' (carried over)'); 'Sat out' when not joined */
+  tierLabel: string;
+  pay: RecapPay;
+  /** per chest: checkpoint (0..1) and its items summed over grades */
+  chests: { at: number; items: RecapItem[] }[];
+  /** all chest items summed over chests and grades */
+  chestLoot: RecapItem[];
+  /** every payout item (floor + tier + chests) summed over grades */
+  loot: RecapItem[];
+  /** join → survive (fainted) → tier (plain words, no tiny percentages) → crew ("The crew was short: ... Hand in X on Contracts.") */
+  hints: RecapHint[];
+  nextWeekHint: RecapHint | null;
+}
+
+// Crew feed: E.crewActivity(state, n = 10) → CrewActivity[] (newest first); also DerivedExtras.crewActivity.
+//   Merges state.crew.feed, state.crew.jobsDone (crewmates' finished jobs, last 20) and
+//   your own 'crew' event-log lines, without duplicates.
+export type CrewActivityKind = 'contract' | 'payout' | 'vault' | 'request' | 'role' | 'raid' | 'job' | 'assist' | 'you' | string;
+export interface CrewActivity {
+  /** game-clock ms */
+  t: number;
+  kind: CrewActivityKind;
+  /** crewmate name, 'You', 'Town', 'Raid' or 'Crew'. Show it as its own label. */
+  who: string;
+  /** the line WITHOUT the leading actor name ("Finished 7 Training sword."); never starts with `who` */
+  text: string;
+  /** the whole sentence with the actor ("Branka finished 7 Training sword."), for one-line places */
+  full: string;
+  /** you did it */
+  mine: boolean;
+  gold?: number; itemId?: string; qty?: number;
+}
+
+// Shop sell list: E.storeSellList(state) → SellListRow[] (also DerivedExtras.sellList), stackables in the bag
+//   grouped by item, sorted by name. E.storeSellAll(state, itemId) → StoreSellAllResult sells every grade at once
+//   (one event-log line). Gear stays piece by piece (storeSellGear).
+export interface SellListGrade { grade: number; gradeName: string; qty: number; /** store pays per unit */ price: number; gold: number }
+export interface SellListRow { itemId: string; name: string; kind: string; rarity: RarityId; qty: number; /** all grades */ gold: number; grades: SellListGrade[] }
+export interface StoreSellAllResult { ok: boolean; reason: string; qty: number; gold: number; grades: { grade: number; qty: number; gold: number }[] }
+
+// Disabled reasons: E.disabledReasons(state) → DisabledReasons (also DerivedExtras.disabledReasons). One plain
+//   sentence per control that can't be used now; ids that are usable are absent.
+export interface DisabledReasons {
+  /** Workshop Start, by action id (E.canStart): level, missing inputs, sealed raid pouch, no weapon, too hurt */
+  actions: Record<string, string>;
+  /** Assist, by crew job id (E.canAssist) */
+  jobs: Record<string, string>;
+  /** Hand in, by contract id: filled / closed / cancelled / your own request / out of gold / nothing at the grade */
+  contracts: Record<string, string>;
+  /** spec Switch: no eligible skill / cooldown "Xd Yh" / not enough gold; null when a switch is possible */
+  spec: string | null;
+}
+
+// ---- Save schema v7 (owner decision 2026-11-11: this update wipes old saves; everyone starts fresh)
+// Saves older than v7 (v1, v3, v4, v5, v6, or no version) are NOT migrated.
+//   E.loadSave() → LoadSaveResult: the stored save with why it did or didn't load. Boot with
+//     const r = E.loadSave(); const state = r.state ?? E.newState();
+//     if (r.status === 'old-save') tell the player their old progress was reset (the next E.save overwrites it).
+//   E.load() → state | null (null for none / old-save / corrupt; unchanged signature).
+//   E.checkSave(parsedJson) → CheckSaveResult, without loading (use it for imported save codes before E.migrate).
+//   E.migrate(parsedJson) → state | null: normalises a v7 save; null for anything checkSave refuses.
+//   E.SCHEMA → 7.
+// Removed with it: the v1/v3/v4/v5/v6 migration paths, xpScale rescaling (state.xpScale no longer exists),
+//   the low-level-spec 3,000g refund, coin → gold folding, requisition → contract merging, `at` → `t` treasury
+//   log normalising, open market listings returned to the bag on load, tax week-buff remapping (unknown buffs drop).
+// state.crew.jobsDone is part of every fresh state.
+export type SaveStatus = 'ok' | 'none' | 'old-save' | 'corrupt';
+export interface CheckSaveResult { ok: boolean; status: SaveStatus; /** the save's `v`, or null */ version: number | null }
+export interface LoadSaveResult { /** null unless status is 'ok' */ state: any | null; status: SaveStatus; version: number | null }
 
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */
 export const Engine: any;

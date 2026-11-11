@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
+  import BossPortrait from '../scene/BossPortrait.svelte';
   import { DATA } from '@guildwright/engine';
   import { fmtG, fmtN, fmtDuration, hasPayout } from '../format';
   import { ui } from '../ui.svelte';
@@ -137,7 +139,7 @@
     {#if boss}
       <article class="hero">
         <div class="hero-top">
-          <div class="portrait" aria-hidden="true">{boss.name?.[0] ?? '?'}</div>
+          {#if boss.revealed && boss.boss?.id}<BossPortrait bossId={boss.boss.id} name={boss.name} />{:else}<div class="portrait" aria-hidden="true"><ItemIcon named="skull" size={64} silhouette /></div>{/if}
           <div class="hero-id">
             <span class="boss-name">{boss.name}</span>
             <span class="meta">Boss <span class="num">{bossNo}</span> of <span class="num">{BOSS_TOTAL}</span>{boss.title && !/^boss\s*\d/i.test(boss.title) ? ` · ${boss.title}` : ''}</span>
@@ -244,7 +246,7 @@
 {/if}
 
 {#if recapOpen && recap}
-  <RaidRecap {recap} onClose={() => (recapOpen = false)} />
+  <RaidRecap {recap} view={view?.extras?.lastRecapView ?? null} onClose={() => (recapOpen = false)} />
 {/if}
 
 <style>
@@ -270,7 +272,7 @@
 
   .hero { padding: 12px; background: var(--paper); border: 1px solid var(--rule); }
   .hero-top { display: flex; gap: 12px; align-items: flex-start; }
-  .portrait { flex: none; width: 64px; height: 64px; display: grid; place-items: center; background: var(--sunk); border: 2px solid var(--r-mythic); color: var(--r-mythic); font: 700 var(--t-xxl)/1 var(--f-display); }
+  .portrait { flex: none; width: 64px; height: 64px; display: grid; place-items: center; background: var(--sunk); border: 2px solid var(--r-mythic); }
   .hero-id { min-width: 0; display: grid; gap: 4px; }
   .boss-name { font: 600 var(--t-lg)/1.1 var(--f-display); color: var(--ink); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }

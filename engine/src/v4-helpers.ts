@@ -7,8 +7,8 @@ import { cap1 } from './crew-economy';
 
 // ================================================================ v4: helpers
 export const DAY_MS = 86400000, WEEK_MS = 7 * DAY_MS;
-export const SCHEMA = 6;
-export const V3_BOSS_HP = [400000, 650000, 900000, 1200000, 1600000, 2200000];
+// Save schema (2026-11-11: v7; older saves are not loaded, see state.ts checkSave)
+export const SCHEMA = 7;
 export const CHECK_LABEL = { mitigation: 'Mitigation', healing: 'Healing', damage: 'Damage', food: 'Food', consumables: 'Consumables' };
 export const ROLE_CHECK = { guardian: 'mitigation', mender: 'healing', striker: 'damage' };
 export const RAID_ROLE_IDS = ['guardian', 'mender', 'striker', 'supply'];

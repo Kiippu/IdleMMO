@@ -9,6 +9,7 @@ import { addXp } from './skills';
 import { rarityOdds } from './actions';
 import { schedule } from './clock';
 import { ensureCrewV5 } from './crew-economy';
+import { noteJobDone } from './crew-activity';
 
 // ---------------------------------------------------------------- crew assist (v2, SPEC 4.1)
 export const STATIONS = {
@@ -44,7 +45,7 @@ export const CREW_NPCS = [
 
 export function makeCrew(state) {
   const members = CREW_NPCS.map((n) => ({ id: n.id, name: n.name, skill: n.skill }));
-  state.crew = { name: 'Copperbell crew', members, jobs: [], nextPostIn: randInt(60, 90) };
+  state.crew = { name: 'Copperbell crew', members, jobs: [], nextPostIn: randInt(60, 90), jobsDone: [] };
   ensureCrewV5(state);
   // Seed one job per authored member so the Workshop isn't empty on day one.
   for (let i = 0; i < members.length && i < CREW_MAX_JOBS; i++) postJob(state);
@@ -110,6 +111,7 @@ export function finishJob(state, job, act, events) {
     logq(state, 'info', `${job.owner}'s ${act.name} job is finished. You helped with ${job.assisted} and got a ${fmtGold(tip)} tip.`);
     pushEvent(state, 'crew', `${job.owner}'s ${act.name} job is finished. You helped with ${job.assisted}: +${fmtGold(tip)} tip.`, { gold: tip });
   }
+  noteJobDone(state, job, act, outId, tip);
   if (state.active && state.active.jobId === job.id) { state.active = null; events.push({ type: 'stopped', reason: 'Job finished.' }); }
 }
 // advances every open job; playerMult scales the player's contribution (1 live, offlineRate offline)
@@ -187,7 +189,8 @@ E.activeInfo = function (state) {
   return { kind: 'action', actionId: act.id, skill: act.skill, station: E.station(act.skill), label: act.name,
     pct: isFinite(t) && t > 0 ? clamp(num(a.progress, 0) / t, 0, 1) : 0, secLeft: isFinite(t) ? Math.max(0, t - num(a.progress, 0)) : 0 };
 };
-export function migrateCrew(out, rc) {
+/** a v7 save's crew, normalised (an unusable one is rebuilt) */
+export function loadCrew(out, rc) {
   if (rc && typeof rc === 'object' && Array.isArray(rc.jobs) && Array.isArray(rc.members) && rc.members.some((m) => m && m.name)) {
     out.crew = {
       name: typeof rc.name === 'string' && rc.name ? rc.name : 'Copperbell crew',
@@ -200,7 +203,7 @@ export function migrateCrew(out, rc) {
       }),
       nextPostIn: clamp(num(rc.nextPostIn, 60), 0, 600)
     };
-    ['playerRank', 'vault', 'treasury', 'requisitions', 'contracts', 'withdrawRequests', 'feed', 'withdrawn', 'schedule', 'seenReqIds', 'reqSimIn', 'npcReqIn', 'contractSimIn'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
+    ['playerRank', 'vault', 'treasury', 'contracts', 'withdrawRequests', 'feed', 'withdrawn', 'schedule', 'contractSimIn', 'jobsDone'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
     ensureCrewV5(out);
   } else makeCrew(out);
 }

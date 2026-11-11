@@ -12,17 +12,6 @@ import { actionTimeWith } from './actions';
 // general store (store.ts) replaces it for players.
 export const marketEnabled = () => cfg().playerMarket !== false;
 export const MARKET_CLOSED = 'The market is closed. Use the general store.';
-/** return the player's open listings to the bag and drop the NPC board (used on load while parked) */
-export function parkMarket(state) {
-  const m = state.market || (state.market = { listings: [], mine: [], refreshedAt: ctx.now(), age: 0 });
-  const back = [];
-  arr(m.mine).forEach((l) => {
-    const q = Math.floor(num(l.qty, 0));
-    if (q > 0 && item(l.itemId)) { addItem(state, l.itemId, clamp(Math.floor(num(l.grade, 1)), 0, 4), q); back.push({ itemId: l.itemId, grade: l.grade, qty: q }); }
-  });
-  m.mine = []; m.listings = [];
-  return back;
-}
 export function tierCap(state) {
   const top = skillDefs().reduce((m, s) => Math.max(m, E.skillLevel(state, s.id)), 1);
   return clamp(1 + Math.floor(top / 15), 1, 5);

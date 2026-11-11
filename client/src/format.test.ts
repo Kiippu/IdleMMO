@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { fmtG, fmtN, hasPayout } from './format';
+import { fmtG, fmtN, fmtFull, fmtCompact, hasPayout } from './format';
 
 describe('format', () => {
-  it('formats gold with separators', () => expect(fmtG(55000.9)).toBe('55,000g'));
-  it('formats big numbers with separators', () => expect(fmtN(1728000)).toBe('1,728,000'));
+  it('formats small gold with separators', () => { expect(fmtG(640)).toBe('640g'); expect(fmtG(9999.9)).toBe('9,999g'); });
+  it('formats big gold compactly', () => { expect(fmtG(55000.9)).toBe('55k\u00a0g'); expect(fmtG(12699)).toBe('12.6k\u00a0g'); });
+  it('formats big numbers compactly', () => { expect(fmtN(1728000)).toBe('1.7M'); expect(fmtN(12640)).toBe('12.6k'); expect(fmtN(1234567)).toBe('1.2M'); });
+  it('compact never overstates or shows .0', () => { expect(fmtCompact(10000)).toBe('10k'); expect(fmtCompact(999999)).toBe('999.9k'); expect(fmtCompact(1e6)).toBe('1M'); expect(fmtCompact(2.5e9)).toBe('2.5B'); });
+  it('compact handles odd input', () => { expect(fmtCompact(NaN)).toBe('0'); expect(fmtCompact(-12640)).toBe('−12.6k'); expect(fmtCompact(-0.4)).toBe('0'); });
+  it('fmtFull keeps every digit', () => expect(fmtFull(1728000)).toBe('1,728,000'));
   it('hasPayout is false for a recap saved before payouts existed', () => {
     expect(hasPayout(undefined)).toBe(false);
     expect(hasPayout({ items: {} })).toBe(false);

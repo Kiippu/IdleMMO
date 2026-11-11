@@ -36,8 +36,8 @@
 
   async function doImport() {
     const code = importText.trim();
-    if (!code) { importError = 'Paste a save code first.'; return; }
-    if (!(await confirmSheet({ title: 'Import this save?', body: 'Importing replaces your current save. There is no undo.', confirmLabel: 'Import', danger: true }))) return;
+    if (!code) { importError = 'Paste a backup code first.'; return; }
+    if (!(await confirmSheet({ title: 'Load this backup?', body: 'This replaces your current game. There is no undo.', confirmLabel: 'Load backup', danger: true }))) return;
     importError = null;
     busy = true;
     try {
@@ -51,7 +51,7 @@
   }
 
   async function doReset() {
-    if (!(await confirmSheet({ title: 'Reset your save?', body: 'All progress will be lost. This cannot be undone.', confirmLabel: 'Reset save', danger: true }))) return;
+    if (!(await confirmSheet({ title: 'Start over?', body: 'All progress on this device will be lost. This cannot be undone.', confirmLabel: 'Start over', danger: true }))) return;
     busy = true;
     try {
       await engineClient.reset();
@@ -85,37 +85,39 @@
     </header>
 
     <section>
-      <h3>Your save code</h3>
-      <p class="meta">Paste this into another install to pick up where you left off.</p>
-      <textarea readonly rows="6" value={exportedCode ?? 'Preparing…'}></textarea>
+      <h3>Back up your game</h3>
+      <p class="meta">Your game saves itself on this device. To play somewhere else, copy this code and paste it into the other device under "Load a backup".</p>
+      <textarea readonly rows="5" value={exportedCode ?? 'Preparing…'}></textarea>
       <div class="actions">
-        <button type="button" class="btn" disabled={!exportedCode} onclick={copy}>
-          {copied ? 'Copied' : 'Copy'}
+        <button type="button" class="btn primary" disabled={!exportedCode} onclick={copy}>
+          {copied ? 'Copied' : 'Copy code'}
         </button>
       </div>
+      {#if !exportedCode}<p class="why">The code is still being made. Give it a moment.</p>{/if}
     </section>
 
     <section>
-      <h3>Import a save code</h3>
-      <p class="meta">Replaces your current save. There is no undo.</p>
+      <h3>Load a backup</h3>
+      <p class="meta">Paste a code from another device. This replaces the game on this device and cannot be undone.</p>
       <textarea
         rows="4"
         bind:value={importText}
-        placeholder="Paste a GW5|… code here"
+        placeholder="Paste your code here (it starts with GW5|)"
       ></textarea>
       {#if importError}<p class="bad">{importError}</p>{/if}
       <div class="actions">
-        <button type="button" class="btn primary" disabled={busy || !importText.trim()} onclick={doImport}>
-          Import
+        <button type="button" class="btn" disabled={busy || !importText.trim()} onclick={doImport}>
+          Load backup
         </button>
       </div>
+      {#if !importText.trim()}<p class="why">Paste a code above to turn this on.</p>{/if}
     </section>
 
     <section class="danger">
-      <h3>Reset save</h3>
-      <p class="meta">Wipes everything and starts over. The engine will mint a fresh state on next boot.</p>
-      <div class="actions">
-        <button type="button" class="btn danger" disabled={busy} onclick={doReset}>Reset save</button>
+      <h3>Start over</h3>
+      <p class="meta">Deletes all progress on this device and starts a new game. Copy a backup first if you might want it back.</p>
+      <div class="actions left">
+        <button type="button" class="btn danger" disabled={busy} onclick={doReset}>Start over</button>
       </div>
     </section>
   </div>
@@ -142,7 +144,8 @@
     margin: 0 0 4px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
     letter-spacing: .08em; text-transform: uppercase;
   }
-  section.danger { border-top: 1px solid var(--rule); padding-top: 12px; }
+  section.danger { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 16px; }
+  .why { margin: 6px 0 0; color: var(--ink-3); font-size: var(--t-xs); text-align: right; }
   .meta { margin: 0 0 8px; color: var(--ink-3); font-size: var(--t-xs); }
   .bad { margin: 6px 0 0; color: var(--bad); font-size: var(--t-sm); }
 
@@ -153,5 +156,6 @@
   }
 
   .actions { margin-top: 8px; display: flex; justify-content: flex-end; }
+  .actions.left { justify-content: flex-start; }
 
 </style>

@@ -4,21 +4,31 @@
   import { engine } from './engine/store.svelte';
   import { initEngineClient, engineClient } from './engine/client';
   import { registerServiceWorker } from './pwa';
+  import { initSound, play } from './sound';
   import Workshop from './tabs/Workshop.svelte';
   import Stores from './tabs/Stores.svelte';
   import WarRoom from './tabs/WarRoom.svelte';
   import Store from './tabs/Store.svelte';
   import Toast from './overlays/Toast.svelte';
   import { ui } from './ui.svelte';
+  import { toast } from './overlays/toasts.svelte';
   import GettingStarted from './overlays/GettingStarted.svelte';
+  import WorkshopScene from './scene/WorkshopScene.svelte';
   import Crew from './tabs/Crew.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
+  import MenuSheet from './overlays/MenuSheet.svelte';
   import SaveMenu from './overlays/SaveMenu.svelte';
   import ConfirmSheet from './overlays/ConfirmSheet.svelte';
   import ItemSheet from './overlays/ItemSheet.svelte';
   import SalvageSheet from './overlays/SalvageSheet.svelte';
 
+  import icoWorkshop from './ui-art/tab-workshop.png';
+  import icoStores from './ui-art/tab-stores.png';
+  import icoShop from './ui-art/tab-shop.png';
+  import icoWar from './ui-art/tab-war.png';
+  import icoCrew from './ui-art/tab-crew.png';
   const tabs = ['Workshop', 'Stores', 'Shop', 'War Room', 'Crew'] as const;
+  const tabIcon: Record<(typeof tabs)[number], string> = { Workshop: icoWorkshop, Stores: icoStores, Shop: icoShop, 'War Room': icoWar, Crew: icoCrew };
   type Tab = (typeof tabs)[number];
 
   let active = $state<Tab>('Workshop');
@@ -26,8 +36,20 @@
   let updateReady = $state<null | (() => void)>(null);
   let saveMenuOpen = $state(false);
   let logOpen = $state(false);
+  let menuOpen = $state(false);
   let seeded = false;
   $effect(() => { if (ui.goTab) { active = ui.goTab as Tab; ui.goTab = null; } });
+
+  $effect(() => initSound());
+
+  // Level-up chime: a skill level rises during live play (not on boot or offline catch-up).
+  let lastLevels: Record<string, number> | null = null;
+  $effect(() => {
+    const lv = engine.derived?.skillLevels;
+    if (!engine.ready || !lv) return;
+    if (lastLevels && !engine.offline && Object.keys(lv).some((k) => lv[k] > (lastLevels![k] ?? lv[k]))) play('levelUp');
+    lastLevels = { ...lv };
+  });
 
   $effect(() => {
     void initEngineClient().catch((err) => { bootError = String(err?.message ?? err); });
@@ -44,18 +66,35 @@
     }
   });
 
-  // Tab badges from existing snapshot/derived data only.
+  // Toast a line for new crew activity that is not yours. The first read and big catch-up batches only set the baseline.
+  const seenFeed = new Set<string>();
+  let feedPrimed = false;
+  $effect(() => {
+    const feed = engine.derived?.extras?.crewActivity;
+    if (!engine.ready || !feed) return;
+    const fresh = feed.filter((e) => !seenFeed.has(`${e.t}|${e.who}|${e.text}`));
+    feed.forEach((e) => seenFeed.add(`${e.t}|${e.who}|${e.text}`));
+    if (!feedPrimed) { feedPrimed = true; return; }
+    if (engine.offline) return;
+    const theirs = fresh.filter((e) => !e.mine);
+    if (theirs.length === 0 || theirs.length > 3) return;
+    const e = theirs[0];
+    toast(theirs.length > 1 ? `${e.full ?? `${e.who}: ${e.text}`} (+${theirs.length - 1} more in Crew)` : (e.full ?? `${e.who}: ${e.text}`));
+  });
+
+  // Tab badges from existing snapshot/derived data only. `n` is shown as a number; no `n` means a plain dot.
+  type Badge = { n?: number; text: string };
   let badges = $derived.by(() => {
-    const out: Partial<Record<Tab, string>> = {};
+    const out: Partial<Record<Tab, Badge>> = {};
     if (!engine.ready) return out;
-    if (!engine.snapshot?.active) out['Workshop'] = 'Nothing is running';
+    if (!engine.snapshot?.active) out['Workshop'] = { text: 'Nothing is running' };
     const r = engine.derived?.raidStatus;
     if (r) {
-      if (r.phase === 'live' && !r.sittingOut) out['War Room'] = 'Raid is live';
-      else if (r.phase === 'prep' && !r.locked) out['War Room'] = 'You have not locked in for the raid';
+      if (r.phase === 'live' && !r.sittingOut) out['War Room'] = { n: 1, text: 'Raid is live' };
+      else if (r.phase === 'prep' && !r.locked) out['War Room'] = { n: 1, text: 'You have not locked in for the raid' };
     }
     const n = (engine.derived?.contracts ?? []).filter((c: any) => c.status === 'open' && !c.mine && c.canFill?.ok && Math.min(c.remaining ?? 0, c.have ?? 0, c.capacity ?? Infinity) >= 1).length;
-    if (n > 0) out['Crew'] = `${n} ${n === 1 ? 'contract' : 'contracts'} you can fill`;
+    if (n > 0) out['Crew'] = { n, text: `${n} ${n === 1 ? 'contract' : 'contracts'} you can fill` };
     return out;
   });
 
@@ -83,7 +122,7 @@
 
 <div class="shell">
   {#if engine.ready}
-    <TopStrip onLog={() => (logOpen = true)} onSave={() => (saveMenuOpen = true)} onStart={() => (active = 'Workshop')} />
+    <TopStrip onMenu={() => (menuOpen = true)} onStart={() => (active = 'Workshop')} />
   {/if}
 
   {#if updateReady}
@@ -103,6 +142,7 @@
     {:else}
       <CollectReveal />
       {#if active === 'Workshop'}
+        <WorkshopScene />
         <GettingStarted />
         <Workshop />
       {:else if active === 'Stores'}
@@ -123,6 +163,10 @@
 <ConfirmSheet />
 <Toast />
 
+{#if menuOpen}
+  <MenuSheet onClose={() => (menuOpen = false)} onLog={() => (logOpen = true)} onSave={() => (saveMenuOpen = true)} />
+{/if}
+
 {#if logOpen}
   <LogSheet onClose={() => (logOpen = false)} />
 {/if}
@@ -136,7 +180,7 @@
     <div class="row">
       {#each tabs as tab}
         <button type="button" aria-current={active === tab ? 'page' : undefined} onclick={() => (active = tab)}>
-          {tab}{#if badges[tab]}<span class="dot" aria-hidden="true"></span><span class="sr">{badges[tab]}</span>{/if}
+          <img class="ico" src={tabIcon[tab]} alt="" width="32" height="32" /><span class="lbl">{tab}</span>{#if badges[tab]}{#if badges[tab].n != null}<span class="count num" aria-hidden="true">{badges[tab].n > 9 ? '9+' : badges[tab].n}</span>{:else}<span class="dot" aria-hidden="true"></span>{/if}<span class="sr">{badges[tab].text}</span>{/if}
         </button>
       {/each}
     </div>

@@ -1,7 +1,8 @@
 // Player event log (the client's "Log" sheet). Additive save field `state.events` (schema stays v6).
 // Separate from the legacy `state.log` (free-text, real-clock, 80 lines), which is kept as-is.
 //
-// Entry: { id, t (game-clock ms), cat: 'loot'|'gold'|'crew'|'raid'|'skill', text, qty?, itemId?, grade?, gold?, rarity? }
+// Entry: { id, t (game-clock ms), cat: 'loot'|'gold'|'crew'|'raid'|'skill', text, qty?, itemId?, grade?, gold?, rarity?,
+//          skill?, from?, level? (level-up lines, layout pass 2026-11-11) }
 // Newest first, capped at EVENT_CAP. Repeated gains of the same item (or gold from the same source)
 // within EVENT_MERGE_MS are merged into one line so idle loops don't flood the sheet.
 /* eslint-disable */
@@ -49,7 +50,7 @@ export function pushEvent(state, cat, text, extra?, merge?, textFor?) {
   }
   state.eventSeq = num(state.eventSeq, 0) + 1;
   const e: any = { id: state.eventSeq, t, cat, text: String(text) };
-  ['qty', 'itemId', 'grade', 'gold', 'rarity'].forEach((k) => { if (extra[k] != null) e[k] = extra[k]; });
+  ['qty', 'itemId', 'grade', 'gold', 'rarity', 'skill', 'from', 'level'].forEach((k) => { if (extra[k] != null) e[k] = extra[k]; });
   if (merge) e.merge = merge;
   state.events.unshift(e);
   if (state.events.length > EVENT_CAP) state.events.length = EVENT_CAP;

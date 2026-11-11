@@ -7,11 +7,10 @@ declare const self: DedicatedWorkerGlobalScope;
 
 import { createEngine, mulberry32, DATA } from '@guildwright/engine';
 import { createIdbStorage } from '../save/idbStorage';
-import { importLegacyLocalStorage } from '../save/v4Import';
+const SAVE_KEY = 'guildwright-proto-v1';
 import { exportSave, importSave } from '../save/exportImport';
 import type { Req, FromWorker, OfflineSummary, EngineEvent, Derived } from './protocol';
 
-const SAVE_KEY = 'guildwright-proto-v1';
 const TICK_SEC = 1;
 
 let E: any = null;
@@ -87,8 +86,8 @@ async function init(): Promise<{ offline: OfflineSummary | null; defaultTab: 'wo
     data: DATA,
   });
 
-  importLegacyLocalStorage(storage.storage, SAVE_KEY);
-
+  // Saves older than schema v7 (and missing or corrupt ones) are not loaded: everyone starts fresh, silently.
+  // The next E.save below overwrites the old record.
   state = E.load() ?? E.newState();
   const res = E.applyOffline(state, Date.now()) as { seconds: number; summary: OfflineSummary } | null;
   const offline = res && res.seconds >= 60 ? { ...res.summary, awaySec: res.seconds } : null;
@@ -141,6 +140,11 @@ async function handle(req: Req): Promise<unknown> {
     }
     case 'storeSell': {
       const res = E.storeSell(state, req.itemId, req.grade, req.qty);
+      E.save(state);
+      return res;
+    }
+    case 'storeSellAll': {
+      const res = E.storeSellAll(state, req.itemId);
       E.save(state);
       return res;
     }
@@ -220,7 +224,11 @@ async function handle(req: Req): Promise<unknown> {
       return await exportSave(JSON.stringify(state));
     case 'import': {
       const json = await importSave(req.code);
-      const next = E.migrate(JSON.parse(json));
+      let parsed: unknown;
+      try { parsed = JSON.parse(json); } catch { throw new Error('Save code is not a valid Guildwright save.'); }
+      const check = E.checkSave(parsed) as { ok: boolean; status: string };
+      if (check.status === 'old-save') throw new Error("This backup is from an older version and can't be loaded.");
+      const next = check.ok ? E.migrate(parsed) : null;
       if (!next) throw new Error('Save code is not a valid Guildwright save.');
       state = next;
       E.save(state);

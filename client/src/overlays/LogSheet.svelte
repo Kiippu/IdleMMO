@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
   // Bottom sheet listing the player's last 50 events, newest first, with category filters.
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
@@ -63,6 +64,7 @@
         {#each shown as e (e.id)}
           <li>
             <div class="line">
+              {#if e.itemId}<ItemIcon id={e.itemId} rarity={e.rarity ?? itemRarity[e.itemId]} />{:else if e.skillId ?? e.skill}<ItemIcon skill={e.skillId ?? e.skill} />{/if}
               <span class="txt">{#each parts(e) as p}{#if p.rarity}<button type="button" class="it" style="color: var(--r-{p.rarity})" onclick={() => p.id && openItem({ itemId: p.id })}>{p.text}</button>{:else}{p.text}{/if}{/each}</span>
               <span class="amt num">
                 {#if e.gold}<span class:neg={e.gold < 0} class:pos={e.gold > 0}>{e.gold > 0 ? '+' : '−'}{fmtG(Math.abs(e.gold))}</span>
@@ -91,7 +93,8 @@
   .empty { margin: 0; padding: 12px; background: var(--sunk); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
   ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   li { padding: 8px 12px; background: var(--sunk); border: 1px solid var(--rule-2); }
-  .line { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .line { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .txt { flex: 1; }
   .txt { font-size: var(--t-sm); color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
   .it { font-weight: 700; padding: 0; border: 0; background: none; font-size: inherit; text-decoration: underline; min-height: 24px; }
   .amt { font-weight: 700; font-size: var(--t-sm); color: var(--ink-2); white-space: nowrap; }

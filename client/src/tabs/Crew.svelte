@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
   import { DATA, H } from '@guildwright/engine';
@@ -8,7 +9,7 @@
   import RequestSheet from '../overlays/RequestSheet.svelte';
   
   import { markDone } from '../guide.svelte';
-  import { fmtG, fmtN } from '../format';
+  import { fmtG, fmtN, fmtAgo } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
 
   let sub = $state<'roster' | 'jobs' | 'contracts' | 'treasury'>('roster');
@@ -23,6 +24,10 @@
   let gearNames = $derived<Record<string, string>>(view?.gearNames ?? {});
   let contracts = $derived<any[]>(view?.contracts ?? []);
   let spec = $derived(view?.spec ?? null);
+  let reasons = $derived(view?.extras?.disabledReasons ?? null);
+  let feed = $derived(view?.extras?.crewActivity ?? []);
+  let feedMore = $state(false);
+  let shownFeed = $derived(feedMore ? feed : feed.slice(0, 5));
   let cooldown = $derived(view?.specCooldown ?? { ms: 0, text: '', ready: true });
   let gold = $derived(Math.floor(snap?.gold ?? 0));
   const skillList: { id: string; name: string }[] = (DATA as any).skills;
@@ -116,9 +121,30 @@
 
 {#if sub === 'roster'}
   <section class="group">
+    <h3>Crew activity</h3>
+    {#if feed.length === 0}
+      <p class="muted">Nothing yet. Crewmates' jobs, hand-ins and raid news will show up here.</p>
+    {:else}
+      <ul class="list feed">
+        {#each shownFeed as e (`${e.t}|${e.who}|${e.text}`)}
+          <li class:mine={e.mine}>
+            <div class="row">
+              <span class="name"><b class="who">{e.who}</b> {e.text}</span>
+              {#if e.gold}<span class="delta {e.gold > 0 ? 'pos' : 'neg'} num">{e.gold > 0 ? '+' : '−'}{fmtG(Math.abs(e.gold))}</span>{/if}
+            </div>
+            <p class="meta num">{fmtAgo(e.t, view?.now ?? Date.now())}</p>
+          </li>
+        {/each}
+      </ul>
+      {#if feed.length > 5}<button type="button" class="btn next" onclick={() => (feedMore = !feedMore)}>{feedMore ? 'Show less' : 'Show more'}</button>{/if}
+    {/if}
+  </section>
+
+  <section class="group">
     <h3>Members</h3>
     {#if members.length === 0}
       <p class="muted">No crewmates yet.</p>
+      <button type="button" class="btn next" onclick={() => (sub = 'jobs')}>See open jobs</button>
     {:else}
       <ul class="list">
         {#each members as m (m.id)}
@@ -131,7 +157,7 @@
               <span class="meta rank">{m.rankName}</span>
             </div>
             {#if m.skill}
-              <p class="meta">Specializes in {m.skill}.</p>
+              <p class="meta spl"><ItemIcon skill={m.skill} /><span>Specializes in {m.skill}.</span></p>
             {/if}
           </li>
         {/each}
@@ -143,8 +169,8 @@
     <section class="group">
       <h3>Specialization</h3>
       <article class="treasury">
-        <p class="meta first">
-          {spec.skillId ? `Specialized in ${skillName(spec.skillId)}.` : 'Not specialized yet.'}
+        <p class="meta first spl">
+          {#if spec.skillId}<ItemIcon skill={spec.skillId} />{/if}<span>{spec.skillId ? `Specialized in ${skillName(spec.skillId)}.` : 'Not specialized yet.'}</span>
         </p>
         {#if !spec.skillId && (spec.eligible ?? []).length === 0}
           <p class="meta">Reach level {spec.capLevel} in a skill to specialise.</p>
@@ -160,7 +186,11 @@
             </select>
             <button type="button" class="btn" disabled={!pickSkill || !cooldown.ready || gold < spec.cost} onclick={doSwitch}>Switch</button>
           </div>
-          {#if (spec.eligible ?? []).length === 0}<p class="meta">Reach level {spec.capLevel} in another skill to switch.</p>{/if}
+          {#if (spec.eligible ?? []).length === 0}<p class="meta">Reach level {spec.capLevel} in another skill to switch.</p>
+          {:else if reasons?.spec}<p class="why">{reasons.spec}</p>
+          {:else if !pickSkill}<p class="why">Choose a skill above to turn on Switch.</p>
+          {:else if !cooldown.ready}<p class="why">You can switch again in {cooldown.text}.</p>
+          {:else if gold < spec.cost}<p class="why">You need {fmtG(spec.cost - gold)} more gold to switch.</p>{/if}
         {/if}
         {#if msg}<p class="meta">{msg}</p>{/if}
       </article>
@@ -171,6 +201,7 @@
     <h3>Open jobs</h3>
     {#if jobs.length === 0}
       <p class="muted">No one has posted work right now. Crewmates post jobs when they stop working.</p>
+      <button type="button" class="btn next" onclick={() => (sub = 'contracts')}>Fill a contract instead</button>
     {:else}
       <ul class="list">
         {#each jobs as j (j.id)}
@@ -196,6 +227,9 @@
                 {j.assisting ? 'Assisting' : 'Assist'}
               </button>
             </div>
+            {#if !j.canAssist?.ok && !j.assisting}
+              <p class="why">{reasons?.jobs?.[j.id] || j.canAssist?.reason || (snap?.active ? 'Stop your current job first. You only have one action slot.' : 'You cannot help with this job right now.')}</p>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -219,6 +253,7 @@
   <section class="group">
     {#if contracts.length === 0}
       <p class="muted">No contracts posted. Check back when the next raid is announced.</p>
+      <button type="button" class="btn next" onclick={() => (requestOpen = true)}>Post a request of your own</button>
     {:else}
       <ul class="list">
         {#each sortedContracts as c (c.id)}
@@ -227,6 +262,7 @@
           {@const fundedTotal = (c.escrow ?? 0) + (c.filled ?? 0) * (c.rewardPer ?? 0)}
           <li>
             <div class="row">
+              <ItemIcon id={c.itemId} rarity={rar} />
               <button type="button" class="name linkbtn" style:color={`var(--r-${rar})`} onclick={() => openItem({ itemId: c.itemId })}>{c.itemName ?? itemName(c.itemId)}{c.minGrade ? ` (${GRADES[c.minGrade] ?? `grade ${c.minGrade}+`})` : ''}</button>
               <span class="tag">{c.source === 'town' ? 'Town' : 'Crew'}</span>
             </div>
@@ -246,7 +282,9 @@
               <button type="button" class="btn primary wide" disabled={!c.canFill?.ok || mx < 1} title={c.canFill?.reason ?? ''} onclick={() => fill(c)}>
                 <span class="num">Hand in {mx} (+{fmtG(mx * (c.rewardPer ?? 0))})</span>
               </button>
-              {#if !c.canFill?.ok && c.canFill?.reason}<p class="meta">{c.canFill.reason}</p>{/if}
+              {#if !c.canFill?.ok || mx < 1}
+                <p class="why">{reasons?.contracts?.[c.id] || c.canFill?.reason || (c.have < 1 ? `You have none to hand in. Make or gather some ${c.itemName ?? itemName(c.itemId)} first.` : (c.remaining ?? 0) < 1 ? 'This contract has nothing left to fill.' : 'The crew stock cannot take any more of this right now.')}</p>
+              {/if}
             {:else}
               <p class="meta">{c.status === 'filled' ? 'Filled.' : c.status === 'cancelled' ? 'Cancelled.' : 'Closed.'}</p>
             {/if}
@@ -274,6 +312,7 @@
     <h3>Ledger</h3>
     {#if log.length === 0}
       <p class="muted">No activity yet. Entries will appear here as the crew earns, deposits or pays out.</p>
+      <button type="button" class="btn next" onclick={() => (sub = 'contracts')}>Hand in items on Contracts</button>
     {:else}
       <ul class="list">
         {#each log as entry}
@@ -335,10 +374,15 @@
   .delta.pos { color: var(--ok); }
   .delta.neg { color: var(--bad); }
 
-  .linkbtn { min-height: 44px; padding: 0; border: 0; background: none; text-align: left; text-decoration: underline; }
+  .spl { display: flex; align-items: center; gap: 8px; }
+  .linkbtn { flex: 1; min-height: 44px; padding: 0; border: 0; background: none; text-align: left; text-decoration: underline; }
   .group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .group-head h3 { margin: 0; }
   .wide { width: 100%; margin-top: 8px; }
+  .why { margin: 6px 0 0; color: var(--ink-2); font-size: var(--t-xs); }
+  .next { margin-top: 8px; }
+  .feed li.mine { border-color: var(--woad); }
+  .feed .name { font-weight: 400; line-height: 1.25; }
   .pbar { height: 6px; margin-top: 6px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
   .pbar div { height: 100%; background: var(--woad); }
   .pbar.gold div { background: var(--brass-fill); }

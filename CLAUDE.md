@@ -21,7 +21,9 @@ The legacy single-file prototype is `index.html` at the repo root. It is the beh
   area to own and send follow-ups back to that agent. Use a fresh agent for independent review/testing.
   Parallel agents must not edit the same files. At the end of a session, list the agents used and what each owned.
 - Commit and push to GitHub. Work on branches; don't push to `main` without asking.
-- Builds must keep existing player saves working (save schema v6 in IndexedDB since phase 2.5; `migrate()` loads v1, v3, v4, v5, v6; fixtures in `engine/test/fixtures/`).
+- Saves: schema v7 in IndexedDB (phase 3, 2026-11-11). The owner wiped all older saves: v1–v6 saves and old backup codes are
+  NOT migrated; the game starts fresh silently (`E.loadSave()` / `E.checkSave()`; old fixtures in `engine/test/fixtures/` are
+  only used to prove they are refused). From now on, builds must keep v7 saves loading unless the owner says otherwise.
 - Test at phone width (360 and 390px) in light mode only (no dark mode or themes since 2026-11-11).
 
 ## Settled decisions (don't reopen unless asked)
@@ -80,9 +82,16 @@ Art and UI
   rarity inks from common grey to mythic crimson.
 - Numbers render in Atkinson Hyperlegible with tabular digits (`--f-num`); Pixelify Sans for titles, Silkscreen for
   short letter labels only. Fonts are bundled (OFL 1.1), not loaded from Google. Buttons ≥44px; no browser dialogs.
-- UI frames (phase 3): ETA "Minimal Fantasy GUI" + Mounir Tohami "Pixel Art GUI Elements" (both CC0; Veyroa's
-  "Fantasy RPG UI Pixel Pack" is a recolour of these), remapped to DB32. Icons: Shikashi + Kyrise. Not Kenney.
-- LPC hero armour: plate / chainmail (Guardian), leather (Striker), robe (Mender, CC-BY-SA only — tag it).
+- Art is FREE packs only (owner 2026-11-11; no paid packs). Full list with licences in `art/CREDITS.md` (the single
+  credits file; Menu → Credits is generated from it and a test fails if a shipped pack or LPC layer is uncredited).
+- Item icons (one 32px atlas, `npm run art` → `scripts/art/build.py`, mapping in `art/icon-map.json`): Idylwild packs
+  (CC0), Shikashi (CC BY 4.0 + game-icons.net CC BY 3.0), Kyrise (CC BY 4.0), Ninja Adventure (CC0). Everything is
+  remapped to DawnBringer 32 by one shared tool, `scripts/art/remap.py`. Not Kenney.
+- UI frames (card, button, slot, bar, sheet only), the app texture: own art drawn by `scripts/art/ui-frames.py` (ETA's
+  pack went paid, Mounir Tohami's page is gone). Tab icons from Shikashi. Sounds are synthesised (Web Audio), no files.
+- Hero/crew: LPC layers (OGA-BY 3.0 / CC-BY 4.0 / CC0 options only, NO share-alike). Guardian plate/chainmail, Striker
+  leather, Mender longsleeve2 shirt + hood (the LPC robe is SA-only, not used). Backdrops + boss portraits: Ninja
+  Adventure (CC0). Rebuild with `scripts/art/build-scene.sh <LPC clone> <Ninja dir>`.
 
 ## Roadmap (each phase ends in a gate)
 0. Foundations: split repo into engine/client/server/art; port engine + data to TS UNCHANGED in behaviour;
@@ -222,6 +231,32 @@ Phase 3 plan (owner-approved 2026-11-11): https://claude.ai/artifact/R52AF1BRcye
 (no art) → style frame on a real phone → pipeline (+credits log) → icons (32px grid) → UI frames (5 component
 types) → hero/crew/scenes → bosses → sound (mute) → credits screen. LIGHT MODE ONLY from now: no dark mode, no
 themes (test at 360 and 390px, light). Whole-number pixel scaling only.
-Next: phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
-art pack (DawnBringer 32 remap), LPC hero layer composite driven by equipped slots in SceneStrip (the
-placeholder goes away), per-action animation variety, `art/CREDITS.md` + in-game credits screen.
+
+## Phase 3 step 1: layout pass (2026-11-11/12) — merged to `main` with phase 3
+No art. Engine: return summary (per-skill headline, best find, grouped loot, gold by source), one Log line per skill per
+level-up batch, `E.recapView` (turnout vs contribution pay, `pointShare` not `yourShare`, tier label, plain next-week hint),
+`E.crewActivity` (+ `crew.jobsDone`, last 20), `E.storeSellList` / `E.storeSellAll`, `E.disabledReasons`; save schema v7.
+Client: one Menu (Log, Save, Settings: mute stub + reduced motion, Credits placeholder), one-line guide + "Do this first",
+~156px pixelated scene on Workshop only (52px native, 3x) + slim strip elsewhere, numbered tab badges, disabled-button
+reasons, empty states with a next step, compact numbers everywhere ("12.6k g" from 10,000; owner OK'd), grouped sell list +
+atomic "Sell all grades", rebuilt return reveal and raid recap, crew feed on Crew > Roster + toasts.
+Build/test: a Linux clone on the owner's PC VM (`$HOME/work/IdleMMO`, own node_modules); the PC has no GitHub credentials,
+so commits are bundled and pushed from the cloud; QA screenshots via cloud Playwright (no browser on the PC VM).
+
+## Phase 3 steps 2-9: art and credits (2026-11-12) — branch `phase3/art`, merged to `main`
+Owner asked to finish the whole phase in one go, so the step 2 style-frame phone check happens on the merged build.
+- Pipeline + icons: all 159 items have icons (no letter tiles); `ItemIcon` (32/64px, rarity corner shape + colour,
+  grade pips, tinted generic fallback, codex silhouettes). Atlas ~34 KB.
+- UI frames on 5 component types, tab bar icons, plaster texture; item slot tiles are a fixed 44px.
+- Workshop scene: 64px native at 3x (~192px), hero composited at runtime from an LPC layer atlas by equipped gear, a
+  work pose for every action (tools for mine/chop/smith/fish, hand gestures for herb/cook/alchemy/tailoring), one
+  crewmate beside you when you assist a crew job; 30 fps cap, paused when hidden, still pose under reduced motion.
+- Six boss portraits on the raid card and recap (hidden until the boss is revealed).
+- Sound: tap, collect, level-up, fountain; only after the first gesture; Menu → Settings → Mute.
+- Known gaps: no engine notion of crewmates assisting YOUR action (only you assisting theirs), so that isn't drawn;
+  the fishing rod tip clips ~9px at the top of the scene; weak icons (scales, cores, essences, tin vs silver ore).
+- Open: the owner's real-phone check of the art (style frame), offline cache size budget.
+- Final QA 2026-11-12 (5795c3f): gate passed, 192 tests green. Left for a follow-up pass: combat weapon is dark on the
+  dark ground and one big swing covers the foe; reveal floating pieces briefly overlap the headline; at 360px the gear item
+  sheet scrolls so Salvage/Equip sit below the fold; Shikashi credit name is long with a raw URL; salvage "Skipped" list
+  repeats one piece per reason; the service worker caches at runtime (no install-time precache, ~0.9 MB).
