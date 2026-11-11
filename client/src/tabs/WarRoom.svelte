@@ -244,7 +244,7 @@
 {/if}
 
 {#if recapOpen && recap}
-  <RaidRecap {recap} onClose={() => (recapOpen = false)} />
+  <RaidRecap {recap} view={view?.extras?.lastRecapView ?? null} onClose={() => (recapOpen = false)} />
 {/if}
 
 <style>
