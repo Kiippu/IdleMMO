@@ -215,12 +215,45 @@ export interface StoreView {
 }
 export interface StoreBuyResult { ok: boolean; reason: string; qty: number; gold: number; itemId?: string; /** gear bought */ uids?: string[] }
 export interface StoreSellResult { ok: boolean; reason: string; qty: number; gold: number }
+// ---- QoL pass 2026-11-11: salvage, discovery, encyclopedia (additive v6 field state.seen)
+// E.salvagePreview(state, uids, opts?) → SalvagePreview; E.salvage(state, uids | uid, { allowProtected? }) → SalvageResult.
+//   Returns ECON.salvagePct[rarity] of the recipe inputs (random rounding, seeded), at the piece's quality grade.
+//   Protected unless allowProtected: equipped (always refused), in a saved loadout, rare or better.
+// E.codex(state) → Codex (also DerivedExtras.codex); E.catalog() / DATA.catalog → Record<itemId, CatalogEntry>
+//   (static; DATA.catalog is a lazy getter, main-thread safe); E.catalogEntry(id). Lore from DATA.itemLore[id].
+export interface SalvageLine { itemId: string; grade: number; qtyMin: number; qtyMax: number; expected: number }
+export interface SalvageBlocked { uid: string; reason: string }
+export interface SalvagePreview { items: SalvageLine[]; gearCount: number; blocked: SalvageBlocked[] }
+export interface SalvageResult { ok: boolean; reason: string; salvaged: number; items: { itemId: string; grade: number; qty: number }[]; blocked: SalvageBlocked[] }
+export type CodexStatus = 'hidden' | 'hint' | 'known';
+export interface CodexItem { id: string; status: CodexStatus; inputsSeen: number; inputsTotal: number; touched: boolean }
+export interface Codex {
+  items: Record<string, CodexItem>;
+  /** units open contracts (not yours) can still take now, by item */
+  demand: Record<string, number>;
+}
+export interface CatalogSource { actionId?: string; bossId?: string; source?: 'monster' | 'boss'; name: string; skill?: string; level?: number; chance: number; qty: number | [number, number] }
+export interface CatalogEntry {
+  id: string; name: string; rarity: RarityId; kind: string; tier: number;
+  slot: string | null; role: string | null; stats: Record<string, number> | null; element: string | null; tags: Record<string, number> | null;
+  heal: number | null; buff: { stat: string; pct: number } | null; value: number;
+  /** lowest-level refine/craft recipe; secs = base seconds per rep (E.actionTime gives yours); xp per rep */
+  recipe: { actionId: string; skill: string; level: number; inputs: Record<string, number>; outputQty: number; secs: number; xp: number } | null;
+  usedIn: { actionId: string; name: string; skill: string; level: number; qty: number; outputs: string[] }[];
+  gatheredBy: CatalogSource[]; dropsFrom: CatalogSource[];
+  /** general store: buy at Standard; sell by grade 0..4 */
+  store: { buy: number; sell: number[] };
+  /** gear: salvage share by rarity and recipe inputs per piece (yield = inputs x pct) */
+  salvage: { perRarity: Record<string, number>; inputs: Record<string, number> } | null;
+  lore: string | null;
+}
 export interface DerivedExtras {
   store: StoreView;
   /** last 50, newest first */
   events: GameEvent[];
   raidPrep: RaidPrep;
   gatherSecs: Record<string, number | null>;
+  codex: Codex;
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
@@ -251,6 +284,7 @@ export const ECON: {
   storeResourceMult: number; storeGearMult: number; storeSellMult: number;
   storeResourceSlots: number; storeGearSlots: number; storeGearMaxTier: number;
   raidEvenShare: number; raidContribShare: number; raidCapIncomeHours: number;
+  salvagePct: Record<string, number>;
 };
 
 declare const _default: typeof createEngine;

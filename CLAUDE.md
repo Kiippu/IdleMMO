@@ -206,6 +206,16 @@ category chips + skill accordions (mockup A, no horizontal strip), War Room Load
 checkpoints + recap sheet, Getting started guide (progress in localStorage), Contracts rows + hand-in sheet, Stores
 bag grid + item sheet, Shop (NPC store). Engine: item rarity, gather secs, raid prep phases, store, event log (last 200,
 additive in save v6), payout split/cap. Tests: engine 113, client 23, server 3. Independent QA at 360/400 light/dark.
+## Quality pass (2026-11-11) — branch `qol/pass`, merged
+Gear salvage by rarity (common 20 / uncommon 40 / rare 60 / epic 75 / legendary 90 / mythic 100% of recipe inputs,
+`ECON.salvagePct`; equipped never, loadout + rare+ only with "Include protected"); single + "Salvage shown" mass
+salvage. Discovery `state.seen` → Codex (Stores → Mine/Crew/Codex): crafted item = silhouette once one input
+touched, full once all inputs touched; raw material = silhouette within 10 levels of its source; boss loot/cores
+hidden until touched. One shared item sheet from every item tap; draft descriptions in `engine/src/item-lore.ts`
+(owner to review). Bag/vault search, rarity, category, sort. Return "fountain" from the tab bar + vibrate.
+Next: phase 3 art (icons per item with tints OK, LPC crew sprites hitting the node when assisting, full UI art
+overhaul: framed panels replace flat paper — owner confirmed 2026-11-11).
+
 Open: credits screen in game; guide progress not in the save export; Workshop/Shop not yet seen on the live tunnel.
 
 Next: merge `ui/ux-pass` → `main` (ask first), then phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY

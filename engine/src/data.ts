@@ -501,6 +501,10 @@ export const ECON = {
   raidEvenShare: 0.25,
   raidContribShare: 0.75,
   raidCapIncomeHours: 3,
+  // Salvage (QoL pass 2026-11-11): share of a gear piece's recipe inputs returned, by the piece's rarity.
+  // Per input: qty x pct, rounded up or down at random (expected value exact). Mats come back at the
+  // grade matching the piece's quality.
+  salvagePct: { common: 0.2, uncommon: 0.4, rare: 0.6, epic: 0.75, legendary: 0.9, mythic: 1 } as Record<string, number>,
   // NPC general store (2026-11-08; replaces the player market, which is parked). Prices are multiples of
   // item value, so in hours of play: buying 1 H worth of a level-40 gatherer's output costs ~1.58 H
   // (1.5 / 0.95 after-tax value); selling 1 H of output to the store returns ~0.42 H.

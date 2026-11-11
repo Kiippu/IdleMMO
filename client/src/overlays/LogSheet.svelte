@@ -3,6 +3,7 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { fmtAgo, fmtG, fmtN } from '../format';
+  import { openItem } from './itemRef.svelte';
 
   type Props = { onClose: () => void };
   let { onClose }: Props = $props();
@@ -23,12 +24,12 @@
   $effect(() => { dlg?.focus(); });
 
   /** Split the text around the item name so the name can wear its rarity ink. */
-  function parts(e: any): { text: string; rarity?: string }[] {
+  function parts(e: any): { text: string; rarity?: string; id?: string }[] {
     const name = e.itemId ? items[e.itemId]?.name : null;
     const rarity = e.rarity ?? (e.itemId ? itemRarity[e.itemId] : undefined);
     const i = name ? String(e.text).indexOf(name) : -1;
     if (!name || i < 0) return [{ text: e.text }];
-    return [{ text: e.text.slice(0, i) }, { text: name, rarity }, { text: e.text.slice(i + name.length) }];
+    return [{ text: e.text.slice(0, i) }, { text: name, rarity, id: e.itemId }, { text: e.text.slice(i + name.length) }];
   }
 
   function onKey(ev: KeyboardEvent) {
@@ -62,7 +63,7 @@
         {#each shown as e (e.id)}
           <li>
             <div class="line">
-              <span class="txt">{#each parts(e) as p}{#if p.rarity}<span class="it" style="color: var(--r-{p.rarity})">{p.text}</span>{:else}{p.text}{/if}{/each}</span>
+              <span class="txt">{#each parts(e) as p}{#if p.rarity}<button type="button" class="it" style="color: var(--r-{p.rarity})" onclick={() => p.id && openItem({ itemId: p.id })}>{p.text}</button>{:else}{p.text}{/if}{/each}</span>
               <span class="amt num">
                 {#if e.gold}<span class:neg={e.gold < 0} class:pos={e.gold > 0}>{e.gold > 0 ? '+' : '−'}{fmtG(Math.abs(e.gold))}</span>
                 {:else if e.qty}×{fmtN(e.qty)}{/if}
@@ -92,7 +93,7 @@
   li { padding: 8px 12px; background: var(--sunk); border: 1px solid var(--rule-2); }
   .line { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
   .txt { font-size: var(--t-sm); color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
-  .it { font-weight: 700; }
+  .it { font-weight: 700; padding: 0; border: 0; background: none; font-size: inherit; text-decoration: underline; min-height: 24px; }
   .amt { font-weight: 700; font-size: var(--t-sm); color: var(--ink-2); white-space: nowrap; }
   .pos { color: var(--ok); } .neg { color: var(--bad); }
   .when { color: var(--ink-3); font-size: var(--t-xs); }

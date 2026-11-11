@@ -149,6 +149,13 @@ async function handle(req: Req): Promise<unknown> {
       E.save(state);
       return res;
     }
+    case 'salvagePreview':
+      return E.salvagePreview(state, req.uids, { allowProtected: req.allowProtected });
+    case 'salvage': {
+      const res = E.salvage(state, req.uids, { allowProtected: req.allowProtected });
+      E.save(state);
+      return res;
+    }
     case 'lockIn': {
       const res = E.lockIn(state);
       E.save(state);

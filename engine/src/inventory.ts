@@ -10,6 +10,13 @@ export function addItem(state, itemId, grade, qty) {
   grade = clamp(Math.floor(num(grade, 1)), 0, 4);
   if (!Array.isArray(state.inv[itemId])) state.inv[itemId] = zeros5();
   state.inv[itemId][grade] += qty;
+  markSeen(state, itemId);
+}
+/** discovery (codex.ts): the player has touched this item */
+export function markSeen(state, itemId) {
+  if (!state || !itemId) return;
+  if (!state.seen || typeof state.seen !== 'object') state.seen = {};
+  state.seen[itemId] = true;
 }
 export function cleanInv(state, itemId) {
   const g = state.inv[itemId];

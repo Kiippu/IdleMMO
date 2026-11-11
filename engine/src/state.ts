@@ -17,6 +17,7 @@ import { isProfession, rawSkillLevel, SPEC_CAP_LEVEL, xpCurveMult } from './skil
 import { marketEnabled, parkMarket } from './market';
 import { ensureEvents, pushEvent } from './events';
 import { normStore } from './store';
+import { sweepSeen, seedSeen } from './codex';
 
 /** what switchSpec charged for every pick before the phase 2.5 rework (refunded when a spec is cleared on load) */
 export const LEGACY_SPEC_CHARGE = 3000;
@@ -36,7 +37,9 @@ E.newState = function () {
     // 2026-11-08 additive v6 fields: player event log (events.ts) and the NPC general store (store.ts)
     events: [], eventSeq: 0, store: null,
     // the xpCurveMult this save's XP is stored at (2026-11-11); migrate rescales when it differs
-    xpScale: xpCurveMult()
+    xpScale: xpCurveMult(),
+    // discovery (codex.ts, 2026-11-11): item ids the player has touched
+    seen: {}
   };
   skillDefs().forEach((d) => { s.skills[d.id] = { xp: 0 }; });
   const st = D().starter || {};
@@ -64,6 +67,7 @@ E.newState = function () {
   ensureV5(s);
   curRecord(s).revealedWeek = s.week;
   if (SLOTS.some((sl) => s.equipped[sl])) E.saveLoadout(s, { name: 'Starter kit', fromEquipped: true });
+  sweepSeen(s);
   E.log(s, 'info', 'Welcome to Guildwright. Pick a skill and start gathering.');
   return s;
 };
@@ -180,6 +184,7 @@ export function migrate(raw) {
     out.raid.bossHp = curRecord(out).hpLeft;
   }
   clampHp(out);
+  seedSeen(out, raw); // discovery: what the save owns now + its event history
   return out;
 }
 export const hasLS = () => ctx.storage != null;

@@ -2,6 +2,7 @@
   // Full-screen raid recap, in mockup order. Gold only: no coin, raid tokens or pity tokens.
   import { DATA } from '@guildwright/engine';
   import { fmtG, fmtN } from '../format';
+  import { openItem } from './itemRef.svelte';
 
   type Props = { recap: any; onClose: () => void };
   let { recap, onClose }: Props = $props();
@@ -41,7 +42,7 @@
       <h3>Chests claimed</h3>
       {#if chests.length === 0}<p class="muted">No checkpoints reached.</p>
       {:else}
-        <ul class="cells">{#each chests as c}<li>Chest at <span class="num">{pct(c.at)}</span><small>{(c.items ?? []).map((i: any) => `${itemName(i.itemId ?? i.id)} ×${i.qty ?? 1}`).join(', ')}</small></li>{/each}</ul>
+        <ul class="cells">{#each chests as c}<li>Chest at <span class="num">{pct(c.at)}</span><small>{#each c.items ?? [] as i}<button type="button" class="il" onclick={() => openItem({ itemId: i.itemId ?? i.id })}>{itemName(i.itemId ?? i.id)} ×{i.qty ?? 1}</button>{' '}{/each}</small></li>{/each}</ul>
       {/if}
     </section>
 
@@ -100,6 +101,7 @@
   .meter div { height: 100%; background: var(--woad); } .meter.hp div { background: var(--hp); }
   ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .cells li, .rows li { padding: 8px 10px; background: var(--sunk); border: 1px solid var(--rule-2); display: grid; gap: 2px; }
+  .il { min-height: 32px; padding: 0 4px; border: 0; background: none; color: var(--woad); font: inherit; text-decoration: underline; }
   small { color: var(--ink-3); font-size: var(--t-xs); }
   .nudge { margin: 0; padding: 10px 12px; border: 1px solid var(--woad); background: var(--woad-soft); color: var(--ink); font-size: var(--t-sm); }
   .done { position: sticky; bottom: 0; width: 100%; }

@@ -41,7 +41,7 @@ export interface Derived {
   /** Game-clock ms (E.now) at the time of this snapshot; events[].t is on the same clock. */
   now: number;
   /** E.derivedExtras(state): {store, events (last 50, newest first), raidPrep, gatherSecs}. */
-  extras: { store: any; events: any[]; raidPrep: any; gatherSecs: Record<string, number | null> } | null;
+  extras: { store: any; events: any[]; raidPrep: any; gatherSecs: Record<string, number | null>; codex?: { items: Record<string, { id: string; status: 'hidden' | 'hint' | 'known'; inputsSeen: number; inputsTotal: number; touched: boolean }>; demand: Record<string, number> } } | null;
 }
 
 export interface OfflineSummary {
@@ -74,6 +74,8 @@ export type Req =
   | { id: string; type: 'storeBuy'; slot: number; qty: number }
   | { id: string; type: 'storeSell'; itemId: string; grade: number; qty: number }
   | { id: string; type: 'storeSellGear'; uid: string }
+  | { id: string; type: 'salvagePreview'; uids: string[]; allowProtected: boolean }
+  | { id: string; type: 'salvage'; uids: string[]; allowProtected: boolean }
   | { id: string; type: 'lockIn' }
   | { id: string; type: 'unlock' }
   | { id: string; type: 'buyListing'; listingId: string; qty: number }

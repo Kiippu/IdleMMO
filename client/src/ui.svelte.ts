@@ -1,5 +1,5 @@
 // Cross-tab UI state: deep links into another tab/sub-tab, and the guide's target highlight.
-type Sub = { crew: 'roster' | 'jobs' | 'contracts' | 'treasury' | null; war: 'loadout' | 'raid' | null; stores: 'mine' | 'crew' | null };
+type Sub = { crew: 'roster' | 'jobs' | 'contracts' | 'treasury' | null; war: 'loadout' | 'raid' | null; stores: 'mine' | 'crew' | 'codex' | null };
 export const ui = $state<{ crewSub: Sub['crew']; warSub: Sub['war']; storesSub: Sub['stores']; goTab: string | null; wsCat: string | null; wsOpen: boolean }>({
   crewSub: null, warSub: null, storesSub: null, goTab: null, wsCat: null, wsOpen: false,
 });
@@ -23,3 +23,10 @@ export function showMe(tab: string, selector: string, subs: Partial<{ crew: Sub[
     }
   }, 100);
 }
+
+/** Bag filters persist for the session. */
+export type BagFilter = { q: string; cat: 'All' | 'Materials' | 'Gear' | 'Food & potions'; rarity: string; sort: 'rarity' | 'name' | 'qty' | 'value' | 'newest' };
+const fresh = (): BagFilter => ({ q: '', cat: 'All', rarity: 'all', sort: 'newest' });
+export const bagFilter = $state<BagFilter>(fresh());
+export const vaultFilter = $state<BagFilter>(fresh());
+export const resetFilter = (f: BagFilter) => Object.assign(f, fresh());
