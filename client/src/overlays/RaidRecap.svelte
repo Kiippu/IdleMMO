@@ -1,5 +1,6 @@
 <script lang="ts">
   import ItemIcon from '../art/ItemIcon.svelte';
+  import BossPortrait from '../scene/BossPortrait.svelte';
   // Full-screen raid recap, in mockup order. Gold only: no coin, raid tokens or pity tokens.
   import { DATA } from '@guildwright/engine';
   import { fmtG, fmtN } from '../format';
@@ -46,8 +47,11 @@
 <div class="full" role="dialog" aria-modal="true" aria-labelledby="rc-title">
   <div class="col">
     <header>
-      <h2 id="rc-title">{recap.bossName ?? 'Raid'} <span class="num sub">Week {recap.week}</span></h2>
-      <p class="res" class:won={recap.won}>{recap.won ? 'Boss defeated' : recap.joined ? 'Boss survived this weekend' : 'You sat this one out'}</p>
+      <div class="rc-head">
+        {#if recap.bossId}<BossPortrait bossId={recap.bossId} name={recap.bossName} />{/if}
+        <div class="rc-id"><h2 id="rc-title">{recap.bossName ?? 'Raid'} <span class="num sub">Week {recap.week}</span></h2>
+      <p class="res" class:won={recap.won}>{recap.won ? 'Boss defeated' : recap.joined ? 'Boss survived this weekend' : 'You sat this one out'}</p></div>
+      </div>
     </header>
 
     <section>
@@ -123,6 +127,8 @@
   .full { position: fixed; inset: 0; z-index: 45; overflow-y: auto; background: var(--plaster); display: flex; justify-content: center;
     padding: max(16px, env(safe-area-inset-top)) var(--gut-r) 0 var(--gut-l); }
   .col { width: 100%; max-width: var(--col); display: grid; gap: 12px; align-content: start; }
+  .rc-head { display: flex; gap: 12px; align-items: center; }
+  .rc-id { min-width: 0; }
   h2 { margin: 0; font: 600 var(--t-xl)/1.15 var(--f-display); }
   .sub { font: 700 var(--t-md) var(--f-num); color: var(--ink-2); }
   .res { margin: 4px 0 0; font-weight: 700; color: var(--ink-2); } .res.won { color: var(--ok); }
