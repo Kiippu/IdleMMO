@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ItemIcon from '../art/ItemIcon.svelte';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
   import { DATA, H } from '@guildwright/engine';
@@ -261,6 +262,7 @@
           {@const fundedTotal = (c.escrow ?? 0) + (c.filled ?? 0) * (c.rewardPer ?? 0)}
           <li>
             <div class="row">
+              <ItemIcon id={c.itemId} rarity={rar} />
               <button type="button" class="name linkbtn" style:color={`var(--r-${rar})`} onclick={() => openItem({ itemId: c.itemId })}>{c.itemName ?? itemName(c.itemId)}{c.minGrade ? ` (${GRADES[c.minGrade] ?? `grade ${c.minGrade}+`})` : ''}</button>
               <span class="tag">{c.source === 'town' ? 'Town' : 'Crew'}</span>
             </div>
@@ -372,7 +374,7 @@
   .delta.pos { color: var(--ok); }
   .delta.neg { color: var(--bad); }
 
-  .linkbtn { min-height: 44px; padding: 0; border: 0; background: none; text-align: left; text-decoration: underline; }
+  .linkbtn { flex: 1; min-height: 44px; padding: 0; border: 0; background: none; text-align: left; text-decoration: underline; }
   .group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .group-head h3 { margin: 0; }
   .wide { width: 100%; margin-top: 8px; }
