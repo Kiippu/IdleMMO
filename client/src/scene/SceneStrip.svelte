@@ -7,7 +7,7 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { reducedMotion } from '../settings.svelte';
-  import { loadSceneArt, MAN, BD, SCENE_H, FEET_Y, figure, backdropRow, type Equipped, type Gear, type Look } from './sprites';
+  import { loadSceneArt, MAN, BD, SCENE_H, FEET_Y, figure, backdropRow, foeRow, FOES, type Equipped, type Gear, type Look } from './sprites';
 
   const SCALE = 3;
   const H = SCENE_H;
@@ -33,7 +33,8 @@
     const skill: string | null = act?.skill ?? null;
     const hero = figure(skill, !!act, eq, false);
     const crew = s?.active?.jobId ? figure(skill, true, eq, true) : null;
-    return { hero, crew, label: act ? `Working: ${act.name}` : 'Idle in the workshop yard' };
+    const foe = foeRow(act?.id ?? null, act?.kind ?? null);
+    return { hero, crew, foe, label: act ? `Working: ${act.name}` : 'Idle in the workshop yard' };
   });
 
   $effect(() => {
@@ -73,10 +74,11 @@
       if (document.hidden || !art || now - lastTick < 33) return;   // <= 30 fps, nothing while hidden
       lastTick = now;
       const still = reducedMotion();
-      const { hero, crew } = scene;
+      const { hero, crew, foe } = scene;
       const fh = frameOf(hero, now, 0, still);
       const fc = crew ? frameOf(crew, now, 280, still) : 0;
-      const sig = `${W}|${hero.key}|${fh}|${crew?.key ?? ''}|${fc}`;
+      const ff = foe == null ? 0 : still ? 0 : Math.floor(now / 1000 * 5) % FOES.frames;
+      const sig = `${W}|${hero.key}|${fh}|${crew?.key ?? ''}|${fc}|${foe}|${ff}`;
       if (sig === lastSig) return;
       lastSig = sig;
       ctx.imageSmoothingEnabled = false;
@@ -85,6 +87,11 @@
       ctx.drawImage(art.backdrops, bx, backdropRow(hero.backdrop) * H, W, H, 0, 0, W, H);
       const hx = crew ? Math.floor(W * 0.62) : Math.floor(W / 2);
       if (crew) drawFigure(ctx, art.atlas, crew, hx - 30, fc);
+      if (foe != null) {   // the current foe stands to the right, facing the hero
+        const fx = hx + 34;
+        ctx.fillStyle = 'rgba(34,32,52,0.35)'; ctx.fillRect(fx - 6, FEET_Y, 12, 1);
+        ctx.drawImage(art.foes, ff * FOES.size, foe * FOES.size, FOES.size, FOES.size, fx - 8, FEET_Y - FOES.size + 1, FOES.size, FOES.size);
+      }
       drawFigure(ctx, art.atlas, hero, hx, fh);
     };
     raf = requestAnimationFrame(tick);

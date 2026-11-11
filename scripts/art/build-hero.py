@@ -7,6 +7,7 @@ import sys, os, json
 import numpy as np
 from PIL import Image
 sys.path.insert(0, os.path.dirname(__file__))
+from remap import outline_image
 from scenelib import remap_db32, ramp_tint, mult_tint, shelf_pack
 
 SRC, OUT = sys.argv[1], sys.argv[2]
@@ -71,6 +72,8 @@ for t in ('pickaxe', 'axe', 'hammer'):
     for part in ('bg', 'fg'):
         LAYERS[f'{t}_{part}'] = ({'slash': P(f'tools/{t}/{part}.png')}, None)
 
+OUTLINED = {'sword', 'mace', 'staff', 'bow', 'rod', 'pickaxe', 'axe', 'hammer'}   # 1px dark outline so held tools read on any backdrop
+
 def row_frames(path, cols, row=EAST):
     im = Image.open(path).convert('RGBA')
     fs = im.width // cols
@@ -101,9 +104,11 @@ for key, (paths, tint) in LAYERS.items():
         frames = apply_tint(frames, tint)
         boxes = [b for b in (f.getchannel('A').point(lambda v: 255 if v >= 128 else 0).getbbox() for f in frames) if b]
         if not boxes: continue
+        outl = key.split('_')[0] in OUTLINED
         x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes); x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
+        if outl: x0, y0, x1, y1 = max(0, x0 - 1), max(0, y0 - 1), min(CANVAS, x1 + 1), min(CANVAS, y1 + 1)   # room for the outline
         w, h = x1 - x0, y1 - y0
-        entries[(key, anim)] = dict(frames=[remap_db32(f.crop((x0, y0, x1, y1))) for f in frames], w=w, h=h, ox=x0 - 96, oy=y0 - FEET)
+        entries[(key, anim)] = dict(frames=[(outline_image if outl else (lambda im: im))(remap_db32(f.crop((x0, y0, x1, y1)))) for f in frames], w=w, h=h, ox=x0 - 96, oy=y0 - FEET)
         rects.append(((key, anim), w * cols, h))
 pos, H = shelf_pack(rects, 1024)
 atlas = Image.new('RGBA', (1024, H), (0, 0, 0, 0))
