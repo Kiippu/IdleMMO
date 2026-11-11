@@ -265,6 +265,8 @@ export interface DerivedExtras {
   crewActivity: CrewActivity[];
   /** E.storeSellList(state) (layout pass 2026-11-11) */
   sellList: SellListRow[];
+  /** E.disabledReasons(state) (layout pass 2026-11-11) */
+  disabledReasons: DisabledReasons;
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
@@ -370,6 +372,19 @@ export interface CrewActivity {
 export interface SellListGrade { grade: number; gradeName: string; qty: number; /** store pays per unit */ price: number; gold: number }
 export interface SellListRow { itemId: string; name: string; kind: string; rarity: RarityId; qty: number; /** all grades */ gold: number; grades: SellListGrade[] }
 export interface StoreSellAllResult { ok: boolean; reason: string; qty: number; gold: number; grades: { grade: number; qty: number; gold: number }[] }
+
+// Disabled reasons: E.disabledReasons(state) → DisabledReasons (also DerivedExtras.disabledReasons). One plain
+//   sentence per control that can't be used now; ids that are usable are absent.
+export interface DisabledReasons {
+  /** Workshop Start, by action id (E.canStart): level, missing inputs, sealed raid pouch, no weapon, too hurt */
+  actions: Record<string, string>;
+  /** Assist, by crew job id (E.canAssist) */
+  jobs: Record<string, string>;
+  /** Hand in, by contract id: filled / closed / cancelled / your own request / out of gold / nothing at the grade */
+  contracts: Record<string, string>;
+  /** spec Switch: no eligible skill / cooldown "Xd Yh" / not enough gold; null when a switch is possible */
+  spec: string | null;
+}
 
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */
 export const Engine: any;

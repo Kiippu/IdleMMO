@@ -209,13 +209,21 @@ describe('crew activity feed', () => {
     expect(act[0].kind).toBe('contract');
   });
 
-  it('old saves without jobsDone load and give an empty-safe feed', async () => {
+  it('v4 / v5 / v6 fixtures load and every new view works on them', async () => {
     for (const f of ['v4-save.json', 'v5-phase2-save.json', 'v6-phase25-save.json']) {
       const h = await freshEngine(3, START + 3600000);
       const s = h.E.migrate(fixture(f));
       expect(s.v).toBe(6);
       expect(Array.isArray(h.E.crewActivity(s))).toBe(true);
-      expect(h.E.derivedExtras(s)).toBeTruthy();
+      const x = h.E.derivedExtras(s);
+      expect(Array.isArray(x.sellList)).toBe(true);
+      expect(x.disabledReasons).toBeTruthy();
+      expect(x.lastRecapView === null || typeof x.lastRecapView.pay.gold === 'number').toBe(true);
+      // and a catch-up from the fixture's own lastSeen still produces the return fields
+      s.lastSeen = h.now(); h.advance(2 * 3600000);
+      const r = h.E.applyOffline(s, h.now());
+      expect(Array.isArray(r.summary.goldBySource)).toBe(true);
+      expect(r.summary.goldBySource.reduce((a: number, g: any) => a + g.gold, 0)).toBe(r.summary.gold);
     }
   });
 });
@@ -245,5 +253,50 @@ describe('shop sell list + sell all grades', () => {
     expect(E.events(s, 1)[0].text).toContain('(all grades)');
     expect(E.storeSellAll(s, 'copper_ore').ok).toBe(false);
     expect(E.storeSellAll(s, 'nope').ok).toBe(false);
+  });
+});
+
+describe('disabled-action reasons', () => {
+  it('lists a reason for every action, job, contract and spec switch that cannot be used', async () => {
+    const h = await freshEngine(1);
+    const { E } = h;
+    const s = E.newState();
+    const d = E.disabledReasons(s);
+    expect(d.actions.mine_copper).toBeUndefined();
+    const iron = E.actionsFor('mining').find((a: any) => a.level > 1);
+    expect(d.actions[iron.id]).toBe(E.canStart(s, iron.id).reason);
+    expect(d.actions[iron.id]).toMatch(/^Requires Mining level \d+\.$/);
+    // a refine with no inputs says what is missing
+    const refine = E.actionsFor('smelting')[0];
+    expect(d.actions[refine.id]).toMatch(/^(Out of|Need )/);
+    // jobs: exactly the ones canAssist refuses
+    for (const j of E.crewJobs(s)) expect(d.jobs[j.id]).toBe(j.canAssist.ok ? undefined : j.canAssist.reason);
+    // contracts: no items in the bag → explains the grade; own request → crewmate has to fill it
+    const town = E.listContracts(s).find((k: any) => k.status === 'open' && k.source === 'town');
+    expect(d.contracts[town.id]).toMatch(/^You have no .* grade or better\.$/);
+    s.gold = 1e6;
+    const post = E.postCrewRequest(s, { itemId: 'copper_ore', qty: 5, rewardPer: 3 });
+    expect(post.ok).toBe(true);
+    expect(E.disabledReasons(s).contracts[post.contract.id]).toBe('You posted this request; a crewmate has to fill it.');
+    s.inv[town.itemId] = [0, 0, 5, 0, 0];
+    expect(E.disabledReasons(s).contracts[town.id]).toBeUndefined();
+    // spec
+    expect(d.spec).toBe('Reach level 70 in a profession to specialize.');
+    expect(E.derivedExtras(s).disabledReasons.spec).toBe(d.spec);
+  });
+
+  it('spec reasons: cooldown, then gold', async () => {
+    const h = await freshEngine(1);
+    const { E } = h;
+    const s = E.newState();
+    const x70 = E.xpForLevel(70);
+    s.skills.mining.xp = x70; s.skills.woodcutting.xp = x70; s.skills.fishing.xp = x70;
+    expect(E.disabledReasons(s).spec).toBeNull();
+    expect(E.switchSpec(s, 'mining').ok).toBe(true); // first pick free
+    s.gold = 1e9;
+    expect(E.switchSpec(s, 'woodcutting').ok).toBe(true); // starts the cooldown
+    expect(E.disabledReasons(s).spec).toMatch(/^You can switch specialization again in \d+d \d+h\.$/);
+    h.advance(8 * DAY); s.gold = 0;
+    expect(E.disabledReasons(s).spec).toMatch(/^Switching costs .*g; you have 0g\.$/);
   });
 });

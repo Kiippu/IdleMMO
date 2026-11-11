@@ -25,6 +25,7 @@ import './store';
 import './codex';
 import './recap-view';
 import './crew-activity';
+import './disabled-reasons';
 import './state';
 
 export type { EngineContext, SaveStorage } from './context';
