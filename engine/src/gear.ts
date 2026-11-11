@@ -2,10 +2,11 @@
 // Ported from legacy/engine.js lines 242-405. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, SLOTS, arr, num, rarities, elements, item, allActions, affixDefs, rand, clamp, randInt, shuffle, lcFirst, article, itemName, nextId, gradeOf, gradeMult, rarityDef, fmtGold } from './core';
+import { E, SLOTS, arr, num, rarities, elements, item, allActions, affixDefs, rand, clamp, randInt, shuffle, lcFirst, article, itemName, nextId, gradeOf, gradeMult, rarityDef, fmtGold, qtyName } from './core';
 import { addItem, consume, lowestGrade, markSeen } from './inventory';
 import { ECON } from './data';
 import { pushEvent } from './events';
+import { emitGain } from './gains';
 import { statsFor } from './stats';
 
 // ---------------------------------------------------------------- gear
@@ -49,16 +50,28 @@ E.playerStats = function (state) { return statsFor(state, state.equipped); };
 E.equip = function (state, uid) {
   const g = findGear(state, uid); if (!g) return { ok: false, reason: 'That item is no longer in your bag.' };
   const it = item(g.itemId); if (!it || !SLOTS.includes(it.slot)) return { ok: false, reason: 'That item cannot be equipped.' };
+  const max0 = E.playerStats(state).maxHp;
   state.equipped[it.slot] = uid;
-  clampHp(state);
+  gearHp(state, max0);
   return { ok: true };
 };
 E.unequip = function (state, slot) {
+  const max0 = E.playerStats(state).maxHp;
   if (SLOTS.includes(slot)) state.equipped[slot] = null;
-  clampHp(state);
+  gearHp(state, max0);
   return { ok: true };
 };
 export function clampHp(state) { const max = E.playerStats(state).maxHp; state.hp = clamp(num(state.hp, max), 0, max); }
+/**
+ * After a gear change (equip, unequip, loadout, repair): when max HP rose, current HP rises by the same
+ * amount (full health stays full: 70/70 + a +7 HP piece = 77/77); when it dropped, HP is clamped.
+ * `maxBefore` = E.playerStats(state).maxHp before the change.
+ */
+export function gearHp(state, maxBefore) {
+  const max = E.playerStats(state).maxHp; const before = num(maxBefore, max);
+  if (max > before) state.hp = num(state.hp, before) + (max - before);
+  clampHp(state);
+}
 
 E.gearName = function (g) {
   if (!g) return '';
@@ -93,7 +106,9 @@ E.repair = function (state, uid) {
   if (g.dur >= g.maxDur) return { ok: false, reason: 'It is already in perfect condition.' };
   if (g.dur >= c.newMaxDur) return { ok: false, reason: `Still at ${Math.round(g.dur)} durability; repairing now would only lower its maximum to ${c.newMaxDur}.` };
   if (state.gold < c.gold) return { ok: false, reason: `Repairing costs ${fmtGold(c.gold)} and you have ${fmtGold(Math.floor(state.gold))}.` };
+  const max0 = E.playerStats(state).maxHp;
   state.gold -= c.gold; g.dur = c.newMaxDur; g.maxDur = c.newMaxDur;
+  gearHp(state, max0); // a broken equipped piece counts again
   E.log(state, 'info', `Repaired your ${E.gearName(g)} for ${fmtGold(c.gold)} (max durability now ${c.newMaxDur}).`);
   return { ok: true, gold: c.gold };
 };
@@ -146,8 +161,9 @@ E.salvage = function (state, uids, opts) {
   });
   const items = Object.keys(got).map((k) => { const [itemId, grade] = k.split('|'); return { itemId, grade: Number(grade), qty: got[k] }; });
   if (!n) return { ok: false, reason: blocked.length ? blocked[0].reason : 'Pick something to salvage.', salvaged: 0, items, blocked };
+  emitGain('salvage', items);
   const byItem = {}; items.forEach((i) => { byItem[i.itemId] = (byItem[i.itemId] || 0) + i.qty; });
-  const list = Object.keys(byItem).map((id) => `${byItem[id]} ${itemName(id)}`).join(', ');
+  const list = Object.keys(byItem).map((id) => qtyName(byItem[id], id)).join(', ');
   const text = `Salvaged ${n} item${n === 1 ? '' : 's'} → ${list || 'nothing useful'}.`;
   pushEvent(state, 'loot', text, { qty: n });
   E.log(state, 'info', text);

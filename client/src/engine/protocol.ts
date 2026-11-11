@@ -5,6 +5,31 @@
 export type Snapshot = any; // see engine/src/public.d.ts — the state object is loose-typed.
 export type EngineEvent = { type: string; [k: string]: any };
 
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
+export type GainSource = 'gather' | 'refine' | 'craft' | 'combat' | 'assist' | 'buy' | 'salvage' | 'raid' | 'other';
+/** One real item gain (never sells, equips, loadout swaps or contract hand-ins). Catch-up gains: one per source, offline: true. */
+export interface GainEvent {
+  type: 'gain';
+  source: GainSource;
+  items: Array<{ itemId: string; qty: number; grade?: number; rarity: Rarity; uid?: string }>;
+  offline?: true;
+}
+/** A quantity job reached its count: `{ type: 'stopped', reason: 'Made 10 Copper bars.', done: true }`. Other stops have no `done`. */
+export interface StoppedEvent { type: 'stopped'; reason: string; done?: true; actionId?: string }
+export type RaidRole = 'guardian' | 'mender' | 'striker';
+export interface Readiness {
+  /** the current boss's power requirement */
+  req: number;
+  power: { guardian: number; mender: number; striker: number };
+  bestRole: RaidRole;
+  best: number;
+  ok: boolean;
+  /** 1-3 short lines on what raises the best role's power */
+  tips: string[];
+}
+/** what wearing a bag gear piece instead of the one in its slot changes (engine statsFor maths) */
+export interface EquipDelta { hp: number; atk: number; def: number; heal: number; power: number; speed: number; elements: Record<string, number> }
+
 // Lightweight precomputed view that rides every snapshot. Keeps the main
 // thread off engine methods (E.skillLevel, E.actionTime, etc.) without
 // hand-rolling the same maths over on this side.
@@ -42,7 +67,14 @@ export interface Derived {
   now: number;
   /** E.derivedExtras(state): {store, events (last 50, newest first), raidPrep, gatherSecs}. */
   extras: { store: any; events: any[]; raidPrep: any; gatherSecs: Record<string, number | null>; codex?: { items: Record<string, { id: string; status: 'hidden' | 'hint' | 'known'; inputsSeen: number; inputsTotal: number; touched: boolean }>; demand: Record<string, number> };
-    lastRecapView?: RecapView | null; crewActivity?: CrewActivity[]; sellList?: SellListRow[]; disabledReasons?: DisabledReasons } | null;
+    lastRecapView?: RecapView | null; crewActivity?: CrewActivity[]; sellList?: SellListRow[]; disabledReasons?: DisabledReasons;
+    /** juice pass: reps the bag can pay for right now per action id (null = needs no inputs: gather/fight) */
+    maxMake: Record<string, number | null>;
+    readiness: Readiness;
+    /** action ids unlocked by levelling and not dismissed (never level-1 starters), highest level first */
+    recentUnlocks: string[];
+    /** per unequipped bag gear uid */
+    equipDeltas: Record<string, EquipDelta> } | null;
 }
 
 import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons } from '@guildwright/engine';
@@ -51,7 +83,8 @@ export type OfflineSummary = EngineOfflineSummary & { awaySec?: number };
 
 export type Req =
   | { id: string; type: 'init' }
-  | { id: string; type: 'start'; actionId: string }
+  | { id: string; type: 'start'; actionId: string; count?: number | null }
+  | { id: string; type: 'dismissUnlocks'; actionIds: string[] }
   | { id: string; type: 'stop' }
   | { id: string; type: 'pause' }
   | { id: string; type: 'resume' }

@@ -6,7 +6,7 @@
 // Your event-log lines that the crew feed already carries (hand-ins, posting/cancelling a request, a
 // crewmate filling your request, a finished job you helped with) are dropped so nothing shows twice.
 /* eslint-disable */
-import { E, arr, num, itemName, fmtGold, lcFirst } from './core';
+import { E, arr, num, itemName, fmtGold, lcFirst, qtyName } from './core';
 
 // Contract (2026-11-11, QA): `text` never starts with `who` (the client shows who as its own label);
 // `full` is the complete sentence for places that show one line without a name.
@@ -38,7 +38,7 @@ export function crewActivity(state, n = CREW_ACTIVITY_N) {
   const out = [];
   arr(cr.feed).forEach((f) => { if (f && f.text) { const who = f.who || 'Crew'; out.push({ t: num(f.t, 0), kind: f.kind || 'crew', who, text: withoutActor(f.text, who), full: f.text, mine: who === 'You' }); } });
   normJobsDone(cr.jobsDone).forEach((j) => {
-    const what = `${j.qty} ${itemName(j.itemId)}`;
+    const what = qtyName(j.qty, j.itemId);
     const text = j.assisted > 0 ? `Finished ${what}. You helped with ${j.assisted}${j.tip ? `: +${fmtGold(j.tip)} tip` : ''}.` : `Finished ${what}.`;
     const e: any = { t: num(j.t, 0), kind: 'job', who: j.owner, text, full: `${j.owner} ${lcFirst(text)}`, mine: false, itemId: j.itemId, qty: j.qty };
     if (j.tip) e.gold = j.tip;

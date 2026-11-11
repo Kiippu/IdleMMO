@@ -2,8 +2,9 @@
 // Ported from legacy/engine.js lines 1817-2027. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, allActions, itemName, nextId, fmtGold } from './core';
+import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, allActions, itemName, nextId, fmtGold, qtyName, plural } from './core';
 import { addItem } from './inventory';
+import { emitGain } from './gains';
 import { pushEvent } from './events';
 import { findGear } from './gear';
 import { ECON } from './data';
@@ -53,7 +54,7 @@ export function gapDraft(state, gap) {
   const rewardPer = Math.max(1, Math.round(E.itemValue(itemId, 1) * 0.4));
   const gold = Math.floor(num(state.crew && state.crew.treasury && state.crew.treasury.gold, 0));
   const escrow = qty * rewardPer;
-  return { itemId, qty, rewardPer, minGrade: 1, note: `${gap.text}. Saturday raid needs ${qty} ${it.name}.`,
+  return { itemId, qty, rewardPer, minGrade: 1, note: `${gap.text}. Saturday raid needs ${qty} ${plural(it.name, qty)}.`,
     escrow, freeGold: gold, affordable: escrow <= gold, maxRewardPer: Math.floor(gold / qty) };
 }
 export function buildDebrief(state, sim) {
@@ -129,7 +130,7 @@ export function resolveRaid(state, opts, events) {
       const qty = num(sim.vaultConsumed[id], 0); if (!(qty > 0)) return;
       const users = arr(sim.vaultUse).filter((u) => u.items[id] > 0).map((u) => `${u.name} ${u.items[id]}`);
       invTake(state.crew.vault.inv, id, qty, WORST, 0).forEach((t) => {
-        logTreasury(state, 'raid-stock', 0, 'Raid', `${t.qty} ${itemName(id)} used in the raid (${users.join(', ')})`, { itemId: id, qty: -t.qty, grade: t.grade });
+        logTreasury(state, 'raid-stock', 0, 'Raid', `${qtyName(t.qty, id)} used in the raid (${users.join(', ')})`, { itemId: id, qty: -t.qty, grade: t.grade });
       });
     });
   }
@@ -230,12 +231,15 @@ export function resolveRaid(state, opts, events) {
   state.raid.last = clone(result);
   if (joined) E.log(state, 'raid', won ? `${boss.name} defeated! ${recap.tierLabel} (${(share * 100).toFixed(3)}% share). ${cores.won ? 'You won a core!' : `${cores.tickets} core tickets, no core this time.`}`
     : `Raid on ${boss.name}: ${recap.tierLabel} (${(share * 100).toFixed(3)}% share), ${foodTotal} food eaten${sim.faints ? `, fainted ${sim.faints}x` : ''}. Boss left at ${Math.ceil(rec.hpLeft / rec.maxHp * 100)}%.`);
-  chests.forEach((ch) => E.log(state, 'raid', `Server chest (${Math.round(ch.at * 100)}% checkpoint): ${ch.items.map((x) => x.qty + ' ' + itemName(x.itemId)).join(', ')}.`));
+  chests.forEach((ch) => E.log(state, 'raid', `Server chest (${Math.round(ch.at * 100)}% checkpoint): ${ch.items.map((x) => qtyName(x.qty, x.itemId)).join(', ')}.`));
   if (joined) {
     pushEvent(state, 'raid', won ? `${boss.name} defeated! ${recap.tierLabel}.${cores.won ? ' You won a core!' : ''}` : `Raid on ${boss.name}: ${recap.tierLabel}. Boss left at ${Math.ceil(rec.hpLeft / rec.maxHp * 100)}%.`);
     if (pay.player > 0) pushEvent(state, 'gold', `Raid payout: +${fmtGold(pay.player)}.`, { gold: pay.player });
-    recap.payout.items.forEach((x: any) => pushEvent(state, 'loot', `Raid loot: ${x.qty} ${itemName(x.itemId)}.`, { itemId: x.itemId, qty: x.qty, grade: x.grade }));
+    recap.payout.items.forEach((x: any) => pushEvent(state, 'loot', `Raid loot: ${qtyName(x.qty, x.itemId)}.`, { itemId: x.itemId, qty: x.qty, grade: x.grade }));
   } else pushEvent(state, 'raid', `The crew fought ${boss.name} without you.`);
+  // gain event: everything this raid put in your bag (floor, tier, chests, and a core if you won one)
+  emitGain('raid', arr(recap.payout.items).map((x: any) => ({ itemId: x.itemId, qty: x.qty, grade: x.grade }))
+    .concat(cores.won && boss.coreItem ? [{ itemId: boss.coreItem, qty: 1, grade: 3 }] : []));
   events.push({ type: 'raidResolved', recapId: recap.id, won });
   return { recap, result, timeline: sim.timeline };
 }

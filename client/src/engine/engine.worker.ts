@@ -21,6 +21,10 @@ let storage: ReturnType<typeof createIdbStorage>;
 function post(msg: FromWorker) { self.postMessage(msg); }
 
 function derive(): Derived {
+  lastDerived = deriveNow();
+  return lastDerived;
+}
+function deriveNow(): Derived {
   const skillLevels: Record<string, number> = {};
   const skills = state && state.skills;
   if (skills) for (const id of Object.keys(skills)) skillLevels[id] = E.skillLevel(state, id);
@@ -58,17 +62,33 @@ function derive(): Derived {
 
 function startTicking() {
   if (tickTimer != null) return;
+  paused = false;
   tickTimer = setInterval(() => {
-    const events = E.tick(state, TICK_SEC, { visible: true }) as EngineEvent[];
-    E.save(state);
-    post({ type: 'tick', snapshot: state, derived: derive(), events });
+    // A throw inside one tick must not freeze the game: the UI would keep showing the last snapshot
+    // (e.g. a crew job stuck at 17/18, "ETA 0s"). Log it and keep posting.
+    let events: EngineEvent[] = [];
+    try { events = E.tick(state, TICK_SEC, { visible: true }) as EngineEvent[]; } catch (err) { console.error('engine tick failed', err); }
+    try { E.save(state); } catch (err) { console.error('engine save failed', err); }
+    let derived = lastDerived;
+    try { derived = derive(); } catch (err) { console.error('engine derive failed', err); }
+    if (derived) post({ type: 'tick', snapshot: state, derived, events });
   }, TICK_SEC * 1000);
 }
+let paused = false;
+let lastDerived: Derived | null = null;
 
 function stopTicking() {
   if (tickTimer == null) return;
   clearInterval(tickTimer);
   tickTimer = null;
+}
+/** catch up and tick again; always restarts the ticker, even if the catch-up throws */
+function resumeNow(): OfflineSummary | null {
+  try {
+    const res = E.applyOffline(state, Date.now()) as { seconds: number; summary: OfflineSummary } | null;
+    E.save(state);
+    return res && res.seconds >= 60 ? { ...res.summary, awaySec: res.seconds } : null;
+  } finally { startTicking(); }
 }
 
 async function init(): Promise<{ offline: OfflineSummary | null; defaultTab: 'workshop' | 'raid' }> {
@@ -104,8 +124,14 @@ async function handle(req: Req): Promise<unknown> {
     case 'init':
       return await init();
     case 'start':
-      E.start(state, req.actionId);
+      E.start(state, req.actionId, req.count ?? null);
+      E.save(state);
       return undefined;
+    case 'dismissUnlocks': {
+      const res = E.dismissUnlocks(state, req.actionIds);
+      E.save(state);
+      return res;
+    }
     case 'stop':
       E.stop(state);
       return undefined;
@@ -211,15 +237,12 @@ async function handle(req: Req): Promise<unknown> {
     }
     case 'pause':
       stopTicking();
+      paused = true;
       E.save(state);
       await storage.flush();
       return undefined;
-    case 'resume': {
-      const res = E.applyOffline(state, Date.now()) as { seconds: number; summary: OfflineSummary } | null;
-      E.save(state);
-      startTicking();
-      return res && res.seconds >= 60 ? { ...res.summary, awaySec: res.seconds } : null;
-    }
+    case 'resume':
+      return resumeNow();
     case 'export':
       return await exportSave(JSON.stringify(state));
     case 'import': {
@@ -245,11 +268,19 @@ async function handle(req: Req): Promise<unknown> {
   }
 }
 
+// Requests that mean "the player is using the game": if the worker is still paused (e.g. a pause from
+// beforeunload/pagehide that was never followed by a resume), catch up and tick again first.
+const PASSIVE = new Set(['init', 'pause', 'resume', 'export', 'import', 'reset', 'salvagePreview']);
+
 self.addEventListener('message', async (ev: MessageEvent<Req>) => {
   const req = ev.data;
   try {
+    if (paused && E && state && !PASSIVE.has(req.type)) resumeNow();
     const result = await handle(req);
-    post({ id: req.id, ok: true, snapshot: state, derived: derive(), events: [], result });
+    // gain events made by this request (store buys, salvage, an offline catch-up on init/resume) ride its
+    // response, so they reach engine.lastEvents the same way tick events do
+    const events = (E && typeof E.takeEvents === 'function' ? E.takeEvents() : []) as EngineEvent[];
+    post({ id: req.id, ok: true, snapshot: state, derived: derive(), events, result });
   } catch (err: any) {
     post({ id: req.id, ok: false, error: String(err?.message ?? err) });
   }

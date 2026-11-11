@@ -9,13 +9,14 @@
 // State: state.store = { hour, slots: [{ itemId, kind, grade, stock, sold }] } (additive v6 field).
 /* eslint-disable */
 import { mulberry32 } from './context';
-import { E, SLOTS, arr, num, item, itemsMap, allActions, bosses, clamp, itemName, isStackable, zeros5, fmtGold, lcFirst, grades } from './core';
+import { E, SLOTS, arr, num, item, itemsMap, allActions, bosses, clamp, itemName, isStackable, zeros5, fmtGold, lcFirst, grades, gradeOf, qtyName, plural } from './core';
 import { ECON } from './data';
 import { addItem, cleanInv } from './inventory';
 import { findGear, makeGear, isEquipped } from './gear';
 import { nowOf } from './clock';
 import { lockedNow } from './raid-rules';
 import { pushEvent } from './events';
+import { emitGain } from './gains';
 
 export const HOUR_MS = 3600000;
 const GEAR_QUALITY = 50; // Standard grade
@@ -109,14 +110,27 @@ export function ensureStore(state) {
 
 // ---- prices
 const gearProbe = (itemId) => ({ itemId, rarity: 'common', quality: GEAR_QUALITY, dur: 1, maxDur: 1 });
+// Grade ladder for prices (2026-11-12): each grade of a stackable is worth at least 1g more than the grade
+// below it (Rough and Fine copper ore used to both sell for 1g). Built bottom-up from the plain price, so a
+// price is only ever raised, never lowered. The store's buy price stays above its sell price at every grade.
+const GRADES_N = 5;
+export function gradeLadder(raw: (g: number) => number) {
+  const out = [];
+  for (let g = 0; g < GRADES_N; g++) { const p = Math.max(1, Math.round(num(raw(g), 1))); out.push(g ? Math.max(p, out[g - 1] + 1) : p); }
+  return out;
+}
+const gIdx = (grade) => clamp(Math.floor(num(grade, 1)), 0, GRADES_N - 1);
+export function storeSellLadder(itemId) { return gradeLadder((g) => Math.round(E.itemValue(itemId, g) * num(ECON.storeSellMult, 0.4))); }
 export function storeBuyPrice(itemId, grade) {
   const it = item(itemId); if (!it) return 0;
   if (it.kind === 'gear') return Math.max(1, Math.round(E.gearValue(gearProbe(itemId)) * num(ECON.storeGearMult, 2)));
-  return Math.max(1, Math.ceil(E.itemValue(itemId, grade) * num(ECON.storeResourceMult, 1.5)));
+  const g = gIdx(grade);
+  const buy = gradeLadder((k) => Math.ceil(E.itemValue(itemId, k) * num(ECON.storeResourceMult, 1.5)))[g];
+  return Math.max(buy, storeSellLadder(itemId)[g] + 1);
 }
 export function storeSellPrice(itemId, grade) {
   if (!item(itemId)) return 0;
-  return Math.max(1, Math.round(E.itemValue(itemId, grade) * num(ECON.storeSellMult, 0.4)));
+  return storeSellLadder(itemId)[gIdx(grade)];
 }
 export function storeGearSellPrice(g) { return g ? Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))) : 0; }
 E.storeBuyPrice = storeBuyPrice;
@@ -149,7 +163,7 @@ E.storeView = function (state) {
       gatherSecs: gs[x.itemId] == null ? null : gs[x.itemId] };
   });
   const sellPrices = {};
-  Object.keys(state.inv || {}).forEach((id) => { if (item(id)) sellPrices[id] = [0, 1, 2, 3, 4].map((g) => storeSellPrice(id, g)); });
+  Object.keys(state.inv || {}).forEach((id) => { if (item(id)) sellPrices[id] = storeSellLadder(id); });
   const gearSellPrices = {};
   arr(state.gear).forEach((g) => { gearSellPrices[g.uid] = storeGearSellPrice(g); });
   return { hour: st.hour, refreshesAt: (st.hour + 1) * HOUR_MS, slots,
@@ -169,10 +183,13 @@ E.storeBuy = function (state, slot, qty) {
   if (num(state.gold, 0) < cost) return fail(`That costs ${fmtGold(cost)} and you have ${fmtGold(Math.floor(num(state.gold, 0)))}.`);
   state.gold -= cost; x.sold += qty;
   const uids = [];
-  if (x.kind === 'gear') for (let k = 0; k < qty; k++) uids.push(makeGear(state, x.itemId, 0, GEAR_QUALITY).uid);
-  else addItem(state, x.itemId, x.grade, qty);
+  if (x.kind === 'gear') {
+    const got = [];
+    for (let k = 0; k < qty; k++) { const g = makeGear(state, x.itemId, 0, GEAR_QUALITY); uids.push(g.uid); got.push({ itemId: g.itemId, qty: 1, grade: gradeOf(g.quality), rarity: g.rarity, uid: g.uid }); }
+    emitGain('buy', got);
+  } else { addItem(state, x.itemId, x.grade, qty); emitGain('buy', [{ itemId: x.itemId, qty, grade: x.grade }]); }
   const gradeTxt = x.kind === 'gear' ? '' : ` (${(grades()[x.grade] || {}).name || 'Standard'})`;
-  pushEvent(state, 'gold', `Bought ${qty} ${itemName(x.itemId)}${gradeTxt} at the general store for ${fmtGold(cost)}.`, { itemId: x.itemId, qty, grade: x.kind === 'gear' ? null : x.grade, gold: -cost });
+  pushEvent(state, 'gold', `Bought ${qtyName(qty, x.itemId)}${gradeTxt} at the general store for ${fmtGold(cost)}.`, { itemId: x.itemId, qty, grade: x.kind === 'gear' ? null : x.grade, gold: -cost });
   return { ok: true, reason: '', qty, gold: cost, itemId: x.itemId, uids };
 };
 E.storeSell = function (state, itemId, grade, qty) {
@@ -186,7 +203,7 @@ E.storeSell = function (state, itemId, grade, qty) {
   if (have < qty) return fail(`You only have ${have} ${(grades()[grade] || {}).name || ''} ${lcFirst(it.name)}.`.replace(/\s+/g, ' '));
   const gold = storeSellPrice(itemId, grade) * qty;
   state.inv[itemId][grade] -= qty; cleanInv(state, itemId); state.gold = num(state.gold, 0) + gold;
-  pushEvent(state, 'gold', `Sold ${qty} ${it.name} (${(grades()[grade] || {}).name || 'Standard'}) to the general store for ${fmtGold(gold)}.`, { itemId, qty, grade, gold });
+  pushEvent(state, 'gold', `Sold ${qty} ${plural(it.name, qty)} (${(grades()[grade] || {}).name || 'Standard'}) to the general store for ${fmtGold(gold)}.`, { itemId, qty, grade, gold });
   return { ok: true, reason: '', qty, gold };
 };
 E.storeSellGear = function (state, uid) {
@@ -226,7 +243,7 @@ E.storeSellAll = function (state, itemId) {
   const qty = sold.reduce((a, x) => a + x.qty, 0); const gold = sold.reduce((a, x) => a + x.gold, 0);
   sold.forEach((x) => { state.inv[itemId][x.grade] -= x.qty; });
   cleanInv(state, itemId); state.gold = num(state.gold, 0) + gold;
-  pushEvent(state, 'gold', `Sold ${qty} ${it.name}${sold.length > 1 ? ' (all grades)' : ` (${(grades()[sold[0].grade] || {}).name || 'Standard'})`} to the general store for ${fmtGold(gold)}.`, { itemId, qty, gold });
+  pushEvent(state, 'gold', `Sold ${qty} ${plural(it.name, qty)}${sold.length > 1 ? ' (all grades)' : ` (${(grades()[sold[0].grade] || {}).name || 'Standard'})`} to the general store for ${fmtGold(gold)}.`, { itemId, qty, gold });
   return { ok: true, reason: '', qty, gold, grades: sold };
 };
 
@@ -236,5 +253,7 @@ E.derivedExtras = function (state) {
   return { store: E.storeView(state), events: E.events(state), raidPrep: E.raidPrep(state), gatherSecs: E.gatherSecs(state), codex: E.codex(state),
     // layout pass 2026-11-11
     lastRecapView: E.recapView(state), crewActivity: E.crewActivity(state), sellList: E.storeSellList(state),
-    disabledReasons: E.disabledReasons(state) };
+    disabledReasons: E.disabledReasons(state),
+    // juice pass 2026-11-12
+    maxMake: E.maxMake(state), readiness: E.raidReadiness(state), recentUnlocks: E.recentUnlocks(state), equipDeltas: E.equipDeltas(state) };
 };

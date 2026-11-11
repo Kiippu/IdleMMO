@@ -20,7 +20,7 @@ describe('new save created mid-raid', () => {
     expect(E.lastRecap(s)).toBeNull();
     expect(s.gold).toBe(gold0);
     expect(E.crewGold(s).total).toBe(treas0);
-    expect(s.crew.treasury.log.some((e: any) => e.kind === 'payout')).toBe(false);
+    expect(s.crew.treasury.log.some((e: any) => e.kind === 'payout' && !e.opening)).toBe(false);
     expect(s.crew.contracts.length).toBe(0); // no town contracts for a raid already under way
     // next week: contracts posted, and that raid resolves normally
     h.setNow(SUNDAY_1845 + DAY); E.tick(s, 1);

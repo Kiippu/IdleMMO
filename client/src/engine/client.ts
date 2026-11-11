@@ -65,7 +65,10 @@ export async function initEngineClient(): Promise<void> {
 }
 
 export const engineClient = {
-  start: (actionId: string) => rpc<void>({ id: nextId(), type: 'start', actionId }),
+  /** count = reps to run, then the job stops with { type: 'stopped', done: true }; null/undefined = keep going */
+  start: (actionId: string, count?: number | null) => rpc<void>({ id: nextId(), type: 'start', actionId, count: count ?? null }),
+  /** hide these from derived.extras.recentUnlocks for good (saved) */
+  dismissUnlocks: (actionIds: string[]) => rpc<{ ok: boolean; reason: string; dismissed: number }>({ id: nextId(), type: 'dismissUnlocks', actionIds }),
   stop: () => rpc<void>({ id: nextId(), type: 'stop' }),
   pause: () => rpc<void>({ id: nextId(), type: 'pause' }),
   resume: async () => {

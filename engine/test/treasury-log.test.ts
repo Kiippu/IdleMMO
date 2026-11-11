@@ -44,12 +44,12 @@ describe('treasury log covers every movement', () => {
     const g0 = E.crewGold(s);
     s.gold = 100;
     const id = E.postCrewRequest(s, { itemId: 'bread', qty: 5, rewardPer: 2 }).contract.id;
-    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'contract-escrow', delta: 0, gold: 10, paidBy: 'You' });
+    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'escrow', delta: 0, gold: 10, paidBy: 'You' });
     expect(E.crewGold(s)).toEqual(g0); // a player-funded request doesn't touch the treasury
     expect(E.cancelCrewRequest(s, id).ok).toBe(true);
-    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'contract-release', delta: 0, gold: 10, paidBy: 'You' });
+    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'release', delta: 0, gold: 10, paidBy: 'You' });
     expect(s.gold).toBe(100);
-    expect(s.crew.treasury.log.filter((e: any) => e.kind === 'contract-escrow' && e.paidBy === 'Treasury').length).toBeGreaterThan(0);
+    expect(s.crew.treasury.log.filter((e: any) => e.kind === 'escrow' && e.paidBy === 'Treasury').length).toBeGreaterThan(0);
     // the log replays to the current split: sum of escrowDelta == escrowed
     const esc = s.crew.treasury.log.reduce((a: number, e: any) => a + (e.escrowDelta || 0), 0);
     expect(esc).toBe(E.crewGold(s).escrowed);
@@ -58,7 +58,9 @@ describe('treasury log covers every movement', () => {
   it('raid payout and raid stock used are logged; the summed log matches the treasury', async () => {
     const h = await freshEngine();
     const s = h.E.newState();
-    const start = h.E.crewGold(s).total; // 120 starting treasury predates the log
+    // the crew's starting treasury is logged too (opening "Last weekend's raid payout" entry, 2026-11-12)
+    expect(s.crew.treasury.log.find((e: any) => e.opening)).toMatchObject({ kind: 'payout', delta: h.mod.DATA.config.crewStartTreasury });
+    const start = 0; // so the summed log alone replays the treasury
     s.crew.vault.inv.bread = [0, 40, 0, 0, 0];
     s.crew.members.forEach((m: any) => { m.food = 0; }); // crew must eat from stock
     resolveRaidByClock(h, s);

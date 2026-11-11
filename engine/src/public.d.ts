@@ -63,7 +63,9 @@ export interface CrewRequestSpec { itemId: string; qty: number; rewardPer: numbe
 export interface PostCrewRequestResult { ok: boolean; reason: string; contract?: Contract; escrow?: number }
 export interface CancelCrewRequestResult { ok: boolean; reason: string; refunded: number }
 export interface CrewGold { free: number; escrowed: number; total: number }
-export type TreasuryLogKind = 'payout' | 'contract' | 'contract-escrow' | 'contract-release' | 'release'
+/** escrow/release = gold moved into/out of contract escrow (reserved, not spent: show it neutral);
+ *  contract = a contract paid a filler; payout = raid gold in (opening entry carries `opening: true`). */
+export type TreasuryLogKind = 'payout' | 'contract' | 'escrow' | 'release'
   | 'deposit' | 'withdraw' | 'raid-stock';
 export interface TreasuryLogEntry {
   /** game-clock time in ms (legacy `at` is normalised to `t` on load) */
@@ -302,7 +304,7 @@ export interface OfflineSummary {
   /** itemId → qty from actions (raid loot is not in here; see loot) */
   items: Record<string, number>;
   xp: Record<string, number>; gold: number; crafts: Record<string, number>; kills: number;
-  stoppedReason: string | null; assisted: number; tips: number; raids: string[]; weeks: number;
+  stoppedReason: string | null; /** true when the job stopped because it finished its count */ stoppedDone?: boolean; assisted: number; tips: number; raids: string[]; weeks: number;
   /** sorted by levels gained, then XP */
   skills: ReturnSkillLine[];
   /** rarest item gained, ties by unit value; null when nothing was gained */
@@ -417,6 +419,24 @@ export interface LoadSaveResult { /** null unless status is 'ok' */ state: any |
 
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */
 export const Engine: any;
+
+// ---- Juice pass 2026-11-12 (docs/juice-pass-contract.md; save stays v7, new fields additive)
+// Quantity jobs: E.start(state, actionId, count?) — count reps then { type: 'stopped', reason, done: true }
+//   (reason e.g. "Made 10 Copper bars.", "Gathered 40 Copper ore.", "Defeated 10 Mangy wolves."). state.active
+//   gains left / count / got; no `left` = unlimited. Offline catch-up respects it (summary.stoppedDone).
+//   E.maxMake(state) → Record<actionId, number | null> (null = needs no inputs).
+// Gain events: { type: 'gain', source, items: [{ itemId, qty, grade?, rarity, uid? }], offline?: true } — appended
+//   to E.tick's events; gains from verbs (storeBuy, salvage) and E.applyOffline are queued: E.takeEvents() drains.
+// Readiness: E.raidReadiness(state) → { req, power: { guardian, mender, striker }, bestRole, best, ok, tips }.
+// E.equipDeltas(state) → Record<uid, { hp, atk, def, heal, power, speed, elements }> (unequipped bag gear).
+// Recently unlocked: E.recentUnlocks(state) → actionId[]; E.dismissUnlocks(state, ids) → { ok, reason, dismissed };
+//   state.seenUnlocks (additive; seeded on load for saves made before it).
+// Grades: E.gradeName(i), E.gradeAtLeast(i) ('Any grade', 'Standard+', ..., 'Pristine') from DATA.grades.
+//   Store prices step >= 1g per grade (E.storeSellPrice / E.storeBuyPrice), never below value x mult.
+// Crew: E.crewJobs()[i].reward { xp, skill, gold (tip per assisted rep), items: [] }, etaSec whole seconds >= 1
+//   while work is left; E.crewMembers()[i].npc. Treasury log kinds: escrow / release (was contract-escrow /
+//   contract-release); a new crew's opening payout is logged (opening: true).
+// Max HP: equip/unequip/loadout/repair raise current HP by any max-HP gain; a drop clamps.
 
 /** Configure the injected context and return the engine. One engine per JS realm. */
 export function createEngine(opts: Partial<EngineContext>): any;

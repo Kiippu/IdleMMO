@@ -70,7 +70,7 @@ describe('town contracts', () => {
     expect(r).toMatchObject({ ok: true, accepted: 2, gold: 2 * k.rewardPer, status: 'closed' });
     expect(invTotal(s.inv, k.itemId)).toBe(3); // never takes items it can't pay for
     expect(k.escrow).toBe(0);
-    expect(s.crew.treasury.log.some((e: any) => e.kind === 'contract-release' && e.escrowDelta === -1)).toBe(true);
+    expect(s.crew.treasury.log.some((e: any) => e.kind === 'release' && e.escrowDelta === -1)).toBe(true);
     expect(E.fillContract(s, k.id, 1).ok).toBe(false);
     expect(s.crew.treasury.gold).toBeGreaterThanOrEqual(0);
   });
@@ -139,7 +139,7 @@ describe('crew requests (player-posted)', () => {
     expect(r.contract).toMatchObject({ source: 'crew', payer: 'player', postedBy: 'You', escrow: 30, qty: 10, rewardPer: 3 });
     expect(s.gold).toBe(70);
     expect(E.crewGold(s)).toEqual(crew0); // treasury untouched
-    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'contract-escrow', delta: 0, gold: 30, paidBy: 'You' });
+    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'escrow', delta: 0, gold: 30, paidBy: 'You' });
     const row = E.listContracts(s).find((k: any) => k.id === r.contract.id);
     expect(row).toMatchObject({ mine: true, canCancel: true, paidBy: 'You' });
     expect(row.canFill.ok).toBe(false);
@@ -147,7 +147,7 @@ describe('crew requests (player-posted)', () => {
     const c = E.cancelCrewRequest(s, r.contract.id);
     expect(c).toMatchObject({ ok: true, refunded: 30 });
     expect(s.gold).toBe(100);
-    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'contract-release', gold: 30, paidBy: 'You' });
+    expect(s.crew.treasury.log[0]).toMatchObject({ kind: 'release', gold: 30, paidBy: 'You' });
     expect(E.cancelCrewRequest(s, r.contract.id).ok).toBe(false);
   });
 

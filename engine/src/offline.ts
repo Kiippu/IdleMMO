@@ -4,7 +4,8 @@
 /* eslint-disable */
 import { ctx } from './context';
 import { E, OFFLINE_MAX_COMPLETIONS, MARKET_REFRESH_SEC, num, cfg, action, clamp, flags, fmtGold } from './core';
-import { completeOnce } from './actions';
+import { completeOnce, countRep, mainOutput } from './actions';
+import { beginOfflineGains, endOfflineGains, emitGain } from './gains';
 import { crewStep } from './crew-assist';
 import { marketFills } from './tick';
 import { processClock } from './weekly';
@@ -15,7 +16,7 @@ import { addXp, rawSkillLevel, beginLevelBatch, endLevelBatch } from './skills';
 import { addItem } from './inventory';
 import { ensureStore } from './store';
 import { sweepSeen } from './codex';
-import { itemName } from './core';
+import { itemName, plural } from './core';
 import { levelSnapshot, newReturnAcc, feedReturnAcc, buildReturn } from './return-summary';
 
 // ---------------------------------------------------------------- offline
@@ -30,26 +31,38 @@ export const OFFLINE_CHUNK_SEC = 3600;
 const CREW_FINE_SEC = 12 * 3600; // crew/economy step 5s for the first 12h, 60s after
 function bulkGather(state, act, secs, sample, carry, events) {
   const xpRep = num(act.xp, 0) * num(cfg().xpMult, 1); let reps = 0;
-  for (let guard = 0; guard < 400 && secs > 0; guard++) {
+  const a = state.active; const main = mainOutput(act);
+  for (let guard = 0; guard < 400 && secs > 0 && state.active === a; guard++) {
     const t = E.actionTime(state, act.id); if (!(t > 0) || !isFinite(t)) break;
     const raw = rawSkillLevel(state, act.skill); const max = Math.max(1, num(cfg().maxLevel, 99));
     const toNext = raw >= max || !(xpRep > 0) ? Infinity : Math.max(1, Math.ceil((E.xpForLevel(raw + 1) - num(state.skills[act.skill].xp, 0)) / xpRep));
-    const n = Math.min(Math.floor(secs / t), toNext); if (n < 1) break;
+    // a quantity job (state.active.left) never runs past its count
+    const cap = a && a.left != null ? Math.max(0, Math.floor(num(a.left, 0))) : Infinity;
+    const n = Math.min(Math.floor(secs / t), toNext, cap); if (n < 1) break;
     secs -= n * t; reps += n;
+    let gotMain = 0; const got = [];
     Object.keys(sample.items).forEach((key) => {
       const exact = sample.items[key] / Math.max(1, sample.n) * n + num(carry[key], 0);
       const q = Math.floor(exact); carry[key] = exact - q; if (q < 1) return;
       const [id, g] = key.split('|'); addItem(state, id, Number(g), q);
+      if (id === main) gotMain += q;
+      got.push({ itemId: id, grade: Number(g), qty: q });
       events.push({ type: 'complete', actionId: act.id, kind: act.kind, items: [{ itemId: id, grade: Number(g), qty: q }], xp: 0 });
     });
+    emitGain('gather', got);
     state.mastery[act.id] = num(state.mastery[act.id], 0) + n;
     addXp(state, act.skill, xpRep * n, events);
+    if (a && a.left != null) {
+      // count the whole bulk step: all but the last rep here, the last one through countRep (ends the job at 0)
+      a.left = Math.max(1, Math.floor(num(a.left, 0)) - (n - 1)); a.got = num(a.got, 0) + gotMain;
+      countRep(state, act, events, 0);
+    }
   }
   return { left: secs, reps };
 }
 E.applyOffline = function (state, nowMs) {
   const now = num(nowMs, ctx.now());
-  const summary = { items: {}, xp: {}, gold: 0, crafts: {}, kills: 0, stoppedReason: null, assisted: 0, tips: 0, raids: [], weeks: 0,
+  const summary = { items: {}, xp: {}, gold: 0, crafts: {}, kills: 0, stoppedReason: null, stoppedDone: false, assisted: 0, tips: 0, raids: [], weeks: 0,
     // return moment (2026-11-11 layout pass): see return-summary.ts
     skills: [], bestFind: null, loot: [], goldBySource: [] };
   const last = num(state.lastSeen, now);
@@ -57,6 +70,7 @@ E.applyOffline = function (state, nowMs) {
   const seconds = clamp((now - last) / 1000, 0, capSec > 0 ? capSec : Infinity);
   state.lastSeen = now;
   if (seconds < 1) { const cev = []; processClock(state, cev); summary.raids = cev.filter((e) => e.type === 'raidResolved').map((e) => e.recapId); return { seconds: 0, summary }; }
+  const ownGains = beginOfflineGains(); // gain events from the catch-up: aggregated, offline: true
   const gold0 = state.gold; const xp0 = {};
   const lv0 = levelSnapshot(state); const racc = newReturnAcc();
   Object.keys(state.skills).forEach((k) => { xp0[k] = num(state.skills[k].xp, 0); });
@@ -69,7 +83,7 @@ E.applyOffline = function (state, nowMs) {
     else if (e.type === 'craft') summary.crafts[e.rarity] = (summary.crafts[e.rarity] || 0) + 1;
     else if (e.type === 'kill') summary.kills++;
     else if (e.type === 'faint') summary.stoppedReason = 'You fainted.';
-    else if (e.type === 'stopped') summary.stoppedReason = e.reason;
+    else if (e.type === 'stopped') { summary.stoppedReason = e.reason; summary.stoppedDone = !!e.done; }
     else if (e.type === 'assist') { summary.assisted++; if (e.rarity) summary.crafts[e.rarity] = (summary.crafts[e.rarity] || 0) + 1; }
     else if (e.type === 'jobDone') summary.tips += e.tip;
     else if (e.type === 'raidResolved') summary.raids.push(e.recapId);
@@ -129,7 +143,7 @@ E.applyOffline = function (state, nowMs) {
     else if (!state.active || act.kind !== 'combat') state.hp = Math.min(ps.maxHp, state.hp + ps.maxHp * 0.01 * (state.active ? seconds : restSec));
     ensureStore(state); sweepSeen(state);
     summary.weeks = state.week - wk0;
-  } finally { ctx.now = realNow; flags.quiet = false; endLevelBatch(state); }
+  } finally { ctx.now = realNow; flags.quiet = false; endLevelBatch(state); if (ownGains) endOfflineGains(); }
   summary.gold = Math.round(state.gold - gold0);
   Object.keys(state.skills).forEach((k) => { const d = num(state.skills[k].xp, 0) - num(xp0[k], 0); if (d > 0) summary.xp[k] = d; });
   Object.assign(summary, buildReturn(state, racc, lv0, summary.xp, summary.gold));
@@ -138,7 +152,7 @@ E.applyOffline = function (state, nowMs) {
   // event log: one line per item gained, plus the gold, stamped with the catch-up time
   if ((nItems as number) > 0 || summary.gold) pushEvent(state, 'loot', `While you were away (${E.fmtTime(seconds)}): ${E.fmt(nItems)} items${summary.gold ? `, ${summary.gold > 0 ? '+' : ''}${fmtGold(summary.gold)}` : ''}.`, summary.gold ? { gold: summary.gold } : {});
   if (summary.assisted) pushEvent(state, 'crew', `While away you helped your crew with ${summary.assisted} crafts${summary.tips ? `: +${fmtGold(summary.tips)} in tips` : ''}.`, summary.tips ? { gold: summary.tips } : {});
-  Object.keys(summary.items).forEach((id) => { const q = num(summary.items[id], 0); if (q > 0) pushEvent(state, 'loot', `While away: ${E.fmt(q)} ${itemName(id)}.`, { itemId: id, qty: q }); });
+  Object.keys(summary.items).forEach((id) => { const q = num(summary.items[id], 0); if (q > 0) pushEvent(state, 'loot', `While away: ${E.fmt(q)} ${plural(itemName(id), q)}.`, { itemId: id, qty: q }); });
   E.log(state, 'info', `While you were away (${E.fmtTime(seconds)}): ${E.fmt(nItems)} items, ${E.fmt(xpTot)} XP, ${fmtGold(summary.gold)}${summary.kills ? `, ${summary.kills} kills` : ''}${summary.assisted ? `, helped your crew with ${summary.assisted} crafts` : ''}.${summary.stoppedReason ? ' ' + summary.stoppedReason : ''}`);
   return { seconds: Math.floor(seconds), summary };
 };

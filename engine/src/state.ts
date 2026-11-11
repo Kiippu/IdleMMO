@@ -3,7 +3,7 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, SLOTS, LOG_CAP, D, arr, num, cfg, skillDefs, item, action, clamp, zeros5, gradeOf, rarityDef } from './core';
+import { E, SLOTS, LOG_CAP, D, arr, num, cfg, skillDefs, item, action, clamp, zeros5, gradeOf, rarityDef, grades } from './core';
 import { addItem } from './inventory';
 import { makeGear, clampHp } from './gear';
 import { isGearCraft } from './actions';
@@ -18,6 +18,7 @@ import { marketEnabled } from './market';
 import { ensureEvents } from './events';
 import { normStore } from './store';
 import { sweepSeen, seedSeen } from './codex';
+import { normSeenUnlocks, seedSeenUnlocks } from './unlocks';
 
 // ---------------------------------------------------------------- state lifecycle
 E.newState = function () {
@@ -34,7 +35,9 @@ E.newState = function () {
     // 2026-11-08 additive v6 fields: player event log (events.ts) and the NPC general store (store.ts)
     events: [], eventSeq: 0, store: null,
     // discovery (codex.ts, 2026-11-11): item ids the player has touched
-    seen: {}
+    seen: {},
+    // recently unlocked actions the player has dismissed (unlocks.ts, 2026-11-12)
+    seenUnlocks: {}
   };
   skillDefs().forEach((d) => { s.skills[d.id] = { xp: 0 }; });
   const st = D().starter || {};
@@ -112,6 +115,12 @@ export function migrate(raw) {
   if (out.active && raw.active.jobId) {
     if (out.crew.jobs.some((j) => j.id === raw.active.jobId)) out.active.jobId = raw.active.jobId; else out.active = null;
   }
+  // quantity jobs (additive, 2026-11-12): a save without `left` runs unlimited
+  if (out.active && !out.active.jobId && raw.active.left != null) {
+    const left = Math.floor(num(raw.active.left, 0));
+    if (left >= 1) { out.active.left = left; out.active.count = Math.max(left, Math.floor(num(raw.active.count, left))); out.active.got = Math.max(0, num(raw.active.got, 0)); }
+    else out.active = null; // a finished count never resumes
+  }
   out.settings = Object.assign({}, fresh.settings, raw.settings || {});
   const rm = raw.market || {};
   out.market = marketEnabled()
@@ -127,6 +136,10 @@ export function migrate(raw) {
   out.raid.bossHp = curRecord(out).hpLeft;
   clampHp(out);
   seedSeen(out, raw); // discovery: the save's seen list + what it owns now + its event history
+  // recently unlocked (additive, 2026-11-12): a save from before this field existed marks everything it
+  // has already unlocked as seen, so only unlocks gained from now on show up
+  out.seenUnlocks = raw.seenUnlocks && typeof raw.seenUnlocks === 'object' && !Array.isArray(raw.seenUnlocks)
+    ? normSeenUnlocks(raw.seenUnlocks) : seedSeenUnlocks(out);
   return out;
 }
 export const hasLS = () => ctx.storage != null;
@@ -166,6 +179,10 @@ E.SCHEMA = SCHEMA;
 
 // ---------------------------------------------------------------- extra helpers for the UI
 E.gradeOf = gradeOf;
+// The ONE grade ladder (DATA.grades): 0 Rough, 1 Standard, 2 Fine, 3 Superior, 4 Pristine. Every player-facing
+// grade name comes from here (client: client/src/engine/grades.ts reads the same list).
+E.gradeName = (i) => ((grades()[clamp(Math.floor(num(i, 1)), 0, grades().length - 1)] || {}).name || '');
+E.gradeAtLeast = (i) => { const k = clamp(Math.floor(num(i, 0)), 0, grades().length - 1); return k <= 0 ? 'Any grade' : k >= grades().length - 1 ? E.gradeName(k) : E.gradeName(k) + '+'; };
 E.item = item;
 E.action = action;
 E.isGearCraft = (actionId) => isGearCraft(action(actionId));

@@ -2,7 +2,8 @@
 // Ported from legacy/engine.js lines 406-667. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, SLOTS, ROLES, arr, num, cfg, rarities, masteryTiers, skillDefs, item, allActions, action, rand, clamp, randInt, lcFirst, article, itemName, qtyRange, gradeOf, gradeMid, gradeProcMult, logq } from './core';
+import { E, SLOTS, ROLES, arr, num, cfg, rarities, masteryTiers, skillDefs, item, allActions, action, rand, clamp, randInt, lcFirst, article, itemName, qtyRange, gradeOf, gradeMid, gradeProcMult, logq, plural } from './core';
+import { emitGain } from './gains';
 import { addXp } from './skills';
 import { addItem, consume, ownedOfKind } from './inventory';
 import { findGear, makeGear, autoEat } from './gear';
@@ -90,17 +91,60 @@ export function pouchBlock(state, act) {
   if (live && makesConsumable) return 'The raid is live and your pouch is sealed: no mid-raid crafting of food or potions.';
   return '';
 }
-E.start = function (state, actionId) {
+// Quantity jobs (juice pass 2026-11-12): start(state, actionId, count?) runs `count` reps and then stops
+// with { type: 'stopped', reason, done: true }. count null/undefined/<1 = keep going (until stopped or out
+// of inputs). state.active gains additive fields: left (reps still to do), count (asked for), got (main
+// output made so far, or kills). A save without `left` runs unlimited. When a job ends the slot stays
+// empty (owner decision: no auto-resume).
+export function normCount(count) {
+  const n = Math.floor(Number(count));
+  return isFinite(n) && n >= 1 ? Math.min(n, 1e6) : null;
+}
+E.start = function (state, actionId, count) {
   const act = action(actionId); let loadoutId = null;
   const bound = act && E.boundLoadout(state, act.skill);
   if (bound && E.skillLevel(state, act.skill) >= num(act.level, 1) && SLOTS.some((s) => bound.slots[s] && bound.slots[s] !== state.equipped[s] && findGear(state, bound.slots[s]))) {
     E.equipLoadout(state, bound.id); loadoutId = bound.id;
   }
   const c = E.canStart(state, actionId); if (!c.ok) return Object.assign(c, { loadoutId });
-  if (state.active && state.active.actionId === actionId && !state.active.jobId) return { ok: true, reason: '', loadoutId };
-  state.active = { actionId, progress: 0 };
+  const n = normCount(count);
+  if (state.active && state.active.actionId === actionId && !state.active.jobId) {
+    // same action again: keep its progress, take the new count
+    if (n) { state.active.left = n; state.active.count = n; state.active.got = 0; } else { delete state.active.left; delete state.active.count; delete state.active.got; }
+    return { ok: true, reason: '', loadoutId };
+  }
+  state.active = n ? { actionId, progress: 0, left: n, count: n, got: 0 } : { actionId, progress: 0 };
   if (loadoutId) E.log(state, 'info', `Equipped your ${bound.name} loadout for ${act.name}.`);
   return { ok: true, reason: '', loadoutId };
+};
+/** main output of an action (first output item), or null */
+export function mainOutput(act) { return Object.keys((act && act.outputs) || {}).find((id) => item(id)) || null; }
+/** "Made 10 Copper bars." / "Gathered 40 Copper ore." / "Defeated 10 Mangy wolves." */
+export function jobDoneText(act, got) {
+  const n = Math.max(0, Math.floor(num(got, 0)));
+  if (act.kind === 'combat') return `Defeated ${n} ${plural((act.enemy && act.enemy.name) || act.name, n)}.`;
+  const out = mainOutput(act); const name = out ? plural(itemName(out), n) : act.name;
+  return `${act.kind === 'gather' ? 'Gathered' : 'Made'} ${n} ${name}.`;
+}
+/** after one finished rep of the solo action: count it; at 0 left the job ends. Returns true if it ended. */
+export function countRep(state, act, events, gotNow) {
+  const a = state.active; if (!a || a.jobId || a.actionId !== act.id) return false;
+  if (a.left == null) return false;
+  a.got = num(a.got, 0) + Math.max(0, num(gotNow, 0));
+  a.left = Math.max(0, Math.floor(num(a.left, 0)) - 1);
+  if (a.left > 0) return false;
+  const reason = jobDoneText(act, a.got);
+  state.active = null;
+  events.push({ type: 'stopped', reason, done: true, actionId: act.id });
+  logq(state, 'info', reason);
+  const out = mainOutput(act);
+  pushEvent(state, 'loot', reason, act.kind !== 'combat' && out ? { itemId: out, qty: Math.floor(num(a.got, 0)) } : {});
+  return true;
+}
+E.maxMake = function (state) {
+  const out = {};
+  allActions().forEach((a) => { if (!a || !a.id) return; const m = E.maxRepeats(state, a.id); out[a.id] = isFinite(m) ? Math.max(0, m) : null; });
+  return out;
 };
 E.stop = function (state) { state.active = null; return { ok: true }; };
 E.setSetting = function (state, key, value) {
@@ -193,10 +237,13 @@ export function completeOnce(state, act, events) {
       addItem(state, b.item, g, q); items.push({ itemId: b.item, grade: g, qty: q });
     });
     if (!flags.quiet) items.forEach((i) => lootEvent(state, 'gather', i.itemId, i.qty, i.grade));
+    emitGain('gather', items);
     state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
     const xp = num(act.xp, 0) * xpMult;
     events.push({ type: 'complete', actionId: act.id, kind: act.kind, items, xp });
     addXp(state, act.skill, xp, events);
+    const main = mainOutput(act);
+    countRep(state, act, events, items.filter((i) => i.itemId === main).reduce((x, i) => x + i.qty, 0));
     return;
   }
   if (act.kind === 'refine' || act.kind === 'craft') {
@@ -230,7 +277,7 @@ export function completeOnce(state, act, events) {
           const g = makeGear(state, id, rIdx, quality);
           state.pity[act.id] = rIdx >= 2 ? 0 : pity + 1;
           const rn = rarities()[rIdx].name;
-          items.push({ itemId: id, grade, qty: 1, uid: g.uid });
+          items.push({ itemId: id, grade, qty: 1, uid: g.uid, rarity: g.rarity });
           events.push({ type: 'craft', actionId: act.id, gear: JSON.parse(JSON.stringify(g)), rarity: g.rarity, pityTriggered: forced });
           logq(state, 'craft', `Crafted ${article(rn)} ${rn} ${it.name}${forced ? ' (pity guarantee)' : ''}.`);
           if (!flags.quiet) pushEvent(state, 'loot', `Crafted ${article(rn)} ${rn} ${it.name}${forced ? ' (pity guarantee)' : ''}.`, { itemId: id, qty: 1, rarity: g.rarity });
@@ -240,10 +287,13 @@ export function completeOnce(state, act, events) {
         if (!flags.quiet) lootEvent(state, act.kind, id, q, grade);
       }
     });
+    emitGain(act.kind, items);
     state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
     const xp = num(act.xp, 0) * xpMult;
     events.push({ type: 'complete', actionId: act.id, kind: act.kind, items, xp });
     addXp(state, act.skill, xp, events);
+    const main = mainOutput(act);
+    if (countRep(state, act, events, items.filter((i) => i.itemId === main).reduce((x, i) => x + i.qty, 0))) return;
     if (state.active && E.maxRepeats(state, act.id) < 1) stopWith(missingReason(state, act));
     return;
   }
@@ -271,6 +321,7 @@ export function completeOnce(state, act, events) {
       addItem(state, d.item, g, q); drops.push({ itemId: d.item, grade: g, qty: q });
     });
     if (!flags.quiet) { drops.forEach((d) => lootEvent(state, 'combat', d.itemId, d.qty, d.grade)); goldEvent(state, 'combat:' + act.id, gold, `Gold from ${act.name}`); }
+    emitGain('combat', drops);
     state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
     const xp = num(act.xp, 0) * xpMult;
     const role = ROLES.includes(act.skill) ? act.skill : 'striker';
@@ -278,6 +329,7 @@ export function completeOnce(state, act, events) {
     events.push({ type: 'complete', actionId: act.id, kind: act.kind, items: drops, xp });
     addXp(state, role, xp, events);
     autoEat(state, events, 0.5, E.playerStats(state).maxHp);
+    countRep(state, act, events, 1);
     return;
   }
   stopWith('This action cannot be repeated.');

@@ -6,7 +6,7 @@
 // Newest first, capped at EVENT_CAP. Repeated gains of the same item (or gold from the same source)
 // within EVENT_MERGE_MS are merged into one line so idle loops don't flood the sheet.
 /* eslint-disable */
-import { E, arr, num, itemName, fmtGold } from './core';
+import { E, arr, num, itemName, fmtGold, qtyName } from './core';
 import { nowOf } from './clock';
 
 export const EVENT_CAP = 200;
@@ -62,8 +62,8 @@ const VERB = { gather: 'Gathered', refine: 'Made', craft: 'Made', combat: 'Loote
 export function lootEvent(state, source, itemId, qty, grade?) {
   if (!(qty > 0)) return;
   const verb = VERB[source] || 'Got';
-  pushEvent(state, 'loot', `${verb} ${qty} ${itemName(itemId)}.`, { itemId, qty, grade }, source,
-    (e) => `${verb} ${e.qty} ${itemName(itemId)}.`);
+  pushEvent(state, 'loot', `${verb} ${qtyName(qty, itemId)}.`, { itemId, qty, grade }, source,
+    (e) => `${verb} ${qtyName(e.qty, itemId)}.`);
 }
 /** gold gain/loss from a repeating source (merged per source) */
 export function goldEvent(state, source, gold, label) {

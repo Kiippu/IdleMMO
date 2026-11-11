@@ -152,7 +152,9 @@ describe('general store', () => {
     const s = E.newState(); s.gold = 1e6;
     const v = E.storeView(s);
     const res = v.slots.find((x: any) => x.kind === 'resource');
-    expect(res.price).toBe(Math.ceil(E.itemValue(res.itemId, res.grade) * mod.ECON.storeResourceMult));
+    // grade price ladder (2026-11-12): never below value x mult, and each grade at least 1g above the one below
+    expect(res.price).toBe(E.storeBuyPrice(res.itemId, res.grade));
+    expect(res.price).toBeGreaterThanOrEqual(Math.ceil(E.itemValue(res.itemId, res.grade) * mod.ECON.storeResourceMult));
     const have0 = (s.inv[res.itemId] || [0, 0, 0, 0, 0])[res.grade];
     const g0 = s.gold;
     const r = E.storeBuy(s, res.slot, 2);
@@ -175,7 +177,8 @@ describe('general store', () => {
 
     // sell: stackables by grade, gear by uid; equipped gear refused; never above the buy price
     const sp = E.storeView(s).sellPrices[res.itemId][res.grade];
-    expect(sp).toBe(Math.max(1, Math.round(E.itemValue(res.itemId, res.grade) * mod.ECON.storeSellMult)));
+    expect(sp).toBe(E.storeSellPrice(res.itemId, res.grade));
+    expect(sp).toBeGreaterThanOrEqual(Math.max(1, Math.round(E.itemValue(res.itemId, res.grade) * mod.ECON.storeSellMult)));
     expect(sp).toBeLessThan(res.price);
     const g1 = s.gold;
     expect(E.storeSell(s, res.itemId, res.grade, 3)).toMatchObject({ ok: true, qty: 3, gold: 3 * sp });

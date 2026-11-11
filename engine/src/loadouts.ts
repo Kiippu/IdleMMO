@@ -4,7 +4,7 @@
 /* eslint-disable */
 import { ctx } from './context';
 import { E, SLOTS, arr, num, item, lcFirst, nextId } from './core';
-import { findGear, clampHp } from './gear';
+import { findGear, gearHp } from './gear';
 import { tagDefs } from './v4-helpers';
 import { statsFor, powersOf, slotsOf, TAG_PHRASE, tagUnit, tagIds, slotsTags, tagScore } from './stats';
 import { findVaultGear } from './crew-economy';
@@ -44,13 +44,13 @@ E.deleteLoadout = function (state, id) {
 };
 E.equipLoadout = function (state, id) {
   const l = E.loadout(state, id); if (!l) return { ok: false, reason: 'That loadout is gone.', missing: [], equipped: 0 };
-  const missing = []; let n = 0;
+  const missing = []; let n = 0; const max0 = E.playerStats(state).maxHp;
   SLOTS.forEach((s) => {
     const u = l.slots[s];
     if (!u) return;
     if (findGear(state, u)) { state.equipped[s] = u; n++; } else missing.push(s);
   });
-  clampHp(state);
+  gearHp(state, max0);
   return { ok: true, reason: missing.length ? `Missing: ${missing.join(', ')}.` : '', missing, equipped: n };
 };
 E.autoBuild = function (state, tag, opts) {

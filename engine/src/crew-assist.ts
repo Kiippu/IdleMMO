@@ -3,7 +3,7 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, rand, clamp, randInt, pick, shuffle, nextId, gradeOf, rarityIdx, rarityDef, logq, fmtGold, flags, itemName } from './core';
+import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, rand, clamp, randInt, pick, shuffle, nextId, gradeOf, rarityIdx, rarityDef, logq, fmtGold, flags, itemName, qtyName } from './core';
 import { pushEvent } from './events';
 import { addXp } from './skills';
 import { rarityOdds } from './actions';
@@ -94,17 +94,21 @@ export function jobCraft(state, job, act, helping, events) {
   if (!helping) return;
   job.assisted++;
   state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
-  const xp = num(act.xp, 0) * num(cfg().xpMult, 1) * 0.75;
+  const xp = assistXp(act);
   events.push({ type: 'assist', jobId: job.id, owner: job.owner, actionId: act.id, xp, items: it ? [{ itemId: outId, grade, qty: q }] : [], rarity });
   addXp(state, act.skill, xp, events);
-  if (!flags.quiet) pushEvent(state, 'crew', `Helped ${job.owner} make 1 ${itemName(outId)}.`, { itemId: outId, qty: 1 }, 'assist:' + job.id,
-    (e) => `Helped ${job.owner} make ${e.qty} ${itemName(outId)}.`);
+  if (!flags.quiet) pushEvent(state, 'crew', `Helped ${job.owner} make ${qtyName(1, outId)}.`, { itemId: outId, qty: 1 }, 'assist:' + job.id,
+    (e) => `Helped ${job.owner} make ${qtyName(e.qty, outId)}.`);
   if (rarity && rarityIdx(rarity) >= 2) logq(state, 'craft', `${job.owner}'s ${it.name} came out ${rarityDef(rarity).name}. You helped!`);
 }
+/** a crewmate's tip for one assisted rep, paid (rounded, summed) when the job finishes */
+export const tipPerRep = (outId) => E.itemValue(outId, 1) * 0.15;
+/** XP for one assisted rep */
+export const assistXp = (act) => num(act.xp, 0) * num(cfg().xpMult, 1) * 0.75;
 export function finishJob(state, job, act, events) {
   state.crew.jobs = state.crew.jobs.filter((j) => j !== job);
   const outId = jobOutput(act);
-  const tip = job.assisted > 0 ? Math.round(E.itemValue(outId, 1) * 0.15 * job.assisted) : 0;
+  const tip = job.assisted > 0 ? Math.round(tipPerRep(outId) * job.assisted) : 0;
   if (job.assisted > 0) {
     state.gold += tip;
     events.push({ type: 'jobDone', jobId: job.id, owner: job.owner, actionId: act.id, tip, assisted: job.assisted });
@@ -137,7 +141,9 @@ export function crewStep(state, dt, events, playerMult) {
       continue;
     }
     const helping = !!(state.active && state.active.jobId === job.id);
-    const rate = ownerRate(act) + (helping ? playerRate(state, act) * playerMult : 0);
+    let rate = ownerRate(act) + (helping ? playerRate(state, act) * num(playerMult, 1) : 0);
+    if (!(rate > 0) || !isFinite(rate)) rate = ownerRate(act); // never let a bad rate freeze a job
+    job.qty = Math.max(1, Math.floor(num(job.qty, 1))); job.done = clamp(Math.floor(num(job.done, 0)), 0, job.qty);
     job.progress = num(job.progress, 0) + dt * rate;
     let guard = 0;
     while (job.progress >= 1 && job.done < job.qty && guard++ < 1000) { job.progress -= 1; job.done++; jobCraft(state, job, act, helping, events); }
@@ -170,8 +176,14 @@ E.crewJobs = function (state) {
     const assisting = !!(a && a.jobId === job.id);
     const rate = ownerRate(act) + (assisting ? playerRate(state, act) : 0);
     const left = Math.max(0, job.qty - job.done - num(job.progress, 0));
+    // whole seconds, rounded UP: a job with work left never reads "0s" (it finishes on the next tick)
+    const etaSec = left > 0 ? Math.max(1, Math.ceil(left / rate)) : 0;
+    const outId = jobOutput(act);
+    // what ONE assisted rep gives you: XP in the job's skill + the tip share (paid, rounded, when the job
+    // finishes). Assisting gives no items: what you help make is the crewmate's.
+    const reward = { xp: assistXp(act), skill: act.skill, gold: Math.round(tipPerRep(outId) * 100) / 100, items: [] };
     return Object.assign({}, job, { rarities: Object.assign({}, job.rarities), action: act, skill: act.skill, station: E.station(act.skill),
-      canAssist: E.canAssist(state, job.id), assisting, etaSec: left / rate, outputItemId: jobOutput(act) });
+      canAssist: E.canAssist(state, job.id), assisting, etaSec, outputItemId: outId, reward });
   }).filter(Boolean);
 };
 E.activeInfo = function (state) {

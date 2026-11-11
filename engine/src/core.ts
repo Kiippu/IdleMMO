@@ -100,6 +100,26 @@ export const shuffle = (list) => { const l = list.slice(); for (let i = l.length
 export const lcFirst = (s) => (s ? s[0].toLowerCase() + s.slice(1) : s);
 export const article = (w) => (/^[aeiou]/i.test(w || '') ? 'an' : 'a');
 export const itemName = (id) => (item(id) ? item(id).name : id);
+// Plurals for player-facing text ("12 Copper bars", "3 Rubies", "40 Copper ore"). Works on the last word;
+// mass nouns stay as they are, names that are already plural ("Leather breeches") too.
+const MASS = new Set(['ore', 'coal', 'resin', 'grain', 'bloodmoss', 'trout', 'salmon', 'silk', 'essence', 'leather', 'drakeskin',
+  'thread', 'cloth', 'canvas', 'moonweave', 'silver', 'bread', 'varnish', 'broth', 'chainmail', 'armour', 'gold', 'xp']);
+const IRREGULAR = { leaf: 'leaves', staff: 'staves', lens: 'lenses', aegis: 'aegises', wolf: 'wolves' };
+export function plural(name, qty?) {
+  const s = String(name == null ? '' : name);
+  if (qty === 1 || !s) return s;
+  const m = /^(.*?)([A-Za-z'-]+)$/.exec(s); if (!m) return s;
+  const [, head, word] = m; const w = word.toLowerCase();
+  const keepCase = (p) => (word[0] === word[0].toUpperCase() ? p[0].toUpperCase() + p.slice(1) : p);
+  if (MASS.has(w)) return s;
+  if (IRREGULAR[w]) return head + keepCase(IRREGULAR[w]);
+  if (/(ss|x|ch|sh|z)$/.test(w)) return s + 'es';
+  if (/s$/.test(w)) return s; // already plural (breeches, leggings, salts)
+  if (/[^aeiou]y$/.test(w)) return s.slice(0, -1) + 'ies';
+  return s + 's';
+}
+/** "12 Copper bars", "1 Copper bar" */
+export const qtyName = (qty, id) => `${qty} ${plural(itemName(id), qty)}`;
 export const qtyRange = (q) => (Array.isArray(q) ? randInt(num(q[0], 1), num(q[1], num(q[0], 1))) : Math.max(1, Math.round(num(q, 1))));
 export const qtyAvg = (q) => (Array.isArray(q) ? (num(q[0], 1) + num(q[1], num(q[0], 1))) / 2 : num(q, 1));
 export const zeros5 = () => [0, 0, 0, 0, 0];

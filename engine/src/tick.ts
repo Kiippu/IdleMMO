@@ -2,7 +2,7 @@
 // Ported from legacy/engine.js lines 852-906. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, TICK_MAX_COMPLETIONS, MARKET_REFRESH_SEC, arr, num, cfg, grades, action, rand, clamp, itemName, logq, fmtGold } from './core';
+import { E, TICK_MAX_COMPLETIONS, MARKET_REFRESH_SEC, arr, num, cfg, grades, action, rand, clamp, itemName, logq, fmtGold, qtyName } from './core';
 import { pouchBlock, completeOnce } from './actions';
 import { crewStep } from './crew-assist';
 import { processClock } from './weekly';
@@ -11,6 +11,7 @@ import { marketEnabled } from './market';
 import { ensureStore } from './store';
 import { sweepSeen } from './codex';
 import { beginLevelBatch, endLevelBatch } from './skills';
+import { takeGains } from './gains';
 
 // ---------------------------------------------------------------- tick
 export function advanceAction(state, dt, events, maxN) {
@@ -41,7 +42,7 @@ export function marketFills(state, dt, events) {
     const gold = Math.round(l.price * units * (1 - tax));
     l.qty -= units; state.gold += gold;
     events.push({ type: 'sold', itemId: l.itemId, grade: l.grade, qty: units, gold });
-    logq(state, 'market', `Sold ${units} ${itemName(l.itemId)} (${(grades()[l.grade] || {}).name || 'Standard'}) for ${fmtGold(gold)} after tax.`);
+    logq(state, 'market', `Sold ${qtyName(units, l.itemId)} (${(grades()[l.grade] || {}).name || 'Standard'}) for ${fmtGold(gold)} after tax.`);
     if (l.qty <= 0) mine.splice(i, 1);
   }
 }
@@ -51,6 +52,7 @@ E.tick = function (state, dtSec, opts) {
   const dt = clamp(num(dtSec, 0), 0, 86400); if (dt <= 0) return events;
   beginLevelBatch();
   try { tickBody(state, dt, opts, events); } finally { endLevelBatch(state); }
+  takeGains().forEach((g) => events.push(g)); // gain events (gains.ts), incl. any queued by verbs since the last tick
   return events;
 };
 function tickBody(state, dt, opts, events) {
