@@ -150,11 +150,21 @@ describe('raid recap view', () => {
     expect(v.pay).toMatchObject({ gold: 900, turnoutPay: 900, contributionPay: 0, capCut: 0, hasSplit: false, pointShare: null });
     expect(v.chestLoot).toEqual([{ itemId: 'coal', name: 'Coal', qty: 5, rarity: expect.any(String) }]);
     expect(v.hints.map((x: any) => x.kind)).toEqual(['survive', 'tier', 'crew']);
-    expect(v.hints[2].text).toContain('Contracts');
+    expect(v.hints[1].text).toBe('Take part in more checks next weekend to reach Bronze.');
+    expect(v.hints[2].text).toBe('The crew was short: healing ran dry by wave 2. Hand in Mint tonic on Contracts.');
+    for (const x of v.hints) expect(x.text).not.toMatch(/\d\.\d{2,}%/);
+    expect(v.tierLabel).toBe('No tier yet');
+    s.raid.recaps[0].contribution.weekShare = 0.0025; // a quarter of the way to Bronze
+    expect(h.E.recapView(s).hints[1].text).toBe('Help fill more checks next weekend to reach Bronze (you got 25% of the way there).');
     s.raid.recaps[0].payout.split = { floor: 1000, byContribution: 3000, pointShare: 0.4, uncapped: 4000, cap: 2500, cutToTreasury: 1500 };
     s.raid.recaps[0].payout.gold = 2500;
     const v2 = h.E.recapView(s);
     expect(v2.pay).toMatchObject({ turnoutPay: 1000, contributionPay: 3000, capCut: 1500, capped: true, gold: 2500, pointShareText: '40%' });
+    s.raid.recaps[0].payout.crewContribution = 0.77;
+    const v3 = h.E.recapView(s);
+    expect(v3.pay.crewContribution).toBe(0.77);
+    expect(v3.pay.crewContributionText).toBe('Crew filled 77% of what the raid needed');
+    expect(v3.pay.pointShareLabel).toBe("Your part of the crew's points: 40%");
   });
 
   it('a player who sat out gets the join hint', async () => {
@@ -162,6 +172,7 @@ describe('raid recap view', () => {
     const s = h.E.newState();
     s.raid.recaps = [{ id: 'R2', week: 1, joined: false, payout: { gold: 0 } }];
     expect(h.E.recapView(s).nextWeekHint.kind).toBe('join');
+    expect(h.E.recapView(s).tierLabel).toBe('Sat out');
     s.raid.recaps = [];
     expect(h.E.recapView(s)).toBeNull();
   });

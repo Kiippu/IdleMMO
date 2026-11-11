@@ -2,7 +2,7 @@
 // screen can show turnout pay and contribution pay as separate numbers (with any cap overflow to the
 // treasury), the chest loot as item ids + qty, and one plain "what to do next week" hint.
 /* eslint-disable */
-import { E, arr, num, item, itemName } from './core';
+import { E, arr, num, item, itemName, lcFirst } from './core';
 import { ECON } from './data';
 import { TIER_NAME, CHECK_LABEL } from './v4-helpers';
 
@@ -38,6 +38,11 @@ export function recapView(recap) {
     pool: Math.round(num(p.pool, 0)), poolCapped: !!p.capped,
     /** all gold the treasury got from this raid: its pool share + capCut */
     crewTreasury, treasuryShare: Math.max(0, crewTreasury - capCut),
+    /** the CREW's fill of what the raid needed (0..1; scales the pool). Different thing from pointShare. */
+    crewContribution: num(p.crewContribution != null ? p.crewContribution : p.contribution, 0),
+    /** label pair for the two percentages, so they don't read as contradictory */
+    crewContributionText: `Crew filled ${pctText(num(p.crewContribution != null ? p.crewContribution : p.contribution, 0))} of what the raid needed`,
+    pointShareLabel: sp ? `Your part of the crew's points: ${pctText(sp.pointShare)}` : null,
     hasSplit: !!sp,
   };
   const chests = arr(p.chests).map((c) => ({ at: num(c.at, 0), items: groupItems(c.items) }));
@@ -52,14 +57,23 @@ export function recapView(recap) {
     if (num(recap.faints, 0) > 0) hints.push({ kind: 'survive', text: `You fainted ${recap.faints === 1 ? 'once' : recap.faints + ' times'}. Pack more food or raise your defence.` });
     const share = num(recap.contribution && recap.contribution.weekShare, 0);
     const next = tierList.find((t) => share < num(t.share, 0) - 1e-12);
-    if (next) hints.push({ kind: 'tier', tier: next.tier, text: `Reach ${next.label || TIER_NAME[next.tier]}: you filled ${pctText(share)} of the checks, ${next.label || TIER_NAME[next.tier]} needs ${next.pctText || pctText(next.share)}.` });
+    if (next) {
+      const name = next.label || TIER_NAME[next.tier];
+      const way = num(next.share, 0) > 0 ? Math.floor(share / num(next.share, 1) * 100) : 0;
+      const text = share <= 0 ? `Take part in more checks next weekend to reach ${name}.`
+        : `Help fill more checks next weekend to reach ${name}${way >= 1 ? ` (you got ${way}% of the way there)` : ''}.`;
+      hints.push({ kind: 'tier', tier: next.tier, text });
+    }
   }
   const gap = arr(recap.debrief && recap.debrief.gaps)[0];
   if (gap) {
     const it = gap.suggestion && gap.suggestion.itemId;
-    hints.push({ kind: 'crew', check: gap.check, itemId: it || null, text: `${gap.text || (CHECK_LABEL[gap.check] || gap.check) + ' fell short'}.${it ? ` Hand in ${itemName(it)} on the Contracts board.` : ''}` });
+    hints.push({ kind: 'crew', check: gap.check, itemId: it || null, text: `The crew was short: ${lcFirst(gap.text || (CHECK_LABEL[gap.check] || gap.check) + ' fell short')}.${it ? ` Hand in ${itemName(it)} on Contracts.` : ''}` });
   }
-  return { id: recap.id, week: recap.week, won: !!recap.won, joined: !!recap.joined, pay, chests, chestLoot, loot, hints, nextWeekHint: hints[0] || null };
+  const tier = recap.joined ? (recap.tier || 'none') : 'none';
+  const carried = recap.joined && num(recap.contribution && recap.contribution.weekends, 0) > 1;
+  const tierLabel = !recap.joined ? 'Sat out' : (tier === 'none' ? 'No tier yet' : TIER_NAME[tier] || tier) + (carried ? ' (carried over)' : '');
+  return { id: recap.id, week: recap.week, won: !!recap.won, joined: !!recap.joined, tier, tierLabel, pay, chests, chestLoot, loot, hints, nextWeekHint: hints[0] || null };
 }
 E.recapView = function (state, recapId) {
   const list = arr(state && state.raid && state.raid.recaps);

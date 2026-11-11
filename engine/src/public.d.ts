@@ -332,12 +332,21 @@ export interface RecapPay {
   crewTreasury: number; treasuryShare: number;
   /** false for recaps written before 2026-11-09 (whole amount shown as turnoutPay) */
   hasSplit: boolean;
+  /** the CREW's fill of what the raid needed (0..1, scales the pool) — not yours; pair it with crewContributionText */
+  crewContribution: number;
+  /** "Crew filled 77% of what the raid needed" */
+  crewContributionText: string;
+  /** "Your part of the crew's points: 3.7%" (null for old recaps) */
+  pointShareLabel: string | null;
 }
 export interface RecapItem { itemId: string; name: string; qty: number; rarity: RarityId }
 export type RecapHintKind = 'join' | 'survive' | 'tier' | 'crew';
 export interface RecapHint { kind: RecapHintKind; text: string; tier?: ContributionTier; check?: string; itemId?: string | null }
 export interface RecapView {
   id: string; week: number; won: boolean; joined: boolean;
+  tier: ContributionTier;
+  /** 'No tier yet' | 'Bronze' | ... (+ ' (carried over)'); 'Sat out' when not joined */
+  tierLabel: string;
   pay: RecapPay;
   /** per chest: checkpoint (0..1) and its items summed over grades */
   chests: { at: number; items: RecapItem[] }[];
@@ -345,7 +354,7 @@ export interface RecapView {
   chestLoot: RecapItem[];
   /** every payout item (floor + tier + chests) summed over grades */
   loot: RecapItem[];
-  /** join → survive (fainted) → tier (share needed for the next tier) → crew (first debrief gap + item to hand in) */
+  /** join → survive (fainted) → tier (plain words, no tiny percentages) → crew ("The crew was short: ... Hand in X on Contracts.") */
   hints: RecapHint[];
   nextWeekHint: RecapHint | null;
 }
