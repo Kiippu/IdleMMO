@@ -24,7 +24,8 @@ The legacy single-file prototype is `index.html` at the repo root. It is the beh
 - Saves: schema v7 in IndexedDB (phase 3, 2026-11-11). The owner wiped all older saves: v1–v6 saves and old backup codes are
   NOT migrated; the game starts fresh silently (`E.loadSave()` / `E.checkSave()`; old fixtures in `engine/test/fixtures/` are
   only used to prove they are refused). From now on, builds must keep v7 saves loading unless the owner says otherwise.
-- Test at phone width (360 and 390px) in light mode only (no dark mode or themes since 2026-11-11).
+- Test at phone width (360 and 390px) in dark and light. Dark is the default theme; light is a choice in Menu › Settings
+  (owner 2026-11-12, replaces the 2026-11-11 light-only rule).
 
 ## Settled decisions (don't reopen unless asked)
 Game design
@@ -54,6 +55,12 @@ Game design
 - Navigation: Workshop, Stores (Mine/Crew), Shop, War Room (Loadout/Raid), Crew (Roster/Jobs/Contracts/Treasury).
   Hunt merged into Raid, which runs prep → live → recap; stance/tactic/eat threshold lock at lock-in, gear swaps stay
   allowed during a live raid. The log opens as a sheet from the top strip (2026-11-09).
+- Juice pass (owner 2026-11-12): when a job ends it ends — the slot stays empty until the player picks a job (no
+  auto-resume). Refine/craft ask how many (`start(actionId, count)`). Top bar = gold, HP, raid timer, cog menu only;
+  job name/progress/Stop sit under the Workshop scene. Workshop = skill headers + item icon tiles (time/XP live in the
+  item sheet), no "Ready now", a dismissible "Recently unlocked" card. Gear is equipped in War Room › Loadout (hero
+  preview + slots + filterable gear list), not Stores. No toasts: item gains burst from the tab bar as a fountain
+  (one pop per item, rarity glow). Grade ladder is the engine's: Rough, Standard, Fine, Superior, Pristine.
 - Player market PARKED until the shared world (phase 5). The Shop is an NPC general store: 6 resources + 3 gear
   (tier ≤2) each game hour, weighted to the player's levels; sells at 1.5x (resources) / 2x (gear) value, buys
   anything at 0.4x. Old open listings return to the bag on load. Bond-token-for-gold exchange needs a home by launch.
