@@ -32,7 +32,9 @@ describe('v4 fixture (legacy prototype save) → v6', () => {
     expect(s).not.toBeNull();
     expect(s.v).toBe(6);
     expect(s.gold).toBe(4321);
-    expect(s.skills.mining.xp).toBe(raw.skills.mining.xp);
+    // XP curve doubled (owner 2026-11-11): stored XP is rescaled x2 so the level stays the same
+    expect(s.skills.mining.xp).toBe(raw.skills.mining.xp * 2);
+    expect(h.E.skillLevel(s, "mining")).toBe(h.E.levelFor(raw.skills.mining.xp * 2));
     expect(s.tokens).toBeUndefined();
     expect(s.supply).toBeUndefined();
     expect(s.crew.viewAsMember).toBeUndefined();
