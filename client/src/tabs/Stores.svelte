@@ -2,7 +2,7 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
-  import { ui, bagFilter } from '../ui.svelte';
+  import { ui, bagFilter, vaultFilter, resetFilter, type BagFilter } from '../ui.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
   import { openSalvage } from '../overlays/salvage.svelte';
   import { fmtG, fmtN } from '../format';
@@ -65,16 +65,16 @@
   const RANK = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
   const RARS = ['all', ...RANK];
   const SORTS = [['newest', 'Newest'], ['rarity', 'Rarity'], ['name', 'Name'], ['qty', 'Quantity'], ['value', 'Value']] as const;
-  let shown = $derived((list: Tile[]) => {
-    const q = bagFilter.q.trim().toLowerCase();
-    const out = list.filter((t) => (bagFilter.cat === 'All' || t.cat === bagFilter.cat) && (bagFilter.rarity === 'all' || t.rarity === bagFilter.rarity) && (!q || t.name.toLowerCase().includes(q)));
-    const by = bagFilter.sort;
+  const shown = (list: Tile[], f: BagFilter) => {
+    const q = f.q.trim().toLowerCase();
+    const out = list.filter((t) => (f.cat === 'All' || t.cat === f.cat) && (f.rarity === 'all' || t.rarity === f.rarity) && (!q || t.name.toLowerCase().includes(q)));
+    const by = f.sort;
     return out.sort((a, b) => by === 'rarity' ? RANK.indexOf(b.rarity) - RANK.indexOf(a.rarity) || a.name.localeCompare(b.name)
       : by === 'name' ? a.name.localeCompare(b.name)
       : by === 'qty' ? (b.qty ?? 1) - (a.qty ?? 1)
       : by === 'value' ? b.value - a.value
       : b.order - a.order || a.name.localeCompare(b.name));
-  });
+  };
   let cx = $derived.by(() => {
     const items = view?.extras?.codex?.items ?? {};
     const cats: Record<string, { name: string; tiles: any[]; known: number; all: number; hidden: number }> = {};
@@ -90,24 +90,26 @@
     for (const g of Object.values(cats)) g.tiles.sort((a, b) => (a.status === b.status ? a.name.localeCompare(b.name) : a.status === 'known' ? -1 : 1));
     return { known, total, groups: ['Materials', 'Gear', 'Food & potions'].map((n) => cats[n]).filter(Boolean) };
   });
-  let mineVis = $derived(shown(mineTiles));
+  let mineVis = $derived(shown(mineTiles, bagFilter));
+  let vaultVis = $derived(shown(vaultTiles, vaultFilter));
 
 </script>
 
-{#snippet filters()}
+{#snippet filters(f: BagFilter)}
   <div class="filters">
-    <input type="search" class="search" placeholder="Search by name" aria-label="Search by name" bind:value={bagFilter.q} />
-    <select aria-label="Rarity" bind:value={bagFilter.rarity}>{#each RARS as r}<option value={r}>{r === 'all' ? 'Any rarity' : r[0].toUpperCase() + r.slice(1)}</option>{/each}</select>
-    <select aria-label="Sort" bind:value={bagFilter.sort}>{#each SORTS as [v, l]}<option value={v}>Sort: {l}</option>{/each}</select>
+    <div class="sw"><input type="search" class="search" placeholder="Search by name" aria-label="Search by name" bind:value={f.q} />{#if f.q}<button type="button" class="clr" aria-label="Clear search" onclick={() => (f.q = '')}>×</button>{/if}</div>
+    <select aria-label="Rarity" bind:value={f.rarity}>{#each RARS as r}<option value={r}>{r === 'all' ? 'Any rarity' : r[0].toUpperCase() + r.slice(1)}</option>{/each}</select>
+    <select aria-label="Sort" bind:value={f.sort}>{#each SORTS as [v, l]}<option value={v}>Sort: {l}</option>{/each}</select>
   </div>
   <div class="chips" role="group" aria-label="Category">
-    {#each CATS as c}<button type="button" class="btn chip" aria-pressed={bagFilter.cat === c} onclick={() => (bagFilter.cat = c)}>{c}</button>{/each}
+    {#each CATS as c}<button type="button" class="btn chip" aria-pressed={f.cat === c} onclick={() => (f.cat = c)}>{c}</button>{/each}
   </div>
 {/snippet}
 
-{#snippet grid(list: Tile[], readOnly: boolean)}
+{#snippet grid(list: Tile[], readOnly: boolean, f: BagFilter, total: number)}
   {#if list.length === 0}
-    <p class="muted">{(bagFilter.cat === 'All' && bagFilter.rarity === 'all' && !bagFilter.q) ? (readOnly ? 'The crew vault is empty. Crewmates donate through contracts.' : 'Your bag is empty. Gather or craft something first.') : 'Nothing in this category.'}</p>
+    <p class="muted">{total === 0 ? (readOnly ? 'The crew vault is empty. Crewmates donate through contracts.' : 'Your bag is empty. Gather or craft something first.') : 'No items match.'}
+      {#if total > 0}<button type="button" class="btn" onclick={() => resetFilter(f)}>Clear filters</button>{/if}</p>
   {:else}
     <ul class="grid">
       {#each list as t (t.key)}
@@ -151,9 +153,9 @@
 
   <section class="group">
     <h3>Bag</h3>
-    {@render filters()}
+    {@render filters(bagFilter)}
     {#if mineVis.filter((t) => t.kind === 'gear').length}<button type="button" class="btn danger salv" onclick={() => openSalvage(mineVis.filter((t) => t.kind === 'gear').map((t) => t.gear!.uid), `${mineVis.filter((t) => t.kind === 'gear').length} shown`)}>Salvage shown ({mineVis.filter((t) => t.kind === 'gear').length})</button>{/if}
-    {@render grid(mineVis, false)}
+    {@render grid(mineVis, false, bagFilter, mineTiles.length)}
   </section>
 {:else if sub === 'codex'}
   <section class="group">
@@ -165,7 +167,7 @@
       <ul class="grid">
         {#each grp.tiles as t (t.id)}
           <li>
-            <button type="button" class="tile" class:hintt={t.status === 'hint'} style:--ink-r={t.status === 'known' ? `var(--r-${t.rarity})` : 'var(--rule)'} onclick={() => openItem({ itemId: t.id, readOnly: true })} aria-label={t.status === 'hint' ? `Unknown item, uses ${t.seen} of ${t.total} materials you have found` : t.name}>
+            <button type="button" class="tile" class:hintt={t.status === 'hint'} style:--ink-r={t.status === 'known' ? `var(--r-${t.rarity})` : 'var(--rule)'} onclick={() => openItem({ itemId: t.id, readOnly: true })} aria-label={t.status === 'hint' ? (t.total > 0 ? `Unknown item, uses ${t.seen} of ${t.total} materials you have found` : 'Unknown raw material') : t.name}>
               <span class="letter">{t.status === 'hint' ? '???' : t.name[0]}</span>
             </button>
           </li>
@@ -177,8 +179,8 @@
 {:else}
   <section class="group">
     <h3>Crew vault</h3>
-    {@render filters()}
-    {@render grid(shown(vaultTiles), true)}
+    {@render filters(vaultFilter)}
+    {@render grid(vaultVis, true, vaultFilter, vaultTiles.length)}
   </section>
 {/if}
 
@@ -207,5 +209,7 @@
   .pbar div { height: 100%; background: var(--woad); }
   .salv { width: 100%; margin-bottom: 8px; }
   .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-  .search { grid-column: 1 / -1; width: 100%; }
+  .sw { grid-column: 1 / -1; position: relative; }
+  .search { width: 100%; padding-right: 44px; }
+  .clr { position: absolute; right: 0; top: 0; width: 44px; height: 44px; border: 0; background: none; color: var(--ink-2); font: 700 var(--t-lg)/1 var(--f-body); }
 </style>

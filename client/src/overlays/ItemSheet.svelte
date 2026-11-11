@@ -10,6 +10,7 @@
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
   import { openSalvage } from './salvage.svelte';
+  import { buyFromShop } from './shopActions';
 
   type Action = { id: string; skill: string; kind: string; name: string; level?: number; sec?: number; xp?: number; inputs?: Record<string, number>; outputs?: Record<string, number>; bonus?: Array<{ item: string }>; drops?: Array<{ item: string }>; zone?: string; enemy?: string };
   const GRADE_LABEL = ['Rough', 'Fine', 'Sharp', 'Keen', 'Pristine'];
@@ -31,9 +32,20 @@
   let hint = $derived(!!ref && cstat === 'hint' && !engine.snapshot?.seen?.[ref.itemId] && !ref.uid);
   const seenId = (id: string) => !!engine.snapshot?.seen?.[id];
   let salvageYield = $derived.by(() => {
-    if (!cat?.salvage || !g) return '';
+    if (!cat?.salvage || !g || isEq) return '';
     const pct = cat.salvage.perRarity?.[g.rarity] ?? 0;
-    return Object.entries(cat.salvage.inputs as Record<string, number>).map(([id, n]) => `${(n * pct).toFixed(1).replace(/\.0$/, '')} ${itemName(id)}`).join(', ');
+    return Object.entries(cat.salvage.inputs as Record<string, number>).map(([id, n]) => {
+      const x = n * pct; const lo = Math.floor(x), hi = Math.ceil(x);
+      return hi <= 0 ? null : `${lo === hi ? lo : `${lo}–${hi}`} ${itemName(id)}`;
+    }).filter(Boolean).join(', ');
+  });
+  let hintLine = $derived.by(() => {
+    const e = ref ? engine.derived?.extras?.codex?.items?.[ref.itemId] : null;
+    if (!e) return 'Undiscovered.';
+    if (e.inputsTotal > 0) return `Undiscovered. Uses ${e.inputsSeen} of ${e.inputsTotal} materials you have found.`;
+    const src = cat?.gatheredBy?.[0] ?? cat?.dropsFrom?.[0];
+    if (src) return `Undiscovered. Found by ${src.skill ? skillName(src.skill) : src.name}${src.level ? ` (Lv ${src.level})` : ''}.`;
+    return 'Undiscovered.';
   });
   let demand = $derived<number>(ref ? (engine.derived?.extras?.codex?.demand?.[ref.itemId] ?? 0) : 0);
   let snap = $derived(engine.snapshot);
@@ -127,7 +139,7 @@
         <span class="tile" style:--ink-r={`var(--r-${rarity})`} aria-hidden="true"><span class="letter">{hint ? '?' : itemName(ref.itemId)[0]}</span></span>
         <div>
           <h2 id="it-title" style:color={hint ? undefined : `var(--r-${rarity})`}>{hint ? '???' : gname()}</h2>
-          {#if hint}<p class="meta">Undiscovered. Uses <span class="num">{engine.derived?.extras?.codex?.items?.[ref.itemId]?.inputsSeen ?? 0}</span> of <span class="num">{engine.derived?.extras?.codex?.items?.[ref.itemId]?.inputsTotal ?? 0}</span> materials you have found.</p>{:else}<p class="meta">{cap(rarity)} · {it.kind === 'gear' ? (SLOT_LABEL[it.slot] ?? 'Gear') : cap(it.kind ?? 'item')}{it.tier ? ` · tier ${it.tier}` : ''}</p>{/if}
+          {#if hint}<p class="meta">{hintLine}</p>{:else}<p class="meta">{cap(rarity)} · {it.kind === 'gear' ? (SLOT_LABEL[it.slot] ?? 'Gear') : cap(it.kind ?? 'item')}{it.tier ? ` · tier ${it.tier}` : ''}</p>{/if}
         </div>
       </header>
       {#if !hint && cat?.lore}<p class="body lore">{cat.lore}</p>{/if}
@@ -180,13 +192,13 @@
       {#if shopSlot}<p class="meta">Shop: <span class="num brass">{fmtG(shopSlot.price)}</span> each, <span class="num">{shopSlot.qty}</span> left this hour.</p>{/if}
       {#if grades && store?.sellPrices?.[ref.itemId]}<p class="meta">Store pays <span class="num">{fmtG(store.sellPrices[ref.itemId][Math.max(0, grades.findIndex((q) => q > 0))] ?? 0)}</span> each.</p>{/if}
 
-      {#if salvageYield}<p class="meta">Salvage yields about {salvageYield}.</p>{/if}
+      {#if salvageYield}<p class="meta">Salvage yields {salvageYield}.</p>{:else if g && isEq}<p class="meta">Unequip to salvage.</p>{/if}
       {#if demand > 0}<p class="meta">Open contracts still want <span class="num">{fmtN(demand)}</span>.</p>{/if}
       {/if}
 
       <div class="actions">
         <button type="button" class="btn ghost" onclick={closeItem}>Close</button>
-        {#if !hint && shopSlot && !ref.readOnly}<button type="button" class="btn" onclick={toShop}>Get from Shop</button>{/if}
+        {#if !hint && shopSlot && !ref.readOnly}<button type="button" class="btn primary" onclick={async () => { if (await buyFromShop(shopSlot)) closeItem(); }}>Buy <span class="num">{fmtG(shopSlot.price)}</span></button>{/if}
         {#if !hint && g && inBag && !ref.readOnly}
           {#if isEq}
             <button type="button" class="btn" onclick={unequip}>Unequip</button>

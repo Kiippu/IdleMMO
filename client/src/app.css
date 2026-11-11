@@ -149,7 +149,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .btn.danger:hover:not(:disabled) { background: var(--bad); border-color: var(--bad); color: var(--paper); }
 .btn.danger.solid { background: var(--bad); color: var(--paper); }
 
-select, input[type="number"], input[type="text"], textarea {
+select, input[type="number"], input[type="text"], input[type="search"], textarea {
   min-height: 44px; min-width: 0; padding: 8px 10px;
   border: 1px solid var(--rule); background: var(--sunk); color: var(--ink);
   font: 400 var(--t-md)/1.2 var(--f-body);
@@ -184,3 +184,5 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: v
 input[type="range"]:disabled { opacity: .55; }
 input[type="range"]:focus-visible { outline: 2px solid var(--woad); outline-offset: 2px; }
 @media (max-width: 380px) { .subs button { font-size: 11px; letter-spacing: 0; padding-inline: 0; } }
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+input::placeholder { color: var(--ink-3); }

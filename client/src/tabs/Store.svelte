@@ -7,6 +7,7 @@
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import { markDone } from '../guide.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
+  import { buyFromShop } from '../overlays/shopActions';
   import { toast } from '../overlays/toasts.svelte';
 
   type Props = { onContracts: () => void };
@@ -47,41 +48,13 @@
     return `~${fmtSecs(s.gatherSecs)} to gather yourself`;
   }
 
-  /** "+2 attack, −1 defence" of this piece against the one worn in the same slot (base stats). */
-  function statDiff(itemId: string): string {
-    const it = itemsMap[itemId];
-    const wornUid = equipped[it?.slot];
-    const worn = wornUid ? gear.find((g) => g.uid === wornUid) : null;
-    const a = it?.stats ?? {};
-    const b = worn ? itemsMap[worn.itemId]?.stats ?? {} : {};
-    const names: Record<string, string> = { atk: 'attack', def: 'defence', heal: 'heal', hp: 'HP' };
-    const parts = Object.keys(names).map((k) => ({ k, d: (a[k] ?? 0) - (b[k] ?? 0) })).filter((x) => x.d !== 0)
-      .map((x) => `${x.d > 0 ? '+' : '−'}${Math.abs(x.d)} ${names[x.k]}`);
-    return worn ? (parts.length ? `vs your worn piece: ${parts.join(', ')}` : 'Same stats as your worn piece') : 'Slot is empty: all stats are new';
-  }
-
   function report(res: StoreResult | undefined, okText: string) {
     if (!res) return;
     if (res.ok === false) { void noticeSheet('Could not complete', res.reason); return; }
     toast(okText);
   }
 
-  async function buy(s: any) {
-    if (s.qty < 1) return;
-    const afford = s.price > 0 ? Math.floor(gold / s.price) : s.qty;
-    const max = Math.min(s.qty, afford);
-    if (max < 1) { await noticeSheet('Not enough gold', `${s.name} costs ${fmtG(s.price)} and you have ${fmtG(gold)}.`); return; }
-    const detail = s.kind === 'gear' ? `${SLOT_LABEL[itemsMap[s.itemId]?.slot] ?? 'Gear'} · ${cap(s.rarity)}. ${statDiff(s.itemId)}.` : `${GRADE_LABEL[s.grade] ?? ''} · ${cap(s.rarity)}.`;
-    const qty = await askNumber({
-      title: `Buy ${s.name}`,
-      body: `${detail} ${fmtG(s.price)} each.`,
-      number: { min: 1, max, value: 1, label: 'How many?', lines: (n) => [`Total ${fmtG(n * s.price)}`, `Gold after ${fmtG(gold - n * s.price)}`] },
-      confirmLabel: 'Buy',
-    });
-    if (qty == null) return;
-    try { const res = await engineClient.storeBuy(s.slot, qty); report(res, `Bought ${qty} ${s.name} for ${fmtG(res.gold)}`); }
-    catch (err) { console.error('storeBuy failed', err); }
-  }
+  const buy = (s: any) => buyFromShop(s);
 
   async function sell(r: { id: string; name: string; grade: number; qty: number; price: number }) {
     const qty = await askNumber({
@@ -116,8 +89,7 @@
     <ul class="tiles">
       {#each resources as s (s.slot)}
         <li class="tl">
-          <button type="button" class="info" aria-label="Details: {s.name}" onclick={() => openItem({ itemId: s.itemId })}>i</button>
-          <button type="button" class="tile" class:out={s.qty < 1} disabled={s.qty < 1} onclick={() => buy(s)} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
+          <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
             <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true">{s.name[0]}</span>
             <span class="nm">{s.name}</span>
             <span class="meta">{GRADE_LABEL[s.grade] ?? ''}</span>
@@ -125,6 +97,7 @@
             <span class="meta num">{s.qty < 1 ? 'Sold out' : `${s.qty} left`}</span>
             <span class="meta">{gatherText(s)}</span>
           </button>
+          <button type="button" class="btn buy" disabled={s.qty < 1} onclick={() => buy(s)}>{s.qty < 1 ? 'Sold out' : 'Buy'}</button>
         </li>
       {/each}
     </ul>
@@ -135,8 +108,7 @@
     <ul class="tiles">
       {#each gearSlots as s (s.slot)}
         <li class="tl">
-          <button type="button" class="info" aria-label="Details: {s.name}" onclick={() => openItem({ itemId: s.itemId })}>i</button>
-          <button type="button" class="tile" class:out={s.qty < 1} disabled={s.qty < 1} onclick={() => buy(s)} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
+          <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
             <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true">{s.name[0]}</span>
             <span class="nm">{s.name}</span>
             <span class="meta">{SLOT_LABEL[itemsMap[s.itemId]?.slot] ?? 'Gear'} · {cap(s.rarity)}</span>
@@ -144,6 +116,7 @@
             <span class="meta num">{s.qty < 1 ? 'Sold out' : `${s.qty} left`}</span>
             <span class="meta">{gatherText(s)}</span>
           </button>
+          <button type="button" class="btn buy" disabled={s.qty < 1} onclick={() => buy(s)}>{s.qty < 1 ? 'Sold out' : 'Buy'}</button>
         </li>
       {/each}
     </ul>
@@ -158,19 +131,19 @@
       <ul class="list">
         {#each sellRows as r (r.id + r.grade)}
           <li>
-            <div class="info">
+            <button type="button" class="sinfo" onclick={() => openItem({ itemId: r.id })}>
               <span class="name" style:color={`var(--r-${r.rarity})`}>{r.name}</span>
               <span class="meta">{GRADE_LABEL[r.grade]} · <span class="num">×{fmtN(r.qty)}</span></span>
-            </div>
+            </button>
             <button type="button" class="btn" onclick={() => sell(r)}><span class="num">{fmtG(r.price)}</span>&nbsp;each</button>
           </li>
         {/each}
         {#each sellGear as g (g.uid)}
           <li>
-            <div class="info">
+            <button type="button" class="sinfo" onclick={() => openItem({ itemId: g.itemId, uid: g.uid })}>
               <span class="name" style:color={`var(--r-${g.rarity})`}>{engine.derived?.gearNames?.[g.uid] ?? itemName(g.itemId)}</span>
               <span class="meta">{cap(g.rarity)} gear</span>
-            </div>
+            </button>
             <button type="button" class="btn" onclick={() => sellOneGear(g)}><span class="num">{fmtG(store.gearSellPrices?.[g.uid] ?? 0)}</span></button>
           </li>
         {/each}
@@ -192,7 +165,7 @@
   .meta { color: var(--ink-3); font-size: var(--t-xs); }
 
   .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tile { width: 100%; height: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 10px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink); }
+  .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 10px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink); }
   .tile:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
   .tile.out { opacity: .5; cursor: not-allowed; background: var(--sunk); }
   .sq { width: 32px; height: 32px; display: grid; place-items: center; border: 2px solid; background: var(--sunk); font: 700 var(--t-md)/1 var(--f-display); }
@@ -201,8 +174,9 @@
 
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--paper); border: 1px solid var(--rule); }
-  .info { display: grid; gap: 2px; min-width: 0; }
+  .sinfo { display: grid; gap: 2px; min-width: 0; flex: 1; min-height: 44px; padding: 0; border: 0; background: none; text-align: left; align-content: center; }
   .name { font: 700 var(--t-sm)/1.1 var(--f-body); }
-  .tl { position: relative; }
-  .info { position: absolute; top: 0; right: 0; z-index: 1; width: 44px; height: 44px; border: 0; background: none; color: var(--ink-3); font: 700 var(--t-md)/1 var(--f-body); }
+  .tl { display: flex; flex-direction: column; }
+  .tl .tile { flex: 1; }
+  .buy { width: 100%; margin-top: 4px; }
 </style>

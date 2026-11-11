@@ -77,8 +77,8 @@
 {#snippet inputsLine(a: Action)}
   {#if a.inputs && Object.keys(a.inputs).length}
     <span class="inputs">
-      {#each Object.entries(a.inputs) as [id, n], i}
-        <span class="inp num" class:short={have(id) < n}>{i ? ' · ' : ''}{n} {itemName(id)} · have {fmtN(have(id))}</span>
+      {#each Object.entries(a.inputs) as [id, n]}
+        <button type="button" class="inp num" class:short={have(id) < n} onclick={() => openItem({ itemId: id })}>{n} {itemName(id)} · have {fmtN(have(id))}</button>
       {/each}
     </span>
   {/if}
@@ -89,9 +89,9 @@
   {@const sh = short(a)}
   {@const running = activeId === a.id}
   <li class="arow" class:running>
+    <div class="r1">
     <button type="button" class="action main" data-kind={a.kind} aria-pressed={running} disabled={sh} onclick={() => start(a.id)}>
       <span class="a-name" style:color={out ? `var(--r-${itemRarity[out] ?? 'common'})` : undefined}>{out ? itemName(out) : label(a)}{#if out && label(a) !== itemName(out)}<small>{` · ${label(a)}`}</small>{/if}</span>
-      {@render inputsLine(a)}
       <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
     </button>
     {#if out}<button type="button" class="btn info" aria-label="Details: {itemName(out)}" onclick={() => openItem({ itemId: out })}>i</button>{/if}
@@ -101,6 +101,8 @@
     {:else}
       <button type="button" class="btn start" class:primary={!running} disabled={running} onclick={() => start(a.id)}>{running ? 'Running' : 'Start'}</button>
     {/if}
+    </div>
+    {@render inputsLine(a)}
   </li>
 {/snippet}
 
@@ -114,6 +116,7 @@
             <span class="a-name" style:color={outId(a) ? `var(--r-${itemRarity[outId(a)!] ?? 'common'})` : undefined}>{outId(a) ? itemName(outId(a)!) : a.name}</span>
             <span class="a-meta num">{fmtSec(timeOf(a)) + (a.xp ? ` · ${fmtN(a.xp)} XP` : '')}</span>
           </button>
+          {#if outId(a)}<button type="button" class="btn info" aria-label="Details: {itemName(outId(a)!)}" onclick={() => openItem({ itemId: outId(a)! })}>i</button>{/if}
           <button type="button" class="btn primary start" onclick={() => start(a.id)}>Start</button>
         </li>
       {/each}
@@ -162,7 +165,10 @@
   .ready { margin: 0 0 12px; padding: 10px; background: var(--paper); border: 1px solid var(--woad); }
   h3 { margin: 0 0 6px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
   ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  .ready li, .arow { display: flex; gap: 6px; align-items: stretch; }
+  .ready li, .r1 { display: flex; gap: 6px; align-items: stretch; }
+  .arow { display: grid; gap: 2px; }
+  .inputs { display: flex; flex-wrap: wrap; gap: 0 12px; }
+  .inp { min-height: 32px; padding: 0; border: 0; background: none; font: 400 var(--t-xs)/1.2 var(--f-num); color: var(--ink-3); text-decoration: underline; text-align: left; }
   .chips { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; margin: 0 0 12px; }
   .chip { padding: 0 4px; }
 
@@ -190,7 +196,6 @@
   .arow.running .action.main, .action[aria-pressed="true"] { background: var(--woad-soft); border-color: var(--woad); }
   .a-name { font: 700 var(--t-sm)/1.15 var(--f-body); }
   .a-name small { font-weight: 400; color: var(--ink-3); }
-  .inputs { font-size: var(--t-xs); color: var(--ink-3); }
   .inp.short { color: var(--bad); font-weight: 700; }
   .a-meta { font-size: var(--t-xs); color: var(--ink-3); font-weight: 700; }
   .info { flex: none; padding: 0; font: 700 var(--t-md)/1 var(--f-body); text-transform: none; }

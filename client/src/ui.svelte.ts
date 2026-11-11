@@ -25,6 +25,8 @@ export function showMe(tab: string, selector: string, subs: Partial<{ crew: Sub[
 }
 
 /** Bag filters persist for the session. */
-export const bagFilter = $state<{ q: string; cat: 'All' | 'Materials' | 'Gear' | 'Food & potions'; rarity: string; sort: 'rarity' | 'name' | 'qty' | 'value' | 'newest' }>({
-  q: '', cat: 'All', rarity: 'all', sort: 'newest',
-});
+export type BagFilter = { q: string; cat: 'All' | 'Materials' | 'Gear' | 'Food & potions'; rarity: string; sort: 'rarity' | 'name' | 'qty' | 'value' | 'newest' };
+const fresh = (): BagFilter => ({ q: '', cat: 'All', rarity: 'all', sort: 'newest' });
+export const bagFilter = $state<BagFilter>(fresh());
+export const vaultFilter = $state<BagFilter>(fresh());
+export const resetFilter = (f: BagFilter) => Object.assign(f, fresh());

@@ -26,6 +26,7 @@
     engineClient.salvagePreview(u, a).then((r) => { if (my === seq) pv = r; }).catch((e) => console.error(e));
   });
   const nm = (uid: string) => engine.derived?.gearNames?.[uid] ?? uid;
+  function reasonText(r: string) { return /rare or better|protected/i.test(r) && !/tick/i.test(r) ? `${r} (tick Include protected)` : r; }
   const range = (l: { qtyMin: number; qtyMax: number }) => (l.qtyMin === l.qtyMax ? `${l.qtyMin}` : `${l.qtyMin}–${l.qtyMax}`);
 
   async function confirm() {
@@ -72,7 +73,7 @@
         {#if pv.blocked.length}
           <h3>Skipped</h3>
           <ul class="lines">
-            {#each pv.blocked.slice(0, 8) as b}<li><span>{nm(b.uid)}</span><small>{b.reason}</small></li>{/each}
+            {#each pv.blocked.slice(0, 8) as b}<li><span>{nm(b.uid)}</span><small>{reasonText(b.reason)}</small></li>{/each}
           </ul>
           {#if pv.blocked.length > 8}<p class="meta">and <span class="num">{pv.blocked.length - 8}</span> more.</p>{/if}
         {/if}
@@ -96,7 +97,7 @@
   .lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
   .lines li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; background: var(--sunk); border: 1px solid var(--rule-2); font-size: var(--t-sm); }
   small { color: var(--ink-3); font-weight: 400; }
-  .chk { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: var(--t-sm); }
+  .chk { display: flex; gap: 10px; align-items: center; min-height: 48px; padding: 4px 0; font-size: var(--t-sm); cursor: pointer; }
   .chk input { width: 24px; height: 24px; min-height: 0; accent-color: var(--woad); }
-  .actions { display: flex; gap: 8px; } .actions .btn { flex: 1; }
+  .actions { display: flex; gap: 8px; position: sticky; bottom: calc(-16px - env(safe-area-inset-bottom, 0px)); margin: 0 calc(var(--gut-r) * -1) calc(-16px - env(safe-area-inset-bottom, 0px)) calc(var(--gut-l) * -1); padding: 10px var(--gut-r) calc(12px + env(safe-area-inset-bottom, 0px)) var(--gut-l); background: var(--paper); border-top: 1px solid var(--rule); } .actions .btn { flex: 1; }
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   // Full-screen "While you were away" sheet. The engine already applied the gains;
   // this only presents them: rows count up (staggered), XP bars fill, items run common ->
   // rarest with a rarity flash on rare+, tap anywhere skips to the end, then "Collect".
@@ -51,15 +52,19 @@
   // Restart the clock whenever a new summary arrives.
   $effect(() => {
     if (!summary) return;
-    elapsed = 0; skipped = reduced();
-    if (skipped) return;
-    let raf = 0; const t0 = performance.now();
-    const tick = (now: number) => {
-      elapsed = now - t0;
-      if (elapsed < totalMs) raf = requestAnimationFrame(tick); else elapsed = totalMs;
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Only a new summary restarts the clock; skipping must not re-run this.
+    return untrack(() => {
+      elapsed = 0; skipped = reduced();
+      if (skipped) return;
+      let raf = 0; const t0 = performance.now();
+      const tick = (now: number) => {
+        if (skipped) return;
+        elapsed = now - t0;
+        if (elapsed < totalMs) raf = requestAnimationFrame(tick); else elapsed = totalMs;
+      };
+      raf = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(raf);
+    });
   });
 
   const prog = (i: number) => (skipped ? 1 : Math.max(0, Math.min(1, (elapsed - i * STAGGER) / DUR)));
