@@ -1,16 +1,16 @@
 <script lang="ts">
+  import { reducedMotion } from './settings.svelte';
   import { untrack } from 'svelte';
   // Sticky status strip: gold, raid chip, Log/Save, then scene + current job + HP.
   import { engine } from './engine/store.svelte';
   import { engineClient } from './engine/client';
   import { fmtG, fmtN, fmtDuration } from './format';
   import { DATA } from '@guildwright/engine';
-  import { guide, nextStep } from './guide.svelte';
-  import { showMe } from './ui.svelte';
+  import { guide } from './guide.svelte';
   import SceneStrip from './scene/SceneStrip.svelte';
 
-  type Props = { onLog: () => void; onSave: () => void; onStart: () => void };
-  let { onLog, onSave, onStart }: Props = $props();
+  type Props = { onMenu: () => void; onStart: () => void };
+  let { onMenu, onStart }: Props = $props();
 
   const actionsAll: Array<{ id: string; name: string }> = (DATA as any).actions;
   let snap = $derived(engine.snapshot);
@@ -24,7 +24,8 @@
   let hpPct = $derived(maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0);
   let raid = $derived(view?.raidStatus ?? null);
 
-  let hint = $derived(!guide.dismissed && !active ? nextStep() : null);
+  // On a fresh save the Workshop's "Do this first" button is the only call to action.
+  let fresh = $derived(!guide.dismissed && !guide.done['gather']);
   let chip = $derived.by(() => {
     if (!raid) return null;
     if (raid.phase === 'live') return { text: `Raid closes in ${fmtDuration(raid.secLeft)}`, live: true };
@@ -40,7 +41,7 @@
   const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
   let floats = $state<Array<{ id: number; text: string; rarity: string }>>([]);
   let floatId = 0;
-  const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = reducedMotion;
   $effect(() => {
     const evs = engine.lastEvents;
     if (!evs?.length || reduced() || document.hidden) return;
@@ -66,8 +67,7 @@
   <div class="r1">
     {#if snap}<span class="gold">{fmtG(snap.gold)}</span>{/if}
     {#if chip}<span class="chip" class:live={chip.live}>{chip.text}</span>{/if}
-    <button type="button" class="btn" onclick={onLog}>Log</button>
-    <button type="button" class="btn" onclick={onSave} aria-label="Open save menu">Save</button>
+    <button type="button" class="btn" onclick={onMenu} aria-label="Open menu: Log, Save, Settings, Credits">Menu</button>
   </div>
   <div class="r2">
     <div class="scene">
@@ -90,9 +90,7 @@
     </div>
     {#if job}
       <button type="button" class="btn primary" onclick={stop}>Stop</button>
-    {:else if hint}
-      <button type="button" class="btn primary hintbtn" title="Next: {hint.text}" aria-label="Next: {hint.text}" onclick={() => showMe(hint.tab, hint.selector, hint.subs ?? {})}><span class="ell">Next: {hint.text}</span></button>
-    {:else}
+    {:else if !fresh}
       <button type="button" class="btn primary" onclick={onStart}>Start next job</button>
     {/if}
   </div>
@@ -110,8 +108,6 @@
   .chip { flex: 1; min-width: 0; text-align: right; font: 700 var(--t-sm)/1.2 var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink-2); }
   .chip.live { color: var(--woad); }
   .r1 .btn { padding: 0 10px; }
-  .r2 .hintbtn .ell { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .r2 .hintbtn { max-width: 130px; font: 700 var(--t-xs)/1.15 var(--f-body); text-transform: none; letter-spacing: 0; }
   .r2 { display: flex; align-items: center; gap: 8px; }
   .scene { position: relative; flex: none; }
   .float {

@@ -186,3 +186,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--woad); outline-offs
 @media (max-width: 380px) { .subs button { font-size: 11px; letter-spacing: 0; padding-inline: 0; } }
 input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 input::placeholder { color: var(--ink-3); }
+
+/* Reduce motion setting (the device preference is handled by the media queries above). */
+:root[data-reduce-motion] *, :root[data-reduce-motion] *::before, :root[data-reduce-motion] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+:root[data-reduce-motion] .float { display: none; }

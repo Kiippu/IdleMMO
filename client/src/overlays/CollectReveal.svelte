@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { reducedMotion } from '../settings.svelte';
   import { untrack } from 'svelte';
   // Full-screen "While you were away" sheet. The engine already applied the gains;
   // this only presents them: rows count up (staggered), XP bars fill, items run common ->
@@ -43,7 +44,7 @@
   });
   let awayText = $derived(summary?.awaySec ? ` · ${fmtDuration(summary.awaySec)}` : '');
 
-  const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = reducedMotion;
   let elapsed = $state(0);
   let skipped = $state(false);
   let totalMs = $derived(rows.length ? (rows.length - 1) * STAGGER + DUR : 0);

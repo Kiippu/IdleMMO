@@ -13,6 +13,7 @@
   import GettingStarted from './overlays/GettingStarted.svelte';
   import Crew from './tabs/Crew.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
+  import MenuSheet from './overlays/MenuSheet.svelte';
   import SaveMenu from './overlays/SaveMenu.svelte';
   import ConfirmSheet from './overlays/ConfirmSheet.svelte';
   import ItemSheet from './overlays/ItemSheet.svelte';
@@ -26,6 +27,7 @@
   let updateReady = $state<null | (() => void)>(null);
   let saveMenuOpen = $state(false);
   let logOpen = $state(false);
+  let menuOpen = $state(false);
   let seeded = false;
   $effect(() => { if (ui.goTab) { active = ui.goTab as Tab; ui.goTab = null; } });
 
@@ -83,7 +85,7 @@
 
 <div class="shell">
   {#if engine.ready}
-    <TopStrip onLog={() => (logOpen = true)} onSave={() => (saveMenuOpen = true)} onStart={() => (active = 'Workshop')} />
+    <TopStrip onMenu={() => (menuOpen = true)} onStart={() => (active = 'Workshop')} />
   {/if}
 
   {#if updateReady}
@@ -122,6 +124,10 @@
 <SalvageSheet />
 <ConfirmSheet />
 <Toast />
+
+{#if menuOpen}
+  <MenuSheet onClose={() => (menuOpen = false)} onLog={() => (logOpen = true)} onSave={() => (saveMenuOpen = true)} />
+{/if}
 
 {#if logOpen}
   <LogSheet onClose={() => (logOpen = false)} />
