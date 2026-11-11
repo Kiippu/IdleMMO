@@ -257,6 +257,49 @@ export interface DerivedExtras {
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
+// ---- Phase 3 layout pass (2026-11-11). Additive; save schema stays v6.
+// Return moment: E.applyOffline(state, nowMs) → { seconds, summary: OfflineSummary }. The worker already
+//   spreads `summary` into its `offline` message, so these fields arrive with no worker change.
+export interface ReturnSkillLine {
+  skill: string; name: string;
+  /** effective level before / after the catch-up (spec cap applied) */
+  from: number; to: number;
+  xp: number;
+  /** action ids whose level requirement is in (from, to] */
+  unlocked: string[]; unlockedCount: number;
+  /** "Mining 1 → 39, 4 new nodes unlocked" (nodes / recipes / foes by skill tier); "Mining +1,200 XP" when no level */
+  headline: string;
+}
+export interface ReturnLoot {
+  itemId: string; name: string; qty: number;
+  /** qty per grade 0..4 (gear: quality grade of each crafted piece) */
+  byGrade: number[];
+  /** item rarity (gear: the best rolled rarity) */
+  rarity: RarityId;
+  /** total gold value (E.itemValue per grade; gear E.gearValue) */
+  value: number;
+  /** part of qty that came from raid floor/tier/chest payouts */
+  raidQty: number;
+  gear: boolean; uids?: string[];
+}
+export interface ReturnBestFind { itemId: string; name: string; grade: number | null; qty: number; rarity: RarityId; value: number; uid: string | null }
+export type GoldSource = 'combat' | 'sales' | 'raid' | 'tips' | 'other';
+export interface GoldBySource { source: GoldSource; label: string; gold: number }
+export interface OfflineSummary {
+  /** itemId → qty from actions (raid loot is not in here; see loot) */
+  items: Record<string, number>;
+  xp: Record<string, number>; gold: number; crafts: Record<string, number>; kills: number;
+  stoppedReason: string | null; assisted: number; tips: number; raids: string[]; weeks: number;
+  /** sorted by levels gained, then XP */
+  skills: ReturnSkillLine[];
+  /** rarest item gained, ties by unit value; null when nothing was gained */
+  bestFind: ReturnBestFind | null;
+  /** grouped by item id, highest total value first; includes raid payout items */
+  loot: ReturnLoot[];
+  /** sums to `gold`; 'other' = anything the named sources don't explain (escrow refunds, ...) */
+  goldBySource: GoldBySource[];
+}
+
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */
 export const Engine: any;
 

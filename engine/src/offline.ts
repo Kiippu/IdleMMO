@@ -16,6 +16,7 @@ import { addItem } from './inventory';
 import { ensureStore } from './store';
 import { sweepSeen } from './codex';
 import { itemName } from './core';
+import { levelSnapshot, newReturnAcc, feedReturnAcc, buildReturn } from './return-summary';
 
 // ---------------------------------------------------------------- offline
 // Owner decisions 2026-11-11: offline catch-up runs at cfg.offlineRate (1.5x at first, lowered to 1x the same day:
@@ -48,19 +49,22 @@ function bulkGather(state, act, secs, sample, carry, events) {
 }
 E.applyOffline = function (state, nowMs) {
   const now = num(nowMs, ctx.now());
-  const summary = { items: {}, xp: {}, gold: 0, crafts: {}, kills: 0, stoppedReason: null, assisted: 0, tips: 0, raids: [], weeks: 0 };
+  const summary = { items: {}, xp: {}, gold: 0, crafts: {}, kills: 0, stoppedReason: null, assisted: 0, tips: 0, raids: [], weeks: 0,
+    // return moment (2026-11-11 layout pass): see return-summary.ts
+    skills: [], bestFind: null, loot: [], goldBySource: [] };
   const last = num(state.lastSeen, now);
   const capSec = num(cfg().offlineCapSec, 0);
   const seconds = clamp((now - last) / 1000, 0, capSec > 0 ? capSec : Infinity);
   state.lastSeen = now;
   if (seconds < 1) { const cev = []; processClock(state, cev); summary.raids = cev.filter((e) => e.type === 'raidResolved').map((e) => e.recapId); return { seconds: 0, summary }; }
   const gold0 = state.gold; const xp0 = {};
+  const lv0 = levelSnapshot(state); const racc = newReturnAcc();
   Object.keys(state.skills).forEach((k) => { xp0[k] = num(state.skills[k].xp, 0); });
   state.focus = 0;
   const rate = clamp(num(cfg().offlineRate, 1), 0, OFFLINE_RATE_MAX);
   const realNow = ctx.now; const t0 = now - seconds * 1000;
   const wk0 = state.week;
-  const tally = (ev) => ev.forEach((e) => {
+  const tally = (ev) => { feedReturnAcc(state, racc, ev); ev.forEach((e) => {
     if (e.type === 'complete') e.items.forEach((i) => { summary.items[i.itemId] = (summary.items[i.itemId] || 0) + i.qty; });
     else if (e.type === 'craft') summary.crafts[e.rarity] = (summary.crafts[e.rarity] || 0) + 1;
     else if (e.type === 'kill') summary.kills++;
@@ -69,7 +73,7 @@ E.applyOffline = function (state, nowMs) {
     else if (e.type === 'assist') { summary.assisted++; if (e.rarity) summary.crafts[e.rarity] = (summary.crafts[e.rarity] || 0) + 1; }
     else if (e.type === 'jobDone') summary.tips += e.tip;
     else if (e.type === 'raidResolved') summary.raids.push(e.recapId);
-  });
+  }); };
   flags.quiet = true;
   try {
     const a = state.active; const act = a && action(a.actionId);
@@ -113,6 +117,7 @@ E.applyOffline = function (state, nowMs) {
       if (marketEnabled()) {
         const ev = [];
         for (let t = 0; t < dt && state.market.mine.length; t += 5) marketFills(state, Math.min(5, dt - t), ev);
+        tally(ev);
         state.market.age = num(state.market.age, 0) + dt;
         if (state.market.age >= MARKET_REFRESH_SEC) E.refreshMarket(state);
       }
@@ -127,6 +132,7 @@ E.applyOffline = function (state, nowMs) {
   } finally { ctx.now = realNow; flags.quiet = false; }
   summary.gold = Math.round(state.gold - gold0);
   Object.keys(state.skills).forEach((k) => { const d = num(state.skills[k].xp, 0) - num(xp0[k], 0); if (d > 0) summary.xp[k] = d; });
+  Object.assign(summary, buildReturn(state, racc, lv0, summary.xp, summary.gold));
   const nItems = Object.values(summary.items).reduce((x: number, y: any) => x + num(y, 0), 0);
   const xpTot = Object.values(summary.xp).reduce((x: number, y: any) => x + num(y, 0), 0);
   // event log: one line per item gained, plus the gold, stamped with the catch-up time
