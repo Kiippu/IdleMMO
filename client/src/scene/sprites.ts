@@ -4,6 +4,8 @@ import heroUrl from './art/hero.png?url';
 import heroMan from './art/hero.json';
 import backdropUrl from './art/backdrops.png?url';
 import backdropMan from './art/backdrops.json';
+import foesUrl from './art/foes.png?url';
+import foesMan from './art/foes.json';
 
 export type AnimName = 'idle' | 'slash' | 'cast' | 'shoot' | 'fish';
 interface LayerRect { x: number; y: number; w: number; h: number; ox: number; oy: number }
@@ -19,8 +21,12 @@ export const FEET_Y = SCENE_H - 6;
 function load(url: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
 }
-let pending: Promise<{ atlas: HTMLImageElement; backdrops: HTMLImageElement }> | null = null;
-export function loadSceneArt() { return (pending ??= Promise.all([load(heroUrl), load(backdropUrl)]).then(([atlas, backdrops]) => ({ atlas, backdrops }))); }
+let pending: Promise<{ atlas: HTMLImageElement; backdrops: HTMLImageElement; foes: HTMLImageElement }> | null = null;
+export function loadSceneArt() { return (pending ??= Promise.all([load(heroUrl), load(backdropUrl), load(foesUrl)]).then(([atlas, backdrops, foes]) => ({ atlas, backdrops, foes }))); }
+
+/** Foe sprite row for a combat action (16px, 4 idle frames, facing left); null when the action is not a fight. */
+export const FOES = foesMan as { map: Record<string, number>; default: number; frames: number; size: number };
+export const foeRow = (actionId: string | null, kind: string | null): number | null => (kind === 'combat' ? (actionId && FOES.map[actionId]) ?? FOES.default : null);
 
 // ---------------------------------------------------------------- actions -> backdrop / animation
 const BACKDROP_BY_SKILL: Record<string, string> = {

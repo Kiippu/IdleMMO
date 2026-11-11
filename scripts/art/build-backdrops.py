@@ -100,9 +100,11 @@ def alchemy():
     put(im, tile(HOUSE, 24, 15), 70, 10)
     return im
 def combat():
-    im = new(); sky(im, ('#5b6ee1', '#639bff', '#9badb7')); rep(im, tile(FLOOR, 14, 16), 0, GY, W, H)
-    for i, cx in enumerate((10, 50, 90, 130)): prop(im, tile(NAT, 4, 0, 2, 2), cx, GY - 2 + (i % 2) * 3)
-    prop(im, tile(NAT, 13, 5, 3, 3), 120, GY + 10); prop(im, tile(NAT, 13, 5, 3, 3) , 16, GY + 14)
+    # calm, dark dusk so pale weapons and armour read; only sparse props at the edges, nothing behind the hero
+    im = new(); sky(im, ('#222034', '#3f3f74', '#5b6ee1')); rep(im, tile(FLOOR, 14, 16), 0, GY, W, H)
+    from scenelib import mult_tint
+    g = new(); rep(g, tile(FLOOR, 14, 16), 0, GY, W, H); put(im, mult_tint(g, (0.55, 0.55, 0.65)), 0, 0)
+    for cx in (10, 140): prop(im, mult_tint(tile(NAT, 4, 0, 2, 2), (0.5, 0.5, 0.6)), cx, GY - 2)
     return im
 def yard():
     im = new(); sky(im); grass(im, seed=7)
