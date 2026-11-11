@@ -5,7 +5,7 @@ import heroMan from './art/hero.json';
 import backdropUrl from './art/backdrops.png?url';
 import backdropMan from './art/backdrops.json';
 
-export type AnimName = 'idle' | 'slash' | 'cast' | 'shoot';
+export type AnimName = 'idle' | 'slash' | 'cast' | 'shoot' | 'fish';
 interface LayerRect { x: number; y: number; w: number; h: number; ox: number; oy: number }
 interface Manifest { anims: Record<AnimName, { frames: number; fps: number }>; layers: Record<string, Partial<Record<AnimName, LayerRect>>>; top: Record<string, number> }
 export const MAN = heroMan as unknown as Manifest;
@@ -32,12 +32,17 @@ const BACKDROP_BY_SKILL: Record<string, string> = {
 export const backdropFor = (skill: string | null) => (skill && BACKDROP_BY_SKILL[skill]) || 'yard';
 export const backdropRow = (name: string) => Math.max(0, BD.names.indexOf(name));
 
-/** Tool carried while working a skill (null = hands only, idle breathing). */
-const TOOL_BY_SKILL: Record<string, 'pickaxe' | 'axe' | 'hammer'> = { mining: 'pickaxe', woodcutting: 'axe', smithing: 'hammer', smelting: 'hammer' };
+/** Tool carried while working a skill (otherwise a hands-only gesture or idle). */
+const TOOL_BY_SKILL: Record<string, 'pickaxe' | 'axe' | 'hammer' | 'rod'> = {
+  mining: 'pickaxe', woodcutting: 'axe', fishing: 'rod',
+  smithing: 'hammer', smelting: 'hammer', carpentry: 'hammer', woodworking: 'hammer', leatherworking: 'hammer', jewelcrafting: 'hammer',
+};
+/** Hands-only work (arms reach and move: the spellcast pose without a staff): gathering herbs, cloth, kitchen and alchemy bench. */
+const GESTURE = new Set(['herbalism', 'tanning', 'weaving', 'tailoring', 'cooking', 'alchemy']);
 const COMBAT = new Set(['guardian', 'mender', 'striker']);
 
 // ---------------------------------------------------------------- equipment -> layers
-type WeaponKind = 'pickaxe' | 'axe' | 'mace' | 'sword' | 'staff' | 'bow' | 'hammer' | null;
+type WeaponKind = 'pickaxe' | 'axe' | 'mace' | 'sword' | 'staff' | 'bow' | 'hammer' | 'rod' | null;
 export function weaponKind(id: string | null): WeaponKind {
   if (!id) return null;
   if (/pickaxe/.test(id)) return 'pickaxe';
@@ -72,6 +77,7 @@ function bodyLayers(eq: Equipped, crew: boolean): { under: string[]; over: strin
 
 function weaponLayers(kind: WeaponKind, w: Gear | null): { anim: AnimName; bg: string[]; fg: string[] } | null {
   switch (kind) {
+    case 'rod': return { anim: 'fish', bg: ['rod_bg'], fg: ['rod_fg'] };
     case 'pickaxe': case 'axe': case 'hammer': return { anim: 'slash', bg: [`${kind}_bg`], fg: [`${kind}_fg`] };
     case 'mace': return { anim: 'slash', bg: ['mace_bg'], fg: ['mace_fg'] };
     case 'sword': { const m = MATS[Math.min(4, Math.max(1, w?.tier ?? 1))]; return { anim: 'slash', bg: [`sword_${m}_bg`], fg: [`sword_${m}_fg`] }; }
@@ -91,6 +97,7 @@ export function figure(skill: string | null, active: boolean, eq: Equipped, crew
     const wk = crew ? null : weaponKind(eq.weapon?.itemId ?? null);
     const w = tool ? weaponLayers(tool, null) : COMBAT.has(skill) && !crew ? weaponLayers(wk, eq.weapon) : null;
     if (COMBAT.has(skill) && !crew && !w) anim = 'slash';       // bare-handed
+    else if (!w && GESTURE.has(skill)) anim = 'cast';
     if (w) { anim = w.anim; bg = w.bg; fg = w.fg; }
   }
   const back = bg, front = fg;

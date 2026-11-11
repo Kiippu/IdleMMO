@@ -34,6 +34,7 @@ Source: https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character
 | Pickaxe | tools/pickaxe | bluecarrot16; JaidynReiman; Pierre Vigier (pvigier); Tuomo Untinen (reemax) | OGA-BY-3.0, CC-BY 4.0 | https://opengameart.org/content/lpc-hand-tools | No |
 | Axe | tools/axe | bluecarrot16; JaidynReiman; Pierre Vigier (pvigier); Tuomo Untinen (reemax) | OGA-BY-3.0, CC-BY 4.0 | https://opengameart.org/content/lpc-hand-tools | No |
 | Hammer | tools/hammer | bluecarrot16; JaidynReiman; Pierre Vigier (pvigier); Tuomo Untinen (reemax) | OGA-BY-3.0, CC-BY 4.0 | https://opengameart.org/content/lpc-hand-tools | No |
+| Fishing Rod | tools/fishing_rod | bluecarrot16 | OGA-BY 3.0+, CC-BY 4.0+ | https://opengameart.org/content/lpc-hand-tools | No |
 
 ## Ninja Adventure asset pack (backdrops and boss portraits)
 

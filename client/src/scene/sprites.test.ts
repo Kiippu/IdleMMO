@@ -28,6 +28,8 @@ describe('scene sprites', () => {
     for (const s of ((DATA as any).skills as any[])) expect(BD.names).toContain(backdropFor(s.id));
     expect(backdropFor(null)).toBe('yard');
     expect(figure('mining', true, { weapon: null, head: null, chest: null, legs: null }, false).front).toContain('pickaxe_fg');
+    expect(figure('fishing', true, { weapon: null, head: null, chest: null, legs: null }, false).anim).toBe('fish');
+    for (const sk of ['herbalism', 'cooking', 'alchemy', 'tailoring', 'carpentry', 'jewelcrafting']) expect(figure(sk, true, { weapon: null, head: null, chest: null, legs: null }, false).anim).not.toBe('idle');
     expect(weaponKind('iron_warhammer')).toBe('mace');
     expect(weaponKind('oak_longbow')).toBe('bow');
   });
