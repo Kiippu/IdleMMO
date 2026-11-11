@@ -106,6 +106,10 @@
   </li>
 {/snippet}
 
+<div class="chips" role="group" aria-label="Category">
+  {#each CATS as c (c.id)}<button type="button" class="btn chip" aria-pressed={cat === c.id} onclick={() => pickCat(c.id)}>{c.label}</button>{/each}
+</div>
+
 {#if ready.length}
   <section class="ready" aria-labelledby="rd-title">
     <h3 id="rd-title">Ready now</h3>
@@ -123,10 +127,6 @@
     </ul>
   </section>
 {/if}
-
-<div class="chips" role="group" aria-label="Category">
-  {#each CATS as c (c.id)}<button type="button" class="btn chip" aria-pressed={cat === c.id} onclick={() => pickCat(c.id)}>{c.label}</button>{/each}
-</div>
 
 {#each skillsByTier[cat] ?? [] as skill (skill.id)}
   {@const lvl = levelOf(skill.id)}

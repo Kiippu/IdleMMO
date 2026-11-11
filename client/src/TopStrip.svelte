@@ -1,13 +1,10 @@
 <script lang="ts">
-  import { reducedMotion } from './settings.svelte';
-  import { untrack } from 'svelte';
-  // Sticky status strip: gold, raid chip, Log/Save, then scene + current job + HP.
+  // Sticky status strip: gold, raid chip, Menu, then current job + HP. No scene here (it lives on the Workshop tab).
   import { engine } from './engine/store.svelte';
   import { engineClient } from './engine/client';
   import { fmtG, fmtN, fmtDuration } from './format';
   import { DATA } from '@guildwright/engine';
   import { guide } from './guide.svelte';
-  import SceneStrip from './scene/SceneStrip.svelte';
 
   type Props = { onMenu: () => void; onStart: () => void };
   let { onMenu, onStart }: Props = $props();
@@ -36,28 +33,6 @@
     return { text: `Raid opens in ${fmtDuration(raid.secToStart)}`, live: false };
   });
 
-  // Floating "+n Item" over the scene on each completed rep while the app is open.
-  const itemsMap: Record<string, { name?: string }> = (DATA as any).items;
-  const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
-  let floats = $state<Array<{ id: number; text: string; rarity: string }>>([]);
-  let floatId = 0;
-  const reduced = reducedMotion;
-  $effect(() => {
-    const evs = engine.lastEvents;
-    if (!evs?.length || reduced() || document.hidden) return;
-    untrack(() => {
-    for (const e of evs) {
-      if (e.type !== 'complete') continue;
-      for (const it of (e.items ?? []).slice(0, 2)) {
-        const id = ++floatId;
-        floats.push({ id, text: `+${it.qty} ${itemsMap[it.itemId]?.name ?? it.itemId}`, rarity: itemRarity[it.itemId] ?? 'common' });
-        setTimeout(() => { floats = floats.filter((f) => f.id !== id); }, 800);
-      }
-    }
-    if (floats.length > 4) floats = floats.slice(-4);
-    });
-  });
-
   async function stop() {
     try { await engineClient.stop(); } catch (err) { console.error('stop failed', err); }
   }
@@ -70,10 +45,6 @@
     <button type="button" class="btn" onclick={onMenu} aria-label="Open menu: Log, Save, Settings, Credits">Menu</button>
   </div>
   <div class="r2">
-    <div class="scene">
-      <SceneStrip />
-      {#each floats as f (f.id)}<span class="float" style:color={`var(--r-${f.rarity})`}>{f.text}</span>{/each}
-    </div>
     <div class="job">
       {#if job}
         <span class="job-name">{job.name}</span>
@@ -109,14 +80,6 @@
   .chip.live { color: var(--woad); }
   .r1 .btn { padding: 0 10px; }
   .r2 { display: flex; align-items: center; gap: 8px; }
-  .scene { position: relative; flex: none; }
-  .float {
-    position: absolute; left: 50%; bottom: 40%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
-    padding: 1px 5px; background: var(--paper); border: 1px solid var(--rule); font: 700 var(--t-xs)/1.2 var(--f-num);
-    animation: floatup 800ms ease-out forwards; z-index: 2;
-  }
-  @keyframes floatup { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -22px); } }
-  @media (prefers-reduced-motion: reduce) { .float { display: none; } }
   .job { flex: 1; min-width: 0; display: grid; gap: 4px; }
   .job-name { font: 700 var(--t-sm)/1.1 var(--f-body); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .job-name.idle { color: var(--ink-3); }
@@ -126,5 +89,4 @@
   .hpbar { flex: 1; }
   .hpfill { height: 100%; background: var(--hp); }
   .r2 .btn { padding: 0 10px; max-width: 96px; line-height: 1.2; }
-  @media (max-width: 380px) { .r2 :global(canvas) { width: 80px !important; height: 32px !important; } }
 </style>

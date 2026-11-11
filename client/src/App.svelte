@@ -11,6 +11,7 @@
   import Toast from './overlays/Toast.svelte';
   import { ui } from './ui.svelte';
   import GettingStarted from './overlays/GettingStarted.svelte';
+  import WorkshopScene from './scene/WorkshopScene.svelte';
   import Crew from './tabs/Crew.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
   import MenuSheet from './overlays/MenuSheet.svelte';
@@ -105,6 +106,7 @@
     {:else}
       <CollectReveal />
       {#if active === 'Workshop'}
+        <WorkshopScene />
         <GettingStarted />
         <Workshop />
       {:else if active === 'Stores'}
