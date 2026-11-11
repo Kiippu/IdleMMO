@@ -50,7 +50,7 @@ import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, S
 export type OfflineSummary = EngineOfflineSummary & { awaySec?: number };
 
 export type Req =
-  | { id: string; type: 'init'; legacySave?: string | null }
+  | { id: string; type: 'init' }
   | { id: string; type: 'start'; actionId: string }
   | { id: string; type: 'stop' }
   | { id: string; type: 'pause' }

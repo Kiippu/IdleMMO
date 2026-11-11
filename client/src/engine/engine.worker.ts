@@ -7,7 +7,7 @@ declare const self: DedicatedWorkerGlobalScope;
 
 import { createEngine, mulberry32, DATA } from '@guildwright/engine';
 import { createIdbStorage } from '../save/idbStorage';
-import { importLegacyLocalStorage, SAVE_KEY } from '../save/v4Import';
+const SAVE_KEY = 'guildwright-proto-v1';
 import { exportSave, importSave } from '../save/exportImport';
 import type { Req, FromWorker, OfflineSummary, EngineEvent, Derived } from './protocol';
 
@@ -71,7 +71,7 @@ function stopTicking() {
   tickTimer = null;
 }
 
-async function init(legacySave: string | null): Promise<{ offline: OfflineSummary | null; defaultTab: 'workshop' | 'raid'; legacyImported: boolean }> {
+async function init(): Promise<{ offline: OfflineSummary | null; defaultTab: 'workshop' | 'raid' }> {
   storage = createIdbStorage();
   await storage.hydrate([SAVE_KEY]);
 
@@ -86,8 +86,8 @@ async function init(legacySave: string | null): Promise<{ offline: OfflineSummar
     data: DATA,
   });
 
-  const legacyImported = importLegacyLocalStorage(storage.storage, SAVE_KEY, legacySave);
-
+  // Saves older than schema v7 (and missing or corrupt ones) are not loaded: everyone starts fresh, silently.
+  // The next E.save below overwrites the old record.
   state = E.load() ?? E.newState();
   const res = E.applyOffline(state, Date.now()) as { seconds: number; summary: OfflineSummary } | null;
   const offline = res && res.seconds >= 60 ? { ...res.summary, awaySec: res.seconds } : null;
@@ -96,13 +96,13 @@ async function init(legacySave: string | null): Promise<{ offline: OfflineSummar
   E.save(state);
   await storage.flush();
   startTicking();
-  return { offline, defaultTab, legacyImported };
+  return { offline, defaultTab };
 }
 
 async function handle(req: Req): Promise<unknown> {
   switch (req.type) {
     case 'init':
-      return await init(req.legacySave ?? null);
+      return await init();
     case 'start':
       E.start(state, req.actionId);
       return undefined;
@@ -224,7 +224,11 @@ async function handle(req: Req): Promise<unknown> {
       return await exportSave(JSON.stringify(state));
     case 'import': {
       const json = await importSave(req.code);
-      const next = E.migrate(JSON.parse(json));
+      let parsed: unknown;
+      try { parsed = JSON.parse(json); } catch { throw new Error('Save code is not a valid Guildwright save.'); }
+      const check = E.checkSave(parsed) as { ok: boolean; status: string };
+      if (check.status === 'old-save') throw new Error("This backup is from an older version and can't be loaded.");
+      const next = check.ok ? E.migrate(parsed) : null;
       if (!next) throw new Error('Save code is not a valid Guildwright save.');
       state = next;
       E.save(state);

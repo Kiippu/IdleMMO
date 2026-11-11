@@ -1,6 +1,5 @@
 // Main-thread RPC client. Holds the worker handle, correlates requests by id,
 // and pipes every incoming snapshot into the reactive engine store.
-import { readLegacySave, clearLegacySave } from '../save/v4Import';
 import type { Req, FromWorker, OfflineSummary } from './protocol';
 import { engine } from './store.svelte';
 
@@ -57,8 +56,9 @@ export async function initEngineClient(): Promise<void> {
   if (worker) return;
   worker = new Worker(new URL('./engine.worker.ts', import.meta.url), { type: 'module' });
   worker.addEventListener('message', onMessage);
-  const init = await rpc<{ offline: OfflineSummary | null; defaultTab: 'workshop' | 'raid'; legacyImported?: boolean }>({ id: nextId(), type: 'init', legacySave: readLegacySave() });
-  if (init.legacyImported) clearLegacySave();
+  // The old prototype's localStorage save is no longer imported (schema v7 starts fresh). Clear it once.
+  try { localStorage.removeItem('guildwright-proto-v1'); } catch { /* storage blocked */ }
+  const init = await rpc<{ offline: OfflineSummary | null; defaultTab: 'workshop' | 'raid' }>({ id: nextId(), type: 'init' });
   engine.offline = init.offline ?? null;
   engine.defaultTab = init.defaultTab;
   engine.ready = true;
