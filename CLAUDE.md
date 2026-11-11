@@ -21,7 +21,9 @@ The legacy single-file prototype is `index.html` at the repo root. It is the beh
   area to own and send follow-ups back to that agent. Use a fresh agent for independent review/testing.
   Parallel agents must not edit the same files. At the end of a session, list the agents used and what each owned.
 - Commit and push to GitHub. Work on branches; don't push to `main` without asking.
-- Builds must keep existing player saves working (save schema v6 in IndexedDB since phase 2.5; `migrate()` loads v1, v3, v4, v5, v6; fixtures in `engine/test/fixtures/`).
+- Saves: schema v7 in IndexedDB (phase 3, 2026-11-11). The owner wiped all older saves: v1–v6 saves and old backup codes are
+  NOT migrated; the game starts fresh silently (`E.loadSave()` / `E.checkSave()`; old fixtures in `engine/test/fixtures/` are
+  only used to prove they are refused). From now on, builds must keep v7 saves loading unless the owner says otherwise.
 - Test at phone width (360 and 390px) in light mode only (no dark mode or themes since 2026-11-11).
 
 ## Settled decisions (don't reopen unless asked)
@@ -225,3 +227,16 @@ themes (test at 360 and 390px, light). Whole-number pixel scaling only.
 Next: phase 3 (art + credits). Phase-3 scope: CC0/CC-BY/OGA-BY
 art pack (DawnBringer 32 remap), LPC hero layer composite driven by equipped slots in SceneStrip (the
 placeholder goes away), per-action animation variety, `art/CREDITS.md` + in-game credits screen.
+
+## Phase 3 step 1: layout pass (2026-11-11/12) — branch `phase3/layout`, not merged
+No art. Engine: return summary (per-skill headline, best find, grouped loot, gold by source), one Log line per skill per
+level-up batch, `E.recapView` (turnout vs contribution pay, `pointShare` not `yourShare`, tier label, plain next-week hint),
+`E.crewActivity` (+ `crew.jobsDone`, last 20), `E.storeSellList` / `E.storeSellAll`, `E.disabledReasons`; save schema v7.
+Client: one Menu (Log, Save, Settings: mute stub + reduced motion, Credits placeholder), one-line guide + "Do this first",
+~156px pixelated scene on Workshop only (52px native, 3x) + slim strip elsewhere, numbered tab badges, disabled-button
+reasons, empty states with a next step, compact numbers everywhere ("12.6k g" from 10,000; owner OK'd), grouped sell list +
+atomic "Sell all grades", rebuilt return reveal and raid recap, crew feed on Crew > Roster + toasts.
+Build/test: a Linux clone on the owner's PC VM (`$HOME/work/IdleMMO`, own node_modules); the PC has no GitHub credentials,
+so commits are bundled and pushed from the cloud; QA screenshots via cloud Playwright (no browser on the PC VM).
+Icons: free packs only (owner 2026-11-11). Shikashi (CC BY 4.0, credit "Matt Firth (shikashipx)" + game-icons.net) and
+Kyrise (CC BY 4.0) verified; gap packs being chosen.
