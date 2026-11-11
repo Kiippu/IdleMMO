@@ -38,10 +38,10 @@
 <style>
   .scene { position: relative; margin: 0 0 12px; }
   .float {
-    position: absolute; left: 50%; bottom: 62%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+    position: absolute; left: 50%; top: 4px; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
     padding: 2px 6px; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-left-width: 4px; font: 700 var(--t-xs)/1.2 var(--f-num);
     animation: floatup 800ms ease-out forwards; z-index: 2;
   }
-  @keyframes floatup { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -22px); } }
+  @keyframes floatup { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -6px); } }
   @media (prefers-reduced-motion: reduce) { .float { display: none; } }
 </style>
