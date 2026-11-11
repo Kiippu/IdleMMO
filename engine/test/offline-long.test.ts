@@ -1,4 +1,4 @@
-// Owner decision 2026-11-11: offline catch-up has no time cap and runs at 1.5x active speed. Long
+// Owner decision 2026-11-11: offline catch-up has no time cap and runs at cfg.offlineRate x active speed (1x since 2026-11-11). Long
 // absences are simulated in hourly game-clock chunks; gathering past OFFLINE_MAX_COMPLETIONS reps
 // switches to an exact-XP bulk step. Must stay fast and deterministic.
 import { describe, expect, it } from 'vitest';
@@ -38,18 +38,18 @@ describe('long offline catch-up', () => {
     void h;
   });
 
-  it('30 days: fast, deterministic, four or five raids, XP matches 1.5x the time exactly in bulk', async () => {
+  it('30 days: fast, deterministic, four or five raids, XP matches offlineRate x the time exactly in bulk', async () => {
     const a = await away(30, 7); const b = await away(30, 7);
     expect(a.ms).toBeLessThan(2000);
     expect(a.r.summary).toEqual(b.r.summary);
     expect(a.s.skills).toEqual(b.s.skills);
     expect(a.r.summary.raids.length).toBeGreaterThanOrEqual(4);
     expect(a.s.week).toBeGreaterThanOrEqual(5);
-    // ~30d x 1.5 at <=3 s per rep; bulk keeps the yield per rep of the sampled reps
+    // ~30d x offlineRate at <=3 s per rep; bulk keeps the yield per rep of the sampled reps
     const reps = a.s.mastery.mine_copper as number;
     const secPerRep = a.E.actionTime(a.s, 'mine_copper');
-    expect(reps * secPerRep).toBeGreaterThan(30 * 86400 * 1.5 * 0.95);
-    expect(reps * secPerRep).toBeLessThanOrEqual(30 * 86400 * 1.5 + 10);
+    expect(reps * secPerRep).toBeGreaterThan(30 * 86400 * a.h.mod.DATA.config.offlineRate * 0.95);
+    expect(reps * secPerRep).toBeLessThanOrEqual(30 * 86400 * a.h.mod.DATA.config.offlineRate + 10);
     expect(a.s.skills.mining.xp).toBe(reps * a.h.mod.DATA.actions.find((x: any) => x.id === 'mine_copper').xp * a.h.mod.DATA.config.xpMult);
     expect(a.r.summary.items.copper_ore).toBeGreaterThan(reps * 0.99);
   });

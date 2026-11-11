@@ -18,8 +18,8 @@ import { sweepSeen } from './codex';
 import { itemName } from './core';
 
 // ---------------------------------------------------------------- offline
-// Owner decision 2026-11-11: offline is MORE rewarding than watching. Catch-up runs at cfg.offlineRate
-// (1.5 = 1.5x active speed, clamped to [0, OFFLINE_RATE_MAX]) and has no time cap (cfg.offlineCapSec
+// Owner decisions 2026-11-11: offline catch-up runs at cfg.offlineRate (1.5x at first, lowered to 1x the same day:
+// (1 = active speed, 1.5 = 1.5x, clamped to [0, OFFLINE_RATE_MAX]) and has no time cap (cfg.offlineCapSec
 // null/0 = unlimited). Long absences are simulated in game-clock chunks (OFFLINE_CHUNK_SEC) with the
 // engine clock moved to each chunk's end, so weekly rollovers, raids, NPC contract fills, crew jobs and
 // store hours happen in order. Gathering past OFFLINE_MAX_COMPLETIONS individual reps switches to an
