@@ -1,11 +1,8 @@
 // 2026-11-08 owner decisions: item rarity lookup, gather-time estimates, raid prep lock,
 // NPC general store (player market parked) and the player event log.
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { freshEngine, resolveRaidByClock, START, DAY } from './engine-helpers';
 
-const fixture = (name: string) => JSON.parse(readFileSync(resolve(__dirname, 'fixtures', name), 'utf8'));
 const HOUR = 3600000;
 
 describe('item rarity lookup', () => {
@@ -196,7 +193,7 @@ describe('general store', () => {
 });
 
 describe('player market parked', () => {
-  it('buy/list refuse, the NPC board stays empty, open listings come back on load', async () => {
+  it('buy/list refuse and the NPC board stays empty, also after a reload', async () => {
     const h = await freshEngine();
     const { E } = h;
     const s = E.newState();
@@ -207,22 +204,17 @@ describe('player market parked', () => {
     for (let i = 0; i < 300; i++) E.tick(s, 1);
     expect(s.market.listings).toEqual([]);
 
-    const raw = fixture('v6-phase25-save.json');
-    raw.market.mine = [{ id: 'm1', itemId: 'oak_log', grade: 2, qty: 7, price: 30 }];
-    const have = (raw.inv.oak_log || [0, 0, 0, 0, 0])[2] || 0;
-    const m = E.migrate(raw);
-    expect(m.v).toBe(6);
+    const m = E.migrate(JSON.parse(JSON.stringify(s)));
+    expect(m.v).toBe(7);
     expect(m.market.mine).toEqual([]); expect(m.market.listings).toEqual([]);
-    expect(m.inv.oak_log[2]).toBe(have + 7);
-    expect(E.events(m)[0]).toMatchObject({ cat: 'loot', itemId: 'oak_log', qty: 7 });
   });
 });
 
 describe('player event log', () => {
-  it('old fixtures load with an empty log and a store; fields round-trip', async () => {
+  it('a save loads with its log and a store; fields round-trip', async () => {
     const h = await freshEngine(3, START + HOUR);
-    for (const f of ['v4-save.json', 'v5-phase2-save.json', 'v6-phase25-save.json']) {
-      const s = h.E.migrate(fixture(f));
+    {
+      const s = h.E.migrate(JSON.parse(JSON.stringify(h.E.newState())));
       expect(Array.isArray(s.events)).toBe(true);
       expect(() => h.E.tick(s, 1)).not.toThrow();
       expect(s.store.slots.length).toBe(9);
@@ -282,18 +274,18 @@ describe('player event log', () => {
 });
 
 describe('market-tax week buff removed', () => {
-  it('never rolls, and a held tax buff migrates silently to a valid buff', async () => {
+  it('never rolls, and an unknown (tax) buff in a save is dropped', async () => {
     const h = await freshEngine();
     const { E, mod } = h;
     expect(mod.DATA.config.weekBuffs.some((b: any) => b.kind === 'tax')).toBe(false);
-    const raw = fixture('v6-phase25-save.json');
+    const raw = JSON.parse(JSON.stringify(E.newState()));
     raw.server.weekBuff = { kind: 'tax', value: 0.02, label: 'Market tax 2%', week: raw.week };
     raw.server.pendingBuff = { kind: 'tax', value: 0.02, label: 'Market tax 2%', week: raw.week + 1 };
     const logLen = (raw.events || []).length;
     const s = E.migrate(raw);
-    expect(s.v).toBe(6);
-    expect(s.server.weekBuff).toMatchObject({ kind: 'repair', week: raw.week });
-    expect(s.server.pendingBuff).toMatchObject({ kind: 'repair', week: raw.week + 1 });
+    expect(s.v).toBe(7);
+    expect(s.server.weekBuff).toBeNull();
+    expect(s.server.pendingBuff).toBeNull();
     expect(s.events.length).toBe(logLen);
     expect(E.marketTax(s)).toBe(mod.DATA.config.marketTax);
     const t = E.newState(); E.lockIn(t);

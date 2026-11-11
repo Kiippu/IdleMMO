@@ -32,13 +32,12 @@ describe('crew roster (Stage E)', () => {
     expect(smelterJob.owner).toBe('Merrick');
   });
 
-  it('v4 saves with a bigger procedural roster are kept as-is (no pruning)', async () => {
+  it('a save with a bigger roster is kept as-is (no pruning)', async () => {
     const { E } = await freshEngine();
     const base = E.newState();
-    // Simulate a v4 save that grew to 10 members (old engine capped at 15).
     const extraNames = ['Wren', 'Ossian', 'Mira', 'Tobin', 'Kestrel', 'Ada'];
     for (const name of extraNames) base.crew.members.push({ id: 'c_' + name.toLowerCase(), name, skill: null });
-    const raw = JSON.parse(JSON.stringify(Object.assign({}, base, { v: 4 })));
+    const raw = JSON.parse(JSON.stringify(base));
     const out = E.migrate(raw);
     expect(out.crew.members.length).toBe(10);
   });
@@ -48,7 +47,7 @@ describe('crew roster (Stage E)', () => {
     const base = E.newState();
     // Simulate a save with only 1 member: migration should fill up to 4.
     base.crew.members = [{ id: 'c_merrick', name: 'Merrick', skill: 'smelting' }];
-    const raw = JSON.parse(JSON.stringify(Object.assign({}, base, { v: 4 })));
+    const raw = JSON.parse(JSON.stringify(base));
     const out = E.migrate(raw);
     expect(out.crew.members.length).toBe(4);
   });

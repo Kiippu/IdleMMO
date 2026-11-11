@@ -1,10 +1,7 @@
 // Phase 3 step 1 (layout pass, 2026-11-11): engine data the new screens need. Additive only.
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { freshEngine, START, DAY } from './engine-helpers';
 
-const fixture = (name: string) => JSON.parse(readFileSync(resolve(__dirname, 'fixtures', name), 'utf8'));
 
 async function away(ms: number, setup: (E: any, s: any) => void, seed = 1) {
   const h = await freshEngine(seed);
@@ -235,11 +232,12 @@ describe('crew activity feed', () => {
     expect(b).toMatchObject({ who: 'Branka', text: 'Filled 2 Coal for the crew, +10g.', full: 'Branka filled 2 Coal for the crew, +10g.' });
   });
 
-  it('v4 / v5 / v6 fixtures load and every new view works on them', async () => {
-    for (const f of ['v4-save.json', 'v5-phase2-save.json', 'v6-phase25-save.json']) {
+  it('a reloaded v7 save gives every new view (and old saves are refused: see saves-v7.test.ts)', async () => {
+    {
       const h = await freshEngine(3, START + 3600000);
-      const s = h.E.migrate(fixture(f));
-      expect(s.v).toBe(6);
+      const s = h.E.migrate(JSON.parse(JSON.stringify(h.E.newState())));
+      expect(s.v).toBe(7);
+      expect(s.crew.jobsDone).toEqual([]);
       expect(Array.isArray(h.E.crewActivity(s))).toBe(true);
       const x = h.E.derivedExtras(s);
       expect(Array.isArray(x.sellList)).toBe(true);

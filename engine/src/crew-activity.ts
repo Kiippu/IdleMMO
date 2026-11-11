@@ -2,7 +2,7 @@
 //   - state.crew.feed: contract hand-ins (yours and crewmates'), contracts filled/closed, town contracts
 //     posted, raid payouts to the treasury, vault deposits/withdrawals, rank changes, withdrawal requests
 //   - your own crew lines in state.events (assists, "started helping", catch-up assist summary)
-//   - state.crew.jobsDone: crewmates' finished jobs (additive v6 field, last JOBS_DONE_CAP; written by finishJob)
+//   - state.crew.jobsDone: crewmates' finished jobs (last JOBS_DONE_CAP; written by finishJob; part of fresh state)
 // Your event-log lines that the crew feed already carries (hand-ins, posting/cancelling a request, a
 // crewmate filling your request, a finished job you helped with) are dropped so nothing shows twice.
 /* eslint-disable */

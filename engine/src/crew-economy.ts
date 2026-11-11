@@ -15,12 +15,11 @@ import { gapItem, gapDraft } from './raid-payouts';
 import { pushEvent } from './events';
 
 // ================================================================ v4: crew economy
-// Week buffs a save may hold. The market-tax buff was removed 2026-11-09: a held one becomes the first
-// configured buff (repairs) for the same week, silently; anything unknown becomes none.
+// Week buffs a save may hold: only configured kinds (the market-tax buff was removed 2026-11-09).
 function validBuff(b) {
   if (!b || typeof b !== 'object') return null;
   const list = arr(cfg().weekBuffs).filter((x) => x && x.kind !== 'tax');
-  const def = list.find((x) => x.kind === b.kind) || (b.kind === 'tax' ? list[0] : null);
+  const def = list.find((x) => x.kind === b.kind) || null;
   return def ? { kind: def.kind, value: def.value, label: def.label, week: b.week } : null;
 }
 export function feedPush(state, kind, who, text) {
@@ -32,14 +31,14 @@ export function feedPush(state, kind, who, text) {
 }
 // Treasury audit log (phase 2.5: EVERY gold and vault movement lands here; all members see it).
 // Entry: { t, week, kind, who, reason, delta, escrowDelta?, itemId?, qty?, grade?, uid?, gear? }
-//   t           time (ms). Legacy entries written with `at` are normalised to `t` on load.
+//   t           game-clock time (ms).
 //   delta       change in TOTAL crew gold (free + escrowed). Free-gold change = delta - escrowDelta.
 //   escrowDelta change in escrowed gold (omitted when 0).
 //   itemId/qty  vault item movement; qty is signed (+ into the vault, - out). Gear rows carry uid + gear:true.
 //   gold/paidBy contract rows: gold paid/escrowed and who funded it ('Treasury' or a player). A player-funded
 //               crew request moves that player's gold, not the treasury's, so its delta is 0.
-// kinds: payout, contract, contract-escrow, contract-release, release (retired requisitions), deposit,
-//        withdraw, raid-stock. (fill/escrow may appear in pre-2.5-merge saves.) Entries with no gold and no item movement are dropped.
+// kinds: payout, contract, contract-escrow, contract-release, release, deposit,
+//        withdraw, raid-stock. Entries with no gold and no item movement are dropped.
 export function logTreasury(state, kind, delta, who, reason, extras?) {
   const cr = state.crew; if (!cr || !cr.treasury) return null;
   extras = extras || {};
@@ -57,8 +56,6 @@ export function logTreasury(state, kind, delta, who, reason, extras?) {
 export function normTreasuryLog(log) {
   return arr(log).filter((e) => e && typeof e === 'object').map((e) => {
     const o = Object.assign({}, e);
-    if (!isFinite(o.t) && isFinite(o.at)) o.t = o.at;
-    delete o.at;
     o.t = num(o.t, 0); o.delta = num(o.delta, 0);
     return o;
   }).slice(0, TREASURY_LOG_CAP);
@@ -250,9 +247,7 @@ export const CREW_ROLES = ['guardian', 'mender', 'striker'];
 export function ensureCrewV5(state) {
   const cr = state.crew; if (!cr) return;
   const used = new Set(arr(cr.members).map((m) => m.name));
-  // deterministic fill: the same save always grows the same roster, even if it is migrated twice before saving
-  // Phase 1: backfill only up to the authored-roster size (4). Old saves with a bigger
-  // procedural roster are kept as-is — nothing prunes existing members.
+  // deterministic fill: the same save always grows the same roster; backfill up to the authored-roster size (4)
   const pool = shuffleWith((arr(D().npcNames).length ? D().npcNames : ['Wren', 'Ossian', 'Mira', 'Tobin', 'Kestrel', 'Ada']).filter((n) => !used.has(n)), mulberry(seedOf(Array.from(used).join('|'))));
   while (cr.members.length < 4 && pool.length) cr.members.push({ name: pool.shift(), skill: null });
   cr.members.forEach((m, i) => {
@@ -269,7 +264,6 @@ export function ensureCrewV5(state) {
     m.lockedWeek = num(m.lockedWeek, 0);
   });
   if (!rankDefs().some((r) => r.id === cr.playerRank)) cr.playerRank = 'officer';
-  delete cr.viewAsMember; // phase 2.5 cut: "view as member" rank toggle
   if (!cr.vault || typeof cr.vault !== 'object') cr.vault = {};
   if (!cr.vault.inv || typeof cr.vault.inv !== 'object') cr.vault.inv = {};
   Object.keys(cr.vault.inv).forEach((id) => { if (!item(id) || !Array.isArray(cr.vault.inv[id])) delete cr.vault.inv[id]; });
@@ -283,11 +277,9 @@ export function ensureCrewV5(state) {
   cr.treasury.log = normTreasuryLog(cr.treasury.log);
   cr.contracts = arr(cr.contracts).filter((k) => k && k.id && item(k.itemId)).map((k) => {
     const o = Object.assign({ source: 'town', payer: 'treasury', postedBy: 'Town', filled: 0, escrow: 0, paid: 0, minGrade: 1, rewardPer: 0, status: 'open', submissions: [] }, k);
-    delete o.repPer; delete o.repPaid; // reputation removed
-    o.submissions = arr(o.submissions).map((x) => { const y = Object.assign({}, x); delete y.rep; return y; });
+    o.submissions = arr(o.submissions);
     return o;
   });
-  migrateRequisitions(state);
   cr.contractSimIn = num(cr.contractSimIn, 1800);
   cr.withdrawRequests = arr(cr.withdrawRequests).filter((r) => r && r.id);
   cr.feed = arr(cr.feed).filter((f) => f && f.text).slice(0, FEED_CAP);
@@ -314,7 +306,6 @@ export function ensureV5(state) {
   r.resolvedWeek = Math.floor(num(r.resolvedWeek, num(state.week, 1) - 1));
   r.recaps = arr(r.recaps).filter((x) => x && x.id);
   r.corePity = Math.max(0, Math.floor(num(r.corePity, 0))); r.coresWon = Math.max(0, Math.floor(num(r.coresWon, 0)));
-  delete r.farm; // phase 2.5 cut: farm raids
   if (!r.warned || typeof r.warned !== 'object') r.warned = { week: state.week, levels: [] };
   r.current = r.current || null;
   for (let i = 0; i < r.ladder; i++) { const rec = ensureRecord(state, i, state.week); if (rec.killedWeek == null) { rec.killedWeek = Math.max(0, state.week - 1); rec.hpLeft = 0; rec.revealedWeek = rec.revealedWeek == null ? 0 : rec.revealedWeek; } }
@@ -325,9 +316,7 @@ export function ensureV5(state) {
   if (!state.economy || typeof state.economy !== 'object') state.economy = { raidGold: 0, reqPaid: 0, weeks: [] };
   state.economy.weeks = arr(state.economy.weeks);
   ensureCrewV5(state);
-  delete state.rep; // reputation removed (phase 2.5 owner decision); v6 saves that had it are stripped
   if (!state.spec || typeof state.spec !== 'object') state.spec = { skillId: null, lastSwitchAt: null };
-  delete state.spec.capped; // the cap now follows from the rules (every non-spec profession skill), not a list
   // every week has contracts for its raid (only before that week's raid resolved)
   if (state.crew && !arr(state.crew.contracts).some((k) => k.week === state.week) && !raidDoneThisWeek(state)) postContracts(state, []);
   state.v = SCHEMA;
@@ -531,30 +520,3 @@ export function npcContractStep(state, dt, events) {
   events.push({ type: 'contractFill', contractId: k.id, who: m.name });
 }
 const npcFilled = (k) => arr(k.submissions).filter((x) => x.who !== 'You').reduce((a, x) => a + num(x.qty, 0), 0);
-// Pre-merge saves: crew.requisitions → the contracts board. NPC-posted (leader / npc-request) ones are
-// retired with escrow released to the treasury. Open player-posted ones with a reward become crew
-// contracts that keep their treasury escrow (payer 'treasury'), capped to what the escrow can pay;
-// reward-free ones are closed (contracts never pay nothing). Closed requisitions are dropped (the
-// treasury log keeps their history). Then the requisition fields are deleted.
-export function migrateRequisitions(state) {
-  const cr = state.crew; if (!cr || !('requisitions' in cr)) { if (cr) { delete cr.seenReqIds; delete cr.reqSimIn; } return; }
-  const t = cr.treasury;
-  const releaseT = (r, why) => {
-    const back = Math.max(0, num(r.escrow, 0)); if (!back) return;
-    t.escrow = Math.max(0, t.escrow - back); t.gold += back;
-    logTreasury(state, 'release', 0, 'Crew', `${why}: ${fmtGold(back)} escrow released (${itemName(r.itemId)})`, { escrowDelta: -back, gold: back, paidBy: 'Treasury' });
-  };
-  arr(cr.requisitions).filter((r) => r && r.id && item(r.itemId) && r.status === 'open').forEach((r) => {
-    if (r.source === 'leader' || r.source === 'npc-request') { releaseT(r, 'Retired NPC requisition'); return; }
-    const rewardPer = Math.floor(num(r.rewardPer, 0)); const remaining = Math.max(0, num(r.qty, 0) - num(r.filled, 0));
-    const units = rewardPer > 0 ? Math.min(remaining, Math.floor(num(r.escrow, 0) / rewardPer)) : 0;
-    if (units < 1) { releaseT(r, 'Requisition moved to the contracts board without a reward; closed'); return; }
-    const keep = units * rewardPer; const extra = num(r.escrow, 0) - keep;
-    if (extra > 0) releaseT({ escrow: extra, itemId: r.itemId }, 'Requisition escrow above its remaining reward');
-    cr.contracts = arr(cr.contracts);
-    cr.contracts.unshift({ id: String(r.id), source: 'crew', payer: 'treasury', postedBy: r.postedBy === 'You' ? 'You' : String(r.postedBy || 'Crew'), week: num(r.week, state.week), check: null,
-      itemId: r.itemId, qty: num(r.filled, 0) + units, filled: num(r.filled, 0), minGrade: clamp(Math.floor(num(r.minGrade, 0)), 0, 4), rewardPer, escrow: keep, paid: num(r.paid, 0),
-      status: 'open', postedAt: num(r.postedAt, nowOf(state)), note: String(r.note || ''), submissions: arr(r.submissions).map((x) => ({ who: x.who, qty: x.qty, gold: num(x.paid, 0), t: num(x.t, 0) })) });
-  });
-  delete cr.requisitions; delete cr.seenReqIds; delete cr.reqSimIn;
-}

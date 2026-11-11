@@ -270,7 +270,7 @@ export interface DerivedExtras {
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
-// ---- Phase 3 layout pass (2026-11-11). Additive; save schema stays v6.
+// ---- Phase 3 layout pass (2026-11-11). Additive.
 // Return moment: E.applyOffline(state, nowMs) → { seconds, summary: OfflineSummary }. The worker already
 //   spreads `summary` into its `offline` message, so these fields arrive with no worker change.
 export interface ReturnSkillLine {
@@ -360,7 +360,7 @@ export interface RecapView {
 }
 
 // Crew feed: E.crewActivity(state, n = 10) → CrewActivity[] (newest first); also DerivedExtras.crewActivity.
-//   Merges state.crew.feed, state.crew.jobsDone (additive v6 field: crewmates' finished jobs, last 20) and
+//   Merges state.crew.feed, state.crew.jobsDone (crewmates' finished jobs, last 20) and
 //   your own 'crew' event-log lines, without duplicates.
 export type CrewActivityKind = 'contract' | 'payout' | 'vault' | 'request' | 'role' | 'raid' | 'job' | 'assist' | 'you' | string;
 export interface CrewActivity {
@@ -397,6 +397,23 @@ export interface DisabledReasons {
   /** spec Switch: no eligible skill / cooldown "Xd Yh" / not enough gold; null when a switch is possible */
   spec: string | null;
 }
+
+// ---- Save schema v7 (owner decision 2026-11-11: this update wipes old saves; everyone starts fresh)
+// Saves older than v7 (v1, v3, v4, v5, v6, or no version) are NOT migrated.
+//   E.loadSave() → LoadSaveResult: the stored save with why it did or didn't load. Boot with
+//     const r = E.loadSave(); const state = r.state ?? E.newState();
+//     if (r.status === 'old-save') tell the player their old progress was reset (the next E.save overwrites it).
+//   E.load() → state | null (null for none / old-save / corrupt; unchanged signature).
+//   E.checkSave(parsedJson) → CheckSaveResult, without loading (use it for imported save codes before E.migrate).
+//   E.migrate(parsedJson) → state | null: normalises a v7 save; null for anything checkSave refuses.
+//   E.SCHEMA → 7.
+// Removed with it: the v1/v3/v4/v5/v6 migration paths, xpScale rescaling (state.xpScale no longer exists),
+//   the low-level-spec 3,000g refund, coin → gold folding, requisition → contract merging, `at` → `t` treasury
+//   log normalising, open market listings returned to the bag on load, tax week-buff remapping (unknown buffs drop).
+// state.crew.jobsDone is part of every fresh state.
+export type SaveStatus = 'ok' | 'none' | 'old-save' | 'corrupt';
+export interface CheckSaveResult { ok: boolean; status: SaveStatus; /** the save's `v`, or null */ version: number | null }
+export interface LoadSaveResult { /** null unless status is 'ok' */ state: any | null; status: SaveStatus; version: number | null }
 
 /** The engine object (GW.Engine in the prototype). Methods are called dynamically. */
 export const Engine: any;

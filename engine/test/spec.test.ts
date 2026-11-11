@@ -121,24 +121,23 @@ describe('choosing and switching a specialization', () => {
   });
 });
 
-describe('spec migration', () => {
-  it('a spec below level 70 is cleared, 3,000g refunded and the cooldown reset', async () => {
+describe('spec on load (v7)', () => {
+  it('a spec below level 70 (hand-edited save) is dropped with no refund', async () => {
     const { E } = await freshEngine();
     const base = E.newState();
     const raw = JSON.parse(JSON.stringify(base));
-    raw.v = 6; raw.gold = 100; raw.spec = { skillId: 'mining', lastSwitchAt: START - DAY, capped: ['fishing'] };
+    raw.gold = 100; raw.spec = { skillId: 'mining', lastSwitchAt: START - DAY };
     const out = E.migrate(raw);
     expect(out.spec).toEqual({ skillId: null, lastSwitchAt: null });
-    expect(out.gold).toBe(3100);
-    expect(out.log[0].text).toMatch(/refunded/);
+    expect(out.gold).toBe(100);
   });
 
-  it('a spec at 70+ is kept without a refund; old fields are stripped', async () => {
+  it('a spec at 70+ is kept', async () => {
     const { E } = await freshEngine();
     const base = E.newState();
     const raw = JSON.parse(JSON.stringify(base));
-    raw.v = 6; raw.gold = 100; raw.skills.mining.xp = at(E, 75);
-    raw.spec = { skillId: 'mining', lastSwitchAt: START - DAY, capped: [] };
+    raw.gold = 100; raw.skills.mining.xp = at(E, 75);
+    raw.spec = { skillId: 'mining', lastSwitchAt: START - DAY };
     const out = E.migrate(raw);
     expect(out.spec).toEqual({ skillId: 'mining', lastSwitchAt: START - DAY });
     expect(out.gold).toBe(100);
@@ -146,7 +145,7 @@ describe('spec migration', () => {
 
   it('a save with no spec gets the default', async () => {
     const { E } = await freshEngine();
-    const raw = JSON.parse(JSON.stringify(Object.assign({}, E.newState(), { v: 4 })));
+    const raw = JSON.parse(JSON.stringify(E.newState()));
     delete raw.spec;
     expect(E.migrate(raw).spec).toEqual({ skillId: null, lastSwitchAt: null });
   });

@@ -79,16 +79,12 @@ describe('treasury log covers every movement', () => {
     expect(Array.isArray(t.log)).toBe(true);
   });
 
-  it('legacy log entries written with `at` load with `t`', async () => {
+  it('log entries round-trip through save and load', async () => {
     const { E } = await freshEngine();
     const base = E.newState();
-    const raw = JSON.parse(JSON.stringify(base));
-    raw.v = 5;
-    raw.crew.treasury.log = [{ at: 12345, week: 1, kind: 'payout', who: 'Raid', delta: 7, reason: 'old' }];
-    const out = E.migrate(raw);
-    const e = out.crew.treasury.log.find((x: any) => x.reason === 'old');
-    expect(e.t).toBe(12345);
-    expect(e.at).toBeUndefined();
+    base.crew.treasury.log.unshift({ t: 12345, week: 1, kind: 'payout', who: 'Raid', delta: 7, reason: 'kept' });
+    const out = E.migrate(JSON.parse(JSON.stringify(base)));
+    expect(out.crew.treasury.log.find((x: any) => x.reason === 'kept')).toMatchObject({ t: 12345, delta: 7 });
   });
 });
 
