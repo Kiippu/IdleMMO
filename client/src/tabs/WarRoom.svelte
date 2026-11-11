@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BossPortrait from '../scene/BossPortrait.svelte';
   import { DATA } from '@guildwright/engine';
   import { fmtG, fmtN, fmtDuration, hasPayout } from '../format';
   import { ui } from '../ui.svelte';
@@ -137,7 +138,7 @@
     {#if boss}
       <article class="hero">
         <div class="hero-top">
-          <div class="portrait" aria-hidden="true">{boss.name?.[0] ?? '?'}</div>
+          {#if boss.revealed && boss.boss?.id}<BossPortrait bossId={boss.boss.id} name={boss.name} />{:else}<div class="portrait" aria-hidden="true">{boss.name?.[0] ?? '?'}</div>{/if}
           <div class="hero-id">
             <span class="boss-name">{boss.name}</span>
             <span class="meta">Boss <span class="num">{bossNo}</span> of <span class="num">{BOSS_TOTAL}</span>{boss.title && !/^boss\s*\d/i.test(boss.title) ? ` · ${boss.title}` : ''}</span>
