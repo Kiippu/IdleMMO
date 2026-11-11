@@ -34,8 +34,8 @@
     if (s.kills) out.push({ key: 'kills', label: 'Kills', value: s.kills, fmt: n, group: 'total' });
     if (s.assisted) out.push({ key: 'assisted', label: 'Crew assists', value: s.assisted, fmt: n, group: 'total' });
     if (s.tips) out.push({ key: 'tips', label: 'Crew tips', value: s.tips, fmt: fmtG, group: 'total' });
-    // One line per skill, however many levels it gained.
-    for (const k of s.skills ?? []) out.push({ key: `k:${k.skill}`, label: k.headline, value: 0, fmt: () => '', group: 'skill' });
+    // One line per skill, however many levels it gained. The top skill is the headline above, so it is not repeated here.
+    for (const k of (s.skills ?? []).slice(1)) out.push({ key: `k:${k.skill}`, label: k.headline, value: 0, fmt: () => '', group: 'skill' });
     // Loot grouped by item, highest value first (the engine includes raid payout items).
     for (const l of s.loot ?? []) out.push({ itemId: l.itemId, uid: l.uids?.[0] ?? null, key: `i:${l.itemId}`, label: l.name, value: l.qty, fmt: (v) => `+${n(v)}`, rarity: l.rarity, group: 'item' });
     Object.entries(s.crafts).filter(([, q]) => q > 0)
@@ -114,9 +114,9 @@
       a.onfinish = () => el.remove();
       fountainAnims.push(a);
     });
-    try { navigator.vibrate?.(parts.some((p) => p.rank >= 2) ? [25, 40, 25, 40, 70] : [25, 40, 25]); } catch { /* unsupported */ }
+    try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(parts.some((p) => p.rank >= 2) ? [25, 40, 25, 40, 70] : [25, 40, 25]); } catch { /* unsupported */ }
   }
-  function stopFountain() { fountainAnims.forEach((a) => a.cancel()); fountainAnims = []; layer?.querySelectorAll('.fp').forEach((n) => n.remove()); try { navigator.vibrate?.(0); } catch { /* */ } }
+  function stopFountain() { fountainAnims.forEach((a) => a.cancel()); fountainAnims = []; layer?.querySelectorAll('.fp').forEach((n) => n.remove()); try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(0); } catch { /* */ } }
   let launched = false;
   $effect(() => {
     if (summary && layer && rows.length && !launched) { launched = true; requestAnimationFrame(launchFountain); }
@@ -160,10 +160,10 @@
       {#if rows.length}
         <ul>
           {#each rows as r, i (r.key)}
-            <li class:flash={flash(r, i)} class="g-{r.group}" style:--ink-r={r.rarity ? `var(--r-${r.rarity})` : 'var(--ink)'} style:opacity={skipped || prog(i) > 0 ? 1 : 0}>
+ <li class:flash={flash(r, i)} class="g-{r.group}" class:tap={!!r.itemId} style:--ink-r={r.rarity ? `var(--r-${r.rarity})` : 'var(--ink)'} style:opacity={skipped || prog(i) > 0 ? 1 : 0}>
               <div class="line">
-                {#if r.itemId}<button type="button" class="lab lb" style:color={`var(--r-${r.rarity})`} onclick={(e) => { e.stopPropagation(); openItem({ itemId: r.itemId!, ...(r.uid ? { uid: r.uid } : {}) }); }}>{r.label}</button>{:else}<span class="lab" style:color={r.rarity && r.group !== 'total' ? `var(--r-${r.rarity})` : undefined}>{r.label}</span>{/if}
-                {#if r.group !== 'skill'}<span class="val num">{r.fmt(shown(r, i))}</span>{/if}
+                {#if r.itemId}<button type="button" class="rowbtn" onclick={(e) => { e.stopPropagation(); openItem({ itemId: r.itemId!, ...(r.uid ? { uid: r.uid } : {}) }); }}><span class="lab" style:color={`var(--r-${r.rarity})`}>{r.label}</span><span class="val num">{r.fmt(shown(r, i))}</span></button>{:else}<span class="lab" style:color={r.rarity && r.group !== 'total' ? `var(--r-${r.rarity})` : undefined}>{r.label}</span>{/if}
+                {#if r.group !== 'skill' && !r.itemId}<span class="val num">{r.fmt(shown(r, i))}</span>{/if}
               </div>
               {#if r.sub}<p class="src">{r.sub}</p>{/if}
             </li>
@@ -177,7 +177,7 @@
 
       {#if !finished}<p class="hint">Tap anywhere to skip</p>{/if}
       </div>
-      <button type="button" class="btn primary collect" bind:this={btn} disabled={!finished} onclick={(e) => { e.stopPropagation(); collect(); }}>Collect</button>
+      <div class="foot"><button type="button" class="btn primary collect" bind:this={btn} disabled={!finished} onclick={(e) => { e.stopPropagation(); collect(); }}>Collect</button></div>
     </div>
   </div>
 {/if}
@@ -186,7 +186,7 @@
   .full {
     position: fixed; inset: 0; z-index: 45; overflow-y: auto; background: var(--plaster);
     display: flex; justify-content: center;
-    padding: max(16px, env(safe-area-inset-top)) var(--gut-r) max(16px, env(safe-area-inset-bottom)) var(--gut-l);
+    padding: max(16px, env(safe-area-inset-top)) var(--gut-r) 0 var(--gut-l);
   }
   .col { width: 100%; max-width: var(--col); min-height: 100%; display: flex; flex-direction: column; gap: 12px; }
   .fl { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
@@ -219,5 +219,10 @@
   @media (prefers-reduced-motion: reduce) { li.flash { animation: none; } }
   .stopped { margin: 0; padding: 8px; background: var(--sunk); border: 1px solid var(--rule); color: var(--warn); font-size: var(--t-sm); }
   .hint { margin: 0; text-align: center; color: var(--ink-3); font-size: var(--t-sm); }
-  .collect { position: sticky; bottom: 0; width: 100%; }
+  .foot { position: sticky; bottom: 0; margin: 0 calc(var(--gut-r) * -1) 0 calc(var(--gut-l) * -1); padding: 12px var(--gut-r) max(12px, env(safe-area-inset-bottom)) var(--gut-l); background: var(--plaster); border-top: 1px solid var(--rule); }
+  .collect { width: 100%; }
+  .mid { padding-bottom: 12px; }
+  li { min-height: 48px; display: flex; flex-direction: column; justify-content: center; }
+  li.tap { padding: 0; }
+  .rowbtn { width: 100%; min-height: 48px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 0; background: none; text-align: left; }
 </style>

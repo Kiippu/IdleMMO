@@ -121,7 +121,7 @@
 
 <style>
   .full { position: fixed; inset: 0; z-index: 45; overflow-y: auto; background: var(--plaster); display: flex; justify-content: center;
-    padding: max(16px, env(safe-area-inset-top)) var(--gut-r) max(16px, env(safe-area-inset-bottom)) var(--gut-l); }
+    padding: max(16px, env(safe-area-inset-top)) var(--gut-r) 0 var(--gut-l); }
   .col { width: 100%; max-width: var(--col); display: grid; gap: 12px; align-content: start; }
   h2 { margin: 0; font: 600 var(--t-xl)/1.15 var(--f-display); }
   .sub { font: 700 var(--t-md) var(--f-num); color: var(--ink-2); }
@@ -137,8 +137,7 @@
   .cells li, .rows li { padding: 8px 10px; background: var(--sunk); border: 1px solid var(--rule-2); display: grid; gap: 2px; }
   small { color: var(--ink-3); font-size: var(--t-xs); }
   .nudge { margin: 0; padding: 10px 12px; border: 1px solid var(--woad); background: var(--woad-soft); color: var(--ink); font-size: var(--t-sm); }
-  .foot { position: sticky; bottom: 0; margin: 0 calc(var(--gut-r) * -1) 0 calc(var(--gut-l) * -1); padding: 12px var(--gut-r) 4px var(--gut-l); background: var(--plaster); border-top: 1px solid var(--rule); }
-  .col { padding-bottom: 4px; }
+  .foot { position: sticky; bottom: 0; margin: 0 calc(var(--gut-r) * -1) 0 calc(var(--gut-l) * -1); padding: 12px var(--gut-r) max(12px, env(safe-area-inset-bottom)) var(--gut-l); background: var(--plaster); border-top: 1px solid var(--rule); }
   .done { width: 100%; }
   .neg { color: var(--bad); }
   .sp { margin-top: 6px; }
