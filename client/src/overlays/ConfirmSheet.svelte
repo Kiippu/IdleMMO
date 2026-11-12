@@ -69,6 +69,13 @@
       {#if opts.number}
         {@const o = opts.number}
         <div class="field">
+          {#if o.max > 1}
+            <div class="quick" role="group" aria-label="Quick amounts">
+              <button type="button" class="btn" aria-pressed={clamp(num) === 1} onclick={() => (num = 1)}>1</button>
+              {#if o.max >= 10}<button type="button" class="btn" aria-pressed={clamp(num) === 10} onclick={() => (num = 10)}>10</button>{/if}
+              <button type="button" class="btn" aria-pressed={clamp(num) === o.max && o.max !== 10} onclick={() => (num = o.max)}>Max <span class="num">{o.max}</span></button>
+            </div>
+          {/if}
           {#if o.label}<label for="cs-num">{o.label}</label>{/if}
           <div class="stepper">
             <button type="button" class="btn" aria-label="Decrease" disabled={clamp(num) <= o.min} onclick={() => (num = clamp(num) - 1)}>−</button>
@@ -114,6 +121,8 @@
   p { margin: 0; color: var(--ink-2); font-size: var(--t-md); }
   .field { display: grid; gap: 6px; }
   label { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
+  .quick { display: flex; gap: 6px; }
+  .quick .btn { flex: 1; }
   .stepper { display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; }
   .stepper input { text-align: center; width: 100%; }
   .sum { list-style: none; margin: 0; padding: 8px 10px; background: var(--sunk); border: 1px solid var(--rule); display: grid; gap: 2px; font-size: var(--t-sm); color: var(--ink); }

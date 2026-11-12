@@ -12,6 +12,7 @@
   import Fountain from './overlays/Fountain.svelte';
   import { ui } from './ui.svelte';
   import GettingStarted from './overlays/GettingStarted.svelte';
+  import GuideStrip from './overlays/GuideStrip.svelte';
   import WorkshopScene from './scene/WorkshopScene.svelte';
   import Crew from './tabs/Crew.svelte';
   import CollectReveal from './overlays/CollectReveal.svelte';
@@ -110,6 +111,7 @@
 <div class="shell">
   {#if engine.ready}
     <TopStrip onMenu={() => (menuOpen = true)} />
+    <GuideStrip />
   {/if}
 
   {#if updateReady}
