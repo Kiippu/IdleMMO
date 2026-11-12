@@ -4,7 +4,7 @@
 /* eslint-disable */
 import { E, TICK_MAX_COMPLETIONS, MARKET_REFRESH_SEC, arr, num, cfg, grades, action, rand, clamp, itemName, logq, fmtGold, qtyName } from './core';
 import { pouchBlock, completeOnce } from './actions';
-import { crewStep } from './crew-assist';
+import { crewStep, ownerRate, playerRate, isJobAction } from './crew-assist';
 import { processClock } from './weekly';
 import { crewEconomyStep, crewLocksStep } from './crew-economy';
 import { marketEnabled } from './market';
@@ -76,3 +76,36 @@ function tickBody(state, dt, opts, events) {
   ensureStore(state);
   sweepSeen(state);
 }
+
+// Rep timing (2026-11-12, progress-bar sync): how far the active rep is and how long it takes, in seconds.
+// The worker schedules its next tick for the moment the rep completes, and stamps wall-clock fields on
+// state.active so the UI's progress bar runs on the same clock as the completion.
+//   { repSec, elapsedSec, secLeft } or null when nothing is running.
+E.repTiming = function (state) {
+  const a = state && state.active; if (!a) return null;
+  const act = action(a.actionId); if (!act) return null;
+  if (a.jobId) {
+    const job = state.crew && arr(state.crew.jobs).find((j) => j.id === a.jobId);
+    if (!job || !isJobAction(act)) return null;
+    const rate = ownerRate(act) + playerRate(state, act);
+    if (!(rate > 0) || !isFinite(rate)) return null;
+    const p = clamp(num(job.progress, 0), 0, 1);
+    return { repSec: 1 / rate, elapsedSec: p / rate, secLeft: (1 - p) / rate };
+  }
+  const t = E.actionTime(state, act.id);
+  if (!(t > 0) || !isFinite(t)) return null;
+  const el = clamp(num(a.progress, 0), 0, t);
+  return { repSec: t, elapsedSec: el, secLeft: t - el };
+};
+/**
+ * Stamp state.active.repStartedAt / repMs (wall-clock ms, additive, not needed on load) from E.repTiming.
+ * The bar is (wallNow - repStartedAt) / repMs; the rep completes at repStartedAt + repMs.
+ */
+E.stampRep = function (state, wallMs) {
+  const a = state && state.active; if (!a) return null;
+  const r = E.repTiming(state);
+  if (!r) { delete a.repStartedAt; delete a.repMs; return null; }
+  a.repMs = Math.round(r.repSec * 1000);
+  a.repStartedAt = Math.round(num(wallMs, 0) - r.elapsedSec * 1000);
+  return r;
+};
