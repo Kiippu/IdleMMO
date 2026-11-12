@@ -84,6 +84,9 @@ Game design
   - Stat formula: base = tier budget (60, x1.5 a tier) x slot share x stat weight x grade (0.97–1.06). Rarity adds one affix
     per step; the first is always the primary stat (+12% of base per step), so higher rarity always beats one rarity lower.
     Fight durability 100/130/160/200/300/400. Stats AND boss requirements are shown x10 (boss 1 needs 300 power).
+    Health is on its own x2 scale (owner 2026-11-13): base HP 120, +8 per combat level, chest HP 0.5 x defence, food heals
+    and enemy damage = old values / 5; computed on the x10 scale then divided by 5, so outcomes match exactly (HP can show
+    one decimal, steps of 0.2; test engine/test/hp-scale.test.ts).
   - Swift is removed. Tags foraging/hunting/speed/quality are replaced by effect ids speed, double, save, quality, find, rarity.
     The `boundTo` auto-equip-on-start and the flat 14-affix list are gone.
   - Tools wear but never break: condition 100 to 1, -3% / -5% / -8% action speed below 50 / 25 / 10%. Repair is gold only,

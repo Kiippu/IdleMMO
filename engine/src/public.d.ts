@@ -462,7 +462,9 @@ export const Engine: any;
 //   (offline catch-up: aggregated, offline: true).
 // ---- Gear overhaul 2026-11-12 (save schema v8; gear-overhaul-contract.md "Engine interface").
 // Three sections: fight gear (state.equipped, 8 slots), work outfit (state.workOutfit[set][piece]) and tools
-// (state.tools[skillId]), the last two used automatically by the action's kind / skill. Every combat number is x10.
+// (state.tools[skillId]), the last two used automatically by the action's kind / skill. Attack, defence, healing, role power and
+// boss needs are x10; HEALTH is on its own x2 scale (owner 2026-11-13): max HP, state.hp, gear HP, food/potion heal, enemy damage
+// (HP values can carry one decimal, steps of 0.2; show them with fmtN or statText('hp', v)).
 // Verbs: E.equip(state, uid, slot?) → EquipResult; E.unequip(state, fightSlot); E.unequipGear(state, uid);
 //   E.repair(state, uid) → RepairResult (fight or tool); E.repairAllTools(state); E.toolRepairAll(state) → { count, gold };
 //   E.workBonus(state, skillId) → WorkBonus; E.activeWork(state); E.workDeltas(state); E.outfitTotals(state);
@@ -502,7 +504,7 @@ export interface GearPiece {
 export interface EquipResult { ok: boolean; reason: string; section: GearSection | null; at: WornAt | null; replaced: string | null }
 export interface RepairResult { ok: boolean; reason: string; gold: number; cond?: number; maxDur?: number }
 export interface RepairAllResult { ok: boolean; reason: string; gold: number; count: number }
-/** keys atk def heal hp (pts, x10), fire frost venom holy (pct share of weapon damage), ward_<element> (pct less damage) */
+/** keys atk def heal (pts, x10), hp (HP x2 scale, may carry one decimal), fire frost venom holy (pct share of weapon damage), ward_<element> (pct less damage) */
 export interface StatLine { key: string; label: string; value: number; unit?: 'pts' | 'pct'; /** statText(key, value), e.g. "Fire damage +3.3%" */ text?: string }
 /** value in display units: 1.5 = +1.5% when unit is 'pct', points when 'pts'. text e.g. "Speed +1.2%". */
 export interface EffectLine { key: EffectId | string; label: string; value: number; unit: 'pct' | 'pts'; text: string }

@@ -8,7 +8,11 @@ export const TIER_LEVEL = [0, 1, 15, 30, 45, 60];           // first recipe leve
 export const GEAR_GRADE_MULT = [0.97, 1.00, 1.02, 1.04, 1.06]; // Rough .. Pristine (stats/effects only; values keep DATA.grades)
 export const PRIMARY_STEP = 0.12;                           // primary affix: +12% of base per rarity step
 export const SECONDARY_SHARE = 0.05;                        // fight secondary affix: ~5% of slot budget
-export const HP_PER_POINT = 2.5;                            // one stat point of HP weight = 2.5 HP; chest HP = 2.5 x its defence
+export const HP_PER_POINT = 2.5;                            // one stat point of HP weight = 2.5 HP on the x10 scale; chest HP = 2.5 x its defence
+// Health has its own x2 scale (owner 2026-11-13): every HP number is the x10 value / HP_DIV, computed on the x10 scale
+// first and divided exactly, so fights and raids play out exactly as before (HP can carry one decimal, steps of 0.2).
+export const HP_DIV = 5;
+export const hpOf = (x10) => Math.round(x10) / HP_DIV;
 export const ROLL_MIN = 0.8, ROLL_MAX = 1.2;
 export const ENDURING_PCT = 20;
 export const DURABILITY = [100, 130, 160, 200, 300, 400];  // fight gear, by rarity index
@@ -135,4 +139,4 @@ export function baseStatsRaw(it) {
 export const TOOL_INPUT_TARGET = [0, 600, 2300, 5000, 11000, 24000];
 // Role power (x10 scale; lead 2026-11-13): a full Common Standard kit of tier N at the tier's mid combat level is
 // 1.0–1.15x boss N's need for its role, guardian at most 10% above the others. Spec striker x3 rescaled.
-export const ROLE_POWER = { striker: { atk: 2.16 }, guardian: { def: 1.16, maxHp: 0.05 }, mender: { heal: 2.05 } };
+export const ROLE_POWER = { striker: { atk: 2.16 }, guardian: { def: 1.16, maxHp: 0.25 }, mender: { heal: 2.05 } }; // maxHp on the x2 HP scale (0.05 on x10)

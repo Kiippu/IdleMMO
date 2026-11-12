@@ -13,7 +13,7 @@ import {
   TIER_BUDGET, GEAR_GRADE_MULT, PRIMARY_STEP, SECONDARY_SHARE, HP_PER_POINT, ROLL_MIN, ROLL_MAX, ENDURING_PCT, DURABILITY,
   ELEMENT_AFFIX, WARD_AFFIX, AFFIXES, WORK_POOL, ELEMENT_AFFIXES, WARD_AFFIXES, STAT_AFFIX, EFFECTS, EFFECT_IDS, GROUP_EFFECTS,
   SKILL_GROUP, GROUP_SET, WORK_AFFIX_VALUE, WEAR_STEPS, TOOL_REPAIR_PER10, TOOL_REPAIR_TIER, OUTFIT_SETS, OUTFIT_PIECES, TOOL_SKILLS,
-  shareOf, baseStatsRaw
+  HP_DIV, shareOf, baseStatsRaw
 } from './data/gear/model';
 
 // ---------------------------------------------------------------- lookup + where a piece is worn
@@ -114,7 +114,8 @@ export function affixValue(it, af) {
   const tier = clamp(num(it.tier, 1), 1, 5); const roll = num(af.roll, 1);
   if (d.id === 'primary' || d.key === 'dur') return 0;
   if (d.kind === 'work') return r2(num((WORK_AFFIX_VALUE[d.key] || [])[tier], 0) * roll);
-  if (['atk', 'def', 'heal', 'hp'].includes(d.key)) return Math.max(1, Math.round(slotBudget(it) * SECONDARY_SHARE * roll * (d.key === 'hp' ? HP_PER_POINT : 1)));
+  if (d.key === 'hp') return Math.max(1, Math.round(slotBudget(it) * SECONDARY_SHARE * roll * HP_PER_POINT)) / HP_DIV; // HP: x2 scale
+  if (['atk', 'def', 'heal'].includes(d.key)) return Math.max(1, Math.round(slotBudget(it) * SECONDARY_SHARE * roll));
   if (d.key.startsWith('ward_')) return r1(WARD_AFFIX[tier] * roll);
   return r1(ELEMENT_AFFIX[tier] * roll * (isJewel(it) ? 0.5 : 1)); // element share
 }
@@ -132,11 +133,12 @@ export function fightStats(g) {
   arr(g.affixes).forEach((af) => {
     const d = affixDef(af && af.id); if (!d || d.kind !== 'fight') return;
     const v = affixValue(it, af);
-    if (['atk', 'def', 'heal', 'hp'].includes(d.key)) out[d.key] += v;
+    if (['atk', 'def', 'heal', 'hp'].includes(d.key)) out[d.key] += d.key === 'hp' ? v * HP_DIV : v; // hp summed on x10 first
     else if (d.key.startsWith('ward_')) { const e = d.key.slice(5); out.wards[e] = r1(num(out.wards[e], 0) + v); }
     else if (d.key !== 'dur') out.elements[d.key] = r1(num(out.elements[d.key], 0) + v);
   });
   if (num(it.bowBonus, 0) > 0) Object.keys(out.elements).forEach((e) => { if (out.elements[e] > 0) out.elements[e] = r1(out.elements[e] + it.bowBonus); });
+  out.hp = Math.round(out.hp) / HP_DIV; // health: x2 scale (exactly the x10 value / 5)
   return out;
 }
 /** stats that count now: zero for a broken fight piece and for tools / outfit pieces */
@@ -262,6 +264,7 @@ const isPts = (k) => ['atk', 'def', 'heal', 'hp'].includes(k);
 /** the ONE stat wording: "Attack +47", "Max HP +150", "Fire damage +3.3%" (share of weapon damage), "Fire resistance +2.0%" */
 export function statText(key, value) {
   const v = num(value, 0); const sign = v < 0 ? '−' : '+';
+  if (key === 'hp') { const a = Math.abs(Math.round(v * 10) / 10); return `${statLabel(key)} ${sign}${Number.isInteger(a) ? a : a.toFixed(1)}`; } // HP can carry one decimal
   return isPts(key) ? `${statLabel(key)} ${sign}${Math.abs(Math.round(v))}` : `${statLabel(key)} ${sign}${Math.abs(Math.round(v * 10) / 10).toFixed(1)}%`;
 }
 E.statText = statText;
@@ -309,7 +312,7 @@ function affixLines(g) {
       if (sec === 'fight') {
         // the rarity bonus lifts every base stat; the line lists each gain vs the same piece at Common
         const raw = baseStatsRaw(it); const parts = [];
-        ['atk', 'def', 'heal', 'hp'].forEach((k) => { if (!(raw[k] > 0)) return; const dv = primaryValue(raw[k], gIdx, r) - primaryValue(raw[k], gIdx, 0); if (dv) parts.push(statText(k, dv)); });
+        ['atk', 'def', 'heal', 'hp'].forEach((k) => { if (!(raw[k] > 0)) return; const dv = (primaryValue(raw[k], gIdx, r) - primaryValue(raw[k], gIdx, 0)) / (k === 'hp' ? HP_DIV : 1); if (dv) parts.push(statText(k, dv)); });
         const v = primaryValue(raw[it.primary] || 0, gIdx, r) - primaryValue(raw[it.primary] || 0, gIdx, 0);
         return { id: 'primary', name, key: it.primary, value: v, unit: 'pts', label: `${name}: ${parts.join(', ')}` };
       }
@@ -332,7 +335,7 @@ function affixLines(g) {
 
 // ---------------------------------------------------------------- equip
 export function inAnyLoadout(state, uid) { return arr(state && state.loadouts).some((l) => l && l.slots && SLOTS.some((s) => l.slots[s] === uid)); }
-const ringScore = (state, uid) => { const g = findGear(state, uid); if (!g) return -1; const s = E.gearStats(g); return s.atk + s.def + s.heal + s.hp / 10; };
+const ringScore = (state, uid) => { const g = findGear(state, uid); if (!g) return -1; const s = E.gearStats(g); return s.atk + s.def + s.heal + s.hp / 2; }; // hp on the x2 scale (/10 on x10)
 /** the fight slot equip(uid) would use for this piece (rings: given slot, else first empty, else the weaker ring) */
 export function targetFightSlot(state, it, slot?) {
   if (!it) return null;
@@ -630,7 +633,8 @@ E.fuse = function (state, itemId) {
 };
 
 // ---------------------------------------------------------------- food
-export function healOf(itemId, grade) { const it = item(itemId); return it ? Math.max(1, Math.round(num(it.heal, 0) * gradeMult(Math.max(0, grade)))) : 0; }
+/** heal on the x2 HP scale, rounded on the x10 scale first (so it is exactly the old heal / 5) */
+export function healOf(itemId, grade) { const it = item(itemId); return it ? Math.max(1, Math.round(num(it.heal, 0) * HP_DIV * gradeMult(Math.max(0, grade)))) / HP_DIV : 0; }
 E.eat = function (state, itemId) {
   const it = item(itemId);
   if (!it || !(num(it.heal, 0) > 0)) return { ok: false, reason: 'That is not something you can eat.' };
@@ -640,7 +644,7 @@ E.eat = function (state, itemId) {
   const gr = lowestGrade(state, itemId); const h = healOf(itemId, gr);
   consume(state, itemId, 1, 'worst');
   const before = state.hp; state.hp = Math.min(max, state.hp + h);
-  return { ok: true, heal: Math.round(state.hp - before) };
+  return { ok: true, heal: r1(state.hp - before) };
 };
 // picks the healing item with the smallest heal that still lifts hp to the target; else the biggest one
 export function chooseHealItem(state, need, kinds) {
@@ -662,6 +666,6 @@ export function autoEat(state, events, threshold, maxHp) {
     if (!c) break;
     consume(state, c.id, 1, 'worst');
     const before = state.hp; state.hp = Math.min(maxHp, state.hp + c.h);
-    events.push({ type: 'eat', itemId: c.id, heal: Math.round(state.hp - before) });
+    events.push({ type: 'eat', itemId: c.id, heal: r1(state.hp - before) });
   }
 }

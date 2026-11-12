@@ -2,7 +2,7 @@
 /* eslint-disable */
 import { FAMILIES, OVERRIDES } from './families';
 import { MATERIALS, INPUTS } from './materials';
-import { TIERS_LIVE, TIER_LEVEL, TOOL_EFFECT, OUTFIT_EFFECT, SKILL_GROUP, NAMED_ELEMENT_SHARE, BOW_ELEMENT_BONUS, TOOL_INPUT_TARGET, shareOf, baseStatsRaw } from './model';
+import { TIERS_LIVE, TIER_LEVEL, TOOL_EFFECT, OUTFIT_EFFECT, SKILL_GROUP, NAMED_ELEMENT_SHARE, BOW_ELEMENT_BONUS, TOOL_INPUT_TARGET, HP_DIV, shareOf, baseStatsRaw } from './model';
 
 export const craftSecs = (level) => 4 + Math.floor(level / 10);
 export const craftXp = (level) => Math.round(10 + 1.5 * level + 0.012 * level * level);
@@ -27,7 +27,7 @@ export function buildGear(tiers = TIERS_LIVE, valueOf?: (id: string) => number) 
         it.elementShare = ov.element ? NAMED_ELEMENT_SHARE : 0;
         if (f.bowBonus) it.bowBonus = BOW_ELEMENT_BONUS;
         const raw = baseStatsRaw(it); it.stats = {};
-        Object.keys(raw).forEach((k) => { it.stats[k] = Math.max(1, Math.round(raw[k])); });
+        Object.keys(raw).forEach((k) => { const v = Math.max(1, Math.round(raw[k])); it.stats[k] = k === 'hp' ? v / HP_DIV : v; }); // HP on the x2 scale
       } else if (f.section === 'tool') {
         const group = SKILL_GROUP[f.toolSkill]; const e = TOOL_EFFECT[group];
         Object.assign(it, { toolSkill: f.toolSkill, toolGroup: group, effects: [{ id: e.id, value: e.v[tier] }] });

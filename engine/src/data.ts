@@ -108,24 +108,24 @@ core('leviathan_core', 'Leviathan core', '#38c9b8');
 
 
 
-// food (cooking)
-food('bread', 'Bread', 1, '#d9a35b', 120);
-food('grilled_minnows', 'Grilled minnows', 1, '#c9a27a', 100);
-food('herb_trout', 'Herb-baked trout', 2, '#b88a5a', 250);
-food('bloodmoss_broth', 'Bloodmoss broth', 2, '#a3443c', 400);
-food('salmon_pie', 'Salmon pie', 3, '#e09a6a', 550);
-food('frostcap_salmon', 'Frostcap salmon', 3, '#e8b0a0', 750);
-food('angler_feast', 'Angler feast', 4, '#f2c94c', 1100);
+// food (cooking): heals on the x2 HP scale (owner 2026-11-13)
+food('bread', 'Bread', 1, '#d9a35b', 24);
+food('grilled_minnows', 'Grilled minnows', 1, '#c9a27a', 20);
+food('herb_trout', 'Herb-baked trout', 2, '#b88a5a', 50);
+food('bloodmoss_broth', 'Bloodmoss broth', 2, '#a3443c', 80);
+food('salmon_pie', 'Salmon pie', 3, '#e09a6a', 110);
+food('frostcap_salmon', 'Frostcap salmon', 3, '#e8b0a0', 150);
+food('angler_feast', 'Angler feast', 4, '#f2c94c', 220);
 // potions (alchemy)
-potion('mint_tonic', 'Mint tonic', 1, '#7fd18a', { heal: 150 });
-potion('wisplight_salve', 'Wisplight salve', 1, '#b7c7e8', { heal: 250 });
+potion('mint_tonic', 'Mint tonic', 1, '#7fd18a', { heal: 30 });
+potion('wisplight_salve', 'Wisplight salve', 1, '#b7c7e8', { heal: 50 });
 potion('ironskin_draught', 'Ironskin draught', 2, '#9a9a8a', { buff: { stat: 'def', pct: 0.1 } });
 potion('fury_draught', 'Fury draught', 2, '#d0463c', { buff: { stat: 'atk', pct: 0.1 } });
-potion('restoring_elixir', 'Restoring elixir', 3, '#e06a8a', { heal: 600 });
-potion('frostward_tonic', 'Frostward tonic', 3, '#8fd3e8', { heal: 200, buff: { stat: 'def', pct: 0.15 } });
+potion('restoring_elixir', 'Restoring elixir', 3, '#e06a8a', { heal: 120 });
+potion('frostward_tonic', 'Frostward tonic', 3, '#8fd3e8', { heal: 40, buff: { stat: 'def', pct: 0.15 } });
 potion('clarity_draught', 'Clarity draught', 3, '#b4a8f5', { buff: { stat: 'heal', pct: 0.15 } });
-potion('sunpetal_elixir', 'Sunpetal elixir', 4, '#f6d55c', { heal: 1200, buff: { stat: 'heal', pct: 0.2 } });
-potion('rimeheart_draught', 'Rimeheart draught', 5, '#bfe8ff', { heal: 400, buff: { stat: 'def', pct: 0.25 } });
+potion('sunpetal_elixir', 'Sunpetal elixir', 4, '#f6d55c', { heal: 240, buff: { stat: 'heal', pct: 0.2 } });
+potion('rimeheart_draught', 'Rimeheart draught', 5, '#bfe8ff', { heal: 80, buff: { stat: 'def', pct: 0.25 } });
 // catalysts
 catalyst('quickening_salts', 'Quickening salts', 2, '#e8c46a', 1.5);
 catalyst('cut_prism', 'Cut prism', 3, '#7aa0f0', 1.75);
@@ -230,37 +230,37 @@ C('sear_frostcap_salmon', 'cooking', 'Frostcap salmon', 42, 7, 60, { salmon: 2, 
 C('cook_angler_feast', 'cooking', 'Angler feast', 55, 8, 85, { abyssal_angler: 1, sunpetal: 1, wild_grain: 3 }, { angler_feast: 2 });
 
 // combat: striker (hides, silk)
-F('fight_wolfwood', 'striker', 'Mangy wolves', 1, 5, 12, 'Wolfwood edge', { name: 'Mangy wolf', power: 30, dmg: 20 }, [1, 3],
+F('fight_wolfwood', 'striker', 'Mangy wolves', 1, 5, 12, 'Wolfwood edge', { name: 'Mangy wolf', power: 30, dmg: 4 }, [1, 3],
   [d('scrap_hide', 0.6, 1, 2), d('bone_shard', 0.4, 1, 2), d('wolf_pelt', 0.05, 1, 1)]);
-F('fight_ridge', 'striker', 'Ridge wolves', 12, 6, 26, 'Howling ridge', { name: 'Ridge wolf', power: 100, dmg: 60 }, [3, 8],
+F('fight_ridge', 'striker', 'Ridge wolves', 12, 6, 26, 'Howling ridge', { name: 'Ridge wolf', power: 100, dmg: 12 }, [3, 8],
   [d('wolf_pelt', 0.6, 1, 2), d('bone_shard', 0.4, 1, 2)]);
-F('fight_hollow', 'striker', 'Hollow spiders', 28, 7, 44, 'Webbed hollow', { name: 'Hollow spider', power: 220, dmg: 120 }, [8, 18],
+F('fight_hollow', 'striker', 'Hollow spiders', 28, 7, 44, 'Webbed hollow', { name: 'Hollow spider', power: 220, dmg: 24 }, [8, 18],
   [d('spider_silk', 0.6, 1, 3), d('bone_shard', 0.3, 1, 3)]);
-F('fight_bearclaw', 'striker', 'Cave bears', 35, 8, 56, 'Bearclaw pass', { name: 'Cave bear', power: 300, dmg: 160 }, [12, 26],
+F('fight_bearclaw', 'striker', 'Cave bears', 35, 8, 56, 'Bearclaw pass', { name: 'Cave bear', power: 300, dmg: 32 }, [12, 26],
   [d('bear_hide', 0.55, 1, 2), d('wolf_pelt', 0.3, 1, 2)]);
-F('fight_drakemire', 'striker', 'Mire drakes', 52, 9, 90, 'Drakemire', { name: 'Mire drake', power: 480, dmg: 260 }, [25, 50],
+F('fight_drakemire', 'striker', 'Mire drakes', 52, 9, 90, 'Drakemire', { name: 'Mire drake', power: 480, dmg: 52 }, [25, 50],
   [d('drake_hide', 0.5, 1, 2), d('bone_shard', 0.5, 2, 4)]);
 // combat: guardian (hides, elite cores-lite)
-F('fight_quarry_road', 'guardian', 'Quarry rats', 1, 5, 12, 'Old quarry road', { name: 'Quarry rat', power: 30, dmg: 30 }, [1, 3],
+F('fight_quarry_road', 'guardian', 'Quarry rats', 1, 5, 12, 'Old quarry road', { name: 'Quarry rat', power: 30, dmg: 6 }, [1, 3],
   [d('scrap_hide', 0.5, 1, 2), d('bone_shard', 0.3, 1, 1), d('copper_ore', 0.3, 1, 3)]);
-F('fight_palisade', 'guardian', 'Palisade bandits', 15, 6, 30, 'Bandit palisade', { name: 'Palisade bandit', power: 120, dmg: 70 }, [5, 12],
+F('fight_palisade', 'guardian', 'Palisade bandits', 15, 6, 30, 'Bandit palisade', { name: 'Palisade bandit', power: 120, dmg: 14 }, [5, 12],
   [d('wolf_pelt', 0.45, 1, 2), d('iron_ore', 0.3, 1, 3)]);
-F('fight_ironhide', 'guardian', 'Ironhide bears', 30, 7, 48, 'Ironhide den', { name: 'Ironhide bear', power: 260, dmg: 140 }, [10, 22],
+F('fight_ironhide', 'guardian', 'Ironhide bears', 30, 7, 48, 'Ironhide den', { name: 'Ironhide bear', power: 260, dmg: 28 }, [10, 22],
   [d('bear_hide', 0.5, 1, 2), d('scrap_hide', 0.4, 1, 3)]);
-F('fight_golems', 'guardian', 'Granite golems (elite)', 40, 9, 66, 'Golem quarry', { name: 'Granite golem', power: 360, dmg: 200 }, [16, 34],
+F('fight_golems', 'guardian', 'Granite golems (elite)', 40, 9, 66, 'Golem quarry', { name: 'Granite golem', power: 360, dmg: 40 }, [16, 34],
   [d('stone_heart', 0.12, 1, 1), d('iron_ore', 0.5, 2, 4), d('coal', 0.5, 2, 4)]);
-F('fight_roost', 'guardian', 'Roost wardens (elite)', 56, 10, 100, 'Drake roost', { name: 'Roost warden', power: 520, dmg: 300 }, [30, 60],
+F('fight_roost', 'guardian', 'Roost wardens (elite)', 56, 10, 100, 'Drake roost', { name: 'Roost warden', power: 520, dmg: 60 }, [30, 60],
   [d('drake_scale', 0.1, 1, 1), d('drake_hide', 0.4, 1, 2)]);
 // combat: mender (essences)
-F('fight_shrine', 'mender', 'Restless wisps', 1, 5, 12, 'Hollow shrine', { name: 'Restless wisp', power: 30, dmg: 20 }, [1, 3],
+F('fight_shrine', 'mender', 'Restless wisps', 1, 5, 12, 'Hollow shrine', { name: 'Restless wisp', power: 30, dmg: 4 }, [1, 3],
   [d('faint_essence', 0.6, 1, 2)]);
-F('fight_marsh', 'mender', 'Marsh glimmers', 14, 6, 28, 'Glimmer marsh', { name: 'Marsh glimmer', power: 110, dmg: 60 }, [4, 10],
+F('fight_marsh', 'mender', 'Marsh glimmers', 14, 6, 28, 'Glimmer marsh', { name: 'Marsh glimmer', power: 110, dmg: 12 }, [4, 10],
   [d('glow_essence', 0.5, 1, 2), d('faint_essence', 0.4, 1, 2)]);
-F('fight_spire', 'mender', 'Storm sprites', 32, 7, 50, 'Stormcrown spire', { name: 'Storm sprite', power: 280, dmg: 150 }, [10, 24],
+F('fight_spire', 'mender', 'Storm sprites', 32, 7, 50, 'Stormcrown spire', { name: 'Storm sprite', power: 280, dmg: 30 }, [10, 24],
   [d('storm_essence', 0.45, 1, 2), d('glow_essence', 0.3, 1, 2)]);
-F('fight_chapel', 'mender', 'Drowned acolytes', 40, 8, 64, 'Sunken chapel', { name: 'Drowned acolyte', power: 360, dmg: 200 }, [15, 30],
+F('fight_chapel', 'mender', 'Drowned acolytes', 40, 8, 64, 'Sunken chapel', { name: 'Drowned acolyte', power: 360, dmg: 40 }, [15, 30],
   [d('storm_essence', 0.5, 1, 2), d('river_pearl', 0.1, 1, 1), d('glow_essence', 0.3, 1, 2)]);
-F('fight_barrow', 'mender', 'Barrow revenants', 50, 9, 88, 'Moonlit barrow', { name: 'Barrow revenant', power: 450, dmg: 250 }, [22, 46],
+F('fight_barrow', 'mender', 'Barrow revenants', 50, 9, 88, 'Moonlit barrow', { name: 'Barrow revenant', power: 450, dmg: 50 }, [22, 46],
   [d('moon_essence', 0.35, 1, 1), d('storm_essence', 0.3, 1, 2), d('bone_shard', 0.5, 1, 3)]);
 
 // gear items + recipes (gear spec 2026-11-12): families x tiers, see data/gear/
@@ -402,8 +402,8 @@ export const DATA: any = {
     playerMarket: false,
     pityThreshold: 40,
     speedFactor: SPEED,           // phase 2.5: match the prototype's pace (owner's call, 2026-11-08)
-    baseHp: 600,                  // x10 combat scale (gear spec 2026-11-12)
-    hpPerCombatLevel: 40,
+    baseHp: 120,                  // health is on its own x2 scale (owner 2026-11-13; 600 on the x10 scale)
+    hpPerCombatLevel: 8,
     // v4 weekend raids
     raidWindow: { startDay: 6, startHour: 10, endDay: 0, endHour: 22 }, // Sat 10:00 -> Sun 22:00 local
     raidChargeHours: 10,          // raid hours per weekend; 6 frames per hour in the sim
