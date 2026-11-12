@@ -152,7 +152,7 @@
     <h3>Resources</h3>
     <ul class="tiles">
       {#each resources as s (s.slot)}
-        <li class="tl">
+        <li class="tl card">
           <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
             <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true"><ItemIcon id={s.itemId} rarity={s.rarity} /></span>
             <span class="nm">{s.name}</span>
@@ -171,7 +171,7 @@
     <h3>Gear</h3>
     <ul class="tiles">
       {#each gearSlots as s (s.slot)}
-        <li class="tl">
+        <li class="tl card">
           <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
             <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true"><ItemIcon id={s.itemId} rarity={s.rarity} /></span>
             <span class="nm">{s.name}</span>
@@ -191,7 +191,7 @@
     <p class="note">Always in stock. Better tools come from crafting or raid drops.</p>
     <ul class="tiles tools">
       {#each toolShelf as t (t.itemId)}
-        <li class="tl">
+        <li class="tl card">
           <button type="button" class="tile" onclick={() => openItem({ itemId: t.itemId })} aria-label="{t.name}, {fmtG(t.price)}">
             <span class="sq" style:color={`var(--r-${t.rarity})`} style:border-color={`var(--r-${t.rarity})`} aria-hidden="true"><ItemIcon id={t.itemId} rarity={t.rarity} /></span>
             <span class="nm">{t.name}</span>
@@ -266,7 +266,7 @@
 
   .tiles > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 10px; background: none; border: 0; color: var(--ink); }
+  .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 0 0 6px; background: none; border: 0; color: var(--ink); }
   .tile:hover:not(:disabled) { background: var(--woad-soft); }
   .tile.out { opacity: .5; cursor: not-allowed; }
   .sq { width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid; background: var(--sunk); }
@@ -286,10 +286,9 @@
   .gchip:hover { background: var(--woad-soft); border-color: var(--woad); }
   .gchip .gl { padding: 2px 6px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-2); }
   .gchip .brass { font-size: var(--t-xs); }
-  .tl { display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--rule); }
-  .tl:has(.tile:hover:not(.out)) { border-color: var(--woad); }
+  .tl { display: flex; flex-direction: column; min-width: 0; }
   .tl .tile { flex: 1; }
-  .buy { width: calc(100% - 16px); margin: 0 8px 8px; }
+  .buy { width: 100%; margin: 0; }
   .seg { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 8px; }
   .seg .btn { border-left-width: 0; }
   .seg .btn:first-child { border-left-width: 1px; }

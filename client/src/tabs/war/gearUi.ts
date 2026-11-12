@@ -1,5 +1,6 @@
 // Shared labels and helpers for the three Loadout sections (Fight, Work outfit, Tools). Numbers are shown as the engine returns them.
 import { DATA } from '@guildwright/engine';
+import { fmtEffect as engineFmtEffect, statText } from '../../engine/format';
 
 export const FIGHT_SLOTS = ['weapon', 'offhand', 'head', 'chest', 'legs', 'ring1', 'ring2', 'amulet'] as const;
 export type FightSlot = (typeof FIGHT_SLOTS)[number];
@@ -7,9 +8,10 @@ export const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: '
 export const SET_LABEL: Record<string, string> = { gather: 'Gather', refine: 'Refine', craft: 'Craft' };
 export const SET_BLURB: Record<string, string> = { gather: 'Mining, woodcutting, herbalism, fishing', refine: 'Smelting, carpentry, tanning, weaving', craft: 'Smithing, woodworking, leatherworking, tailoring, jewelcrafting, alchemy, cooking' };
 export const OUTFIT_PIECES = ['head', 'body', 'hands', 'feet'] as const;
-export const ELEMENT_NAME: Record<string, string> = { fire: 'Fire', frost: 'Frost', venom: 'Poison', holy: 'Holy' };
+export const ELEMENTS = ['fire', 'frost', 'venom', 'holy'] as const;
 export const STAT_LABEL: Record<string, string> = { hp: 'HP', atk: 'Attack', def: 'Defence', heal: 'Healing', power: 'Power' };
-export const elementName = (e: string | null | undefined) => (e ? ELEMENT_NAME[e] ?? e[0].toUpperCase() + e.slice(1) : '');
+/** Single element word ("Fire", "Poison"), taken from the engine's own label. */
+export const elementName = (e: string | null | undefined) => (e ? statText(e, 1).replace(/ damage.*$/, '') : '');
 
 const FALLBACK_EFFECTS = [
   { id: 'speed', name: 'Speed', unit: 'pct' }, { id: 'double', name: 'Double output', unit: 'pct' }, { id: 'save', name: 'Save input', unit: 'pct' },
@@ -17,14 +19,10 @@ const FALLBACK_EFFECTS = [
 ];
 export const EFFECTS: Array<{ id: string; name: string; unit: string; cap?: number }> = ((DATA as any).effects as any[] | undefined) ?? FALLBACK_EFFECTS;
 export const effectName = (id: string) => EFFECTS.find((e) => e.id === id)?.name ?? id;
-const trim = (v: number) => (Math.round(v * 100) / 100).toString();
-/** "+1.0%" or "+2" (quality points), in display units. */
-export function fmtEffectValue(id: string, v: number): string {
-  const unit = EFFECTS.find((e) => e.id === id)?.unit ?? 'pct';
-  const r = Math.round(Math.abs(v) * 100) / 100;
-  const s = unit === 'pts' ? trim(r) : Number.isInteger(Math.round(r * 10 * 1e6) / 1e6) ? r.toFixed(1) : r.toFixed(2);
-  return `${v < 0 ? '−' : '+'}${s}${unit === 'pts' ? '' : '%'}`;
-}
+/** One rule for effect numbers (matches the engine's text): 1 or more shows one decimal, under 1 shows two, never "+0.0%". Quality is whole points. */
+export const fmtEffectValue = (id: string, v: number): string => engineFmtEffect(v, (EFFECTS.find((e) => e.id === id)?.unit ?? 'pct') as 'pct' | 'pts');
+/** Text for an engine effect line, formatted by our one rule (keeps the engine's label, e.g. "Quality (gear crafts)"). */
+export const lineText = (l: { key: string; label?: string; value: number }) => `${l.label || effectName(l.key)} ${fmtEffectValue(l.key, l.value)}`;
 export const fmtEffect = (id: string, v: number) => `${effectName(id)} ${fmtEffectValue(id, v)}`;
 
 const AFFIX_TAG: Record<string, string> = {
@@ -65,8 +63,8 @@ export function fightDeltaChips(dl: any): DeltaChip[] {
     const d = Math.round((dl[k] ?? 0) * 10) / 10;
     if (d) out.push({ d, text: `${sign(d)}${Math.abs(d)} ${STAT_LABEL[k]}` });
   }
-  for (const [e, v] of Object.entries<number>(dl.elements ?? {})) { const d = Math.round(v * 10) / 10; if (d) out.push({ d, text: `${sign(d)}${Math.abs(d)}% ${elementName(e)} damage` }); }
-  for (const [e, v] of Object.entries<number>(dl.wards ?? {})) { const d = Math.round(v * 10) / 10; if (d) out.push({ d, text: `${sign(d)}${Math.abs(d)}% ${elementName(e)} resist` }); }
+  for (const [e, v] of Object.entries<number>(dl.elements ?? {})) { const d = Math.round(v * 10) / 10; if (d) out.push({ d, text: statText(e, d) }); }
+  for (const [e, v] of Object.entries<number>(dl.wards ?? {})) { const d = Math.round(v * 10) / 10; if (d) out.push({ d, text: statText(`ward_${e}`, d) }); }
   return out;
 }
 /** Raw effect deltas (pre-cap) for a tool or outfit piece. */

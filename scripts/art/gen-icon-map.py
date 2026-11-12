@@ -60,7 +60,7 @@ tier3('metal', 'chisel', 'own:tool_chisel', (.7, .5, .6))
 tier3('metal', 'awl', 'own:tool_awl', (.7, None, .6))
 tier3('metal', 'needle_set', 'own:tool_needle_set')
 tier3('metal', 'gem_file', 'own:tool_gem_file', (.5, None, .5))
-tier3('wood', 'fishing_rod', [sv(T, 55), sv(T, 61), sv(T, 62)])
+tier3('wood', 'fishing_rod', 'own:tool_fishing_rod', (.5, .7, .8))
 tier3('wood', 'spindle', sv('04', 21), (.6, .6, .6))
 tier3('wood', 'fleshing_scraper', sv(W, 45), None if False else (.6, .6, .6))
 tier3('wood', 'smith_hammer', [sv(T, 68), sv(T, 67), sv(T, 69)])
@@ -122,7 +122,7 @@ generic = {
 }
 named = {
  'gold': '08/0', 'bond': '08/5', 'hourglass': '14/42', 'bag': '08/8', 'chest': '08/16', 'key': '08/12', 'skull': '14/0', 'coins': '08/2',
- 'skill:mining': '06/14', 'skill:woodcutting': '01/4', 'skill:herbalism': 'own:tool_sickle', 'skill:fishing': '06/61',
+ 'skill:mining': '06/14', 'skill:woodcutting': '01/4', 'skill:herbalism': 'own:tool_sickle', 'skill:fishing': 'own:tool_fishing_rod',
  'skill:smelting': 'own:tool_bellows', 'skill:carpentry': '06/78', 'skill:tanning': '01/45', 'skill:weaving': '04/21',
  'skill:smithing': '06/67', 'skill:woodworking': 'own:tool_chisel', 'skill:leatherworking': 'own:tool_awl', 'skill:tailoring': 'own:tool_needle_set',
  'skill:jewelcrafting': 'own:tool_gem_file', 'skill:alchemy': 'own:tool_mortar_pestle', 'skill:cooking': 'own:tool_rolling_pin',

@@ -240,6 +240,10 @@ div.sheet[role="dialog"] { border-width: 6px 6px 0; padding-top: 10px; }
 .seg .btn.btn { border-image: none; border-width: 1px; border-color: var(--rule); border-radius: 0; padding: 8px 4px; background-clip: border-box; }
 .seg .btn.btn:first-child { border-radius: var(--rad-md) 0 0 var(--rad-md); } .seg .btn.btn:last-child { border-radius: 0 var(--rad-md) var(--rad-md) 0; }
 .seg .btn.btn[aria-pressed="true"] { border-color: var(--woad); background: var(--woad); }
+/* pressed stays readable on hover, focus and press (the plain hover rule would set woad text on woad fill) */
+.btn[aria-pressed="true"], .btn[aria-pressed="true"]:hover:not(:disabled), .btn[aria-pressed="true"]:focus-visible, .btn[aria-pressed="true"]:active:not(:disabled),
+.seg .btn.btn[aria-pressed="true"]:hover:not(:disabled), .seg .btn.btn[aria-pressed="true"]:focus-visible { background: var(--woad); color: var(--on-woad); border-color: var(--woad); }
+.btn[aria-pressed="true"]:hover:not(:disabled) { filter: brightness(1.08); }
 /* slot tiles keep their square pixel frames (icons stay crisp) */
 :is(button,span,div).tile.tile:is([style*="--r-"],.empty,.hintt) {
   border-style: solid; border-width: 4px; border-color: transparent;

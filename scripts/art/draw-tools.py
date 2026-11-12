@@ -184,7 +184,18 @@ def awl():
     spike = seg(mask(), (15.5, 16.5), (28, 4), 2.8, 0.8); shade(c, spike, RAMP['steel'], rim=False, bias=0.2)
     return outline(c)
 
-TOOLS = {'awl': awl, 'sickle': sickle, 'bellows': bellows, 'chisel': chisel, 'needle_set': needle, 'gem_file': gem_file,
+def fishing_rod():
+    c = new()
+    rod = seg(mask(), (4, 28), (27, 5), 3.6, 2.2); shade(c, rod, RAMP['wood'], bias=0.05)
+    grip = seg(mask(), (3, 29), (10, 22), 4.6, 4.6); shade(c, grip, RAMP['leather'], bias=-0.05)
+    reel = ell(mask(), (10, 19, 17, 26)); shade(c, reel, RAMP['steel'], bias=0.1)
+    px_set(c, [(13, 22), (14, 22), (13, 23)], RAMP['steel'][0])
+    q = c.load()
+    for x, y in [(27, 5), (28, 6), (29, 8), (29, 10), (29, 12), (29, 14), (28, 16)]: q[x, y] = RAMP['thread'][2]
+    for x, y in [(28, 17), (27, 18), (27, 19), (28, 19)]: q[x, y] = RAMP['steel'][3]
+    return outline(c)
+
+TOOLS = {'fishing_rod': fishing_rod, 'awl': awl, 'sickle': sickle, 'bellows': bellows, 'chisel': chisel, 'needle_set': needle, 'gem_file': gem_file,
          'mortar_pestle': mortar, 'rolling_pin': rolling_pin}
 
 if __name__ == '__main__':

@@ -24,13 +24,24 @@ describe('scene sprites', () => {
       }
     }
   });
+  it('every offhand and every weapon type has a worn look in the atlas', () => {
+    const none = { weapon: null, head: null, chest: null, legs: null };
+    for (const id of slot('offhand')) {
+      const f = figure('guardian', true, { ...none, offhand: asGear(id) }, false);
+      const keys = [...f.back, ...f.front].filter((k) => /^(sh_|w_pd)/.test(k));
+      expect(keys.length, id).toBeGreaterThan(0);
+      for (const k of keys) expect(MAN.layers[k]?.[f.anim] ?? MAN.layers[k.replace(/_(bg|fg)$/, (_m, p) => (p === 'bg' ? '_fg' : '_bg'))]?.[f.anim], `${id} ${k}`).toBeTruthy();
+    }
+    const kinds = new Set(slot('weapon').map((id) => weaponKind(id)));
+    for (const k of ['sword', 'axe', 'dagger', 'spear', 'bow', 'greatsword', 'mace', 'warhammer', 'halberd', 'wand', 'scepter', 'staff']) expect(kinds.has(k as any), k).toBe(true);
+  });
   it('maps skills to known backdrops and tools', () => {
     for (const s of ((DATA as any).skills as any[])) expect(BD.names).toContain(backdropFor(s.id));
     expect(backdropFor(null)).toBe('yard');
     expect(figure('mining', true, { weapon: null, head: null, chest: null, legs: null }, false).front).toContain('pickaxe_fg');
     expect(figure('fishing', true, { weapon: null, head: null, chest: null, legs: null }, false).anim).toBe('fish');
     for (const sk of ['herbalism', 'cooking', 'alchemy', 'tailoring', 'carpentry', 'jewelcrafting']) expect(figure(sk, true, { weapon: null, head: null, chest: null, legs: null }, false).anim).not.toBe('idle');
-    expect(weaponKind('iron_warhammer')).toBe('mace');
-    expect(weaponKind('oak_longbow')).toBe('bow');
+    for (const [id, k] of Object.entries({ bronze_sword: 'sword', iron_greatsword: 'greatsword', steel_dagger: 'dagger', bronze_axe: 'axe', iron_spear: 'spear', yew_bow: 'bow', bronze_mace: 'mace', iron_warhammer: 'warhammer', stoneheart_maul: 'warhammer', steel_halberd: 'halberd', oak_wand: 'wand', iron_scepter: 'scepter', pine_staff: 'staff', frostbite_saber: 'sword' })) expect(weaponKind(id), id).toBe(k);
+    expect(weaponKind('bronze_parrying_dagger')).toBeNull();
   });
 });

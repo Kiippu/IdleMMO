@@ -9,7 +9,8 @@
   import { ui } from '../../ui.svelte';
   import HeroPreview from './HeroPreview.svelte';
   import { groupGear, protectedUids } from './gearStack';
-  import { FIGHT_SLOTS, SLOT_LABEL, ELEMENT_NAME, fightTags, fightDeltaChips, elementName, type FightSlot } from './gearUi';
+  import { statText } from '../../engine/format';
+  import { FIGHT_SLOTS, SLOT_LABEL, ELEMENTS, fightTags, fightDeltaChips, elementName, type FightSlot } from './gearUi';
 
   const SORTS = [['best', 'Best first'], ['rarity', 'Rarity'], ['name', 'Name'], ['new', 'Newest']] as const;
   const RANK = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
@@ -61,15 +62,15 @@
   // Worn element shares and resistances, only when above zero.
   let elemLines = $derived.by(() => {
     const out: string[] = [];
-    for (const e of Object.keys(ELEMENT_NAME)) {
-      const v = Math.round(stats?.elements?.[e] ?? 0); if (v > 0) out.push(`${ELEMENT_NAME[e]} ${v}%`);
+    for (const e of ELEMENTS) {
+      const v = stats?.elements?.[e] ?? 0; if (v >= 0.05) out.push(statText(e, v));
     }
     return out;
   });
   let wardLines = $derived.by(() => {
     const out: string[] = [];
-    for (const e of Object.keys(ELEMENT_NAME)) {
-      const v = Math.round(stats?.wards?.[e] ?? 0); if (v > 0) out.push(`${ELEMENT_NAME[e]} ${v}%`);
+    for (const e of ELEMENTS) {
+      const v = stats?.wards?.[e] ?? 0; if (v >= 0.05) out.push(statText(`ward_${e}`, v));
     }
     return out;
   });
@@ -123,8 +124,8 @@
     </dl>
     {#if elemLines.length || wardLines.length}
       <p class="meta elem">
-        {#if elemLines.length}<span>Damage: <span class="num">{elemLines.join(', ')}</span></span>{/if}
-        {#if wardLines.length}<span>Resist: <span class="num">{wardLines.join(', ')}</span></span>{/if}
+        {#if elemLines.length}<span class="num">{elemLines.join(', ')}</span>{/if}
+        {#if wardLines.length}<span class="num">{wardLines.join(', ')}</span>{/if}
       </p>
     {/if}
   {/if}
@@ -167,7 +168,7 @@
               <ItemIcon id={g.itemId} rarity={g.rarity} />
               <span class="info">
                 <span class="name">{nameOf(g)}{#if n > 1} <span class="cnt num">×{n}</span>{/if}</span>
-                <span class="meta">{SLOT_LABEL[it.slot]}{#if it.element} · {elementName(it.element)}{/if} · {cap(g.rarity)}{#if it.slot === 'offhand' && twoHand} · needs a one-hand weapon{/if}</span>
+                <span class="meta">{SLOT_LABEL[it.slot]}{#if it.element} · {elementName(it.element)} damage{/if} · {cap(g.rarity)}{#if it.slot === 'offhand' && twoHand} · needs a one-hand weapon{/if}</span>
                 <span class="deltas">
                   {#if dl.length === 0}<span class="d same">Same as worn</span>
                   {:else}{#each dl as d}<span class="d num" class:up={d.d > 0} class:down={d.d < 0}>{d.text}</span>{/each}{/if}

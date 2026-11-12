@@ -22,15 +22,16 @@ describe('E.gearDetail', () => {
     expect(d).toMatchObject({ uid: 'gE', itemId: 'bronze_sword', section: 'fight', slot: 'weapon', type: 'sword', material: 'bronze', tier: 1,
       rarity: 'epic', grade: 0, gradeName: 'Rough', dur: 200, maxDur: 200, equipped: false, worn: null, role: 'striker', hands: 1 });
     expect(d.name).toBe('Soothing Bronze sword');
-    // base = 60 x 0.66 = 39.6 budget; atk 0.9 → 35.64 x (0.97 + 3 x 0.12) = 47.4 → 47; def 3.96 x 0.97 → 4;
+    // base = 60 x 0.66 = 39.6 budget; atk 0.9 → 35.64 x (0.97 + 3 x 0.12) = 47.4 → 47; the rarity bonus lifts every base stat,
+    // and the backstop keeps each one 1 above the rarity below at Pristine: def 3.96 → Common 4 … Epic Rough 7;
     // Soothing = 39.6 x 5% = 2; Hale = 39.6 x 5% x 2.5 = 5
     expect(d.stats).toEqual([
-      { key: 'atk', label: 'Attack', value: 47, unit: 'pts' },
-      { key: 'def', label: 'Defence', value: 4, unit: 'pts' },
-      { key: 'heal', label: 'Healing', value: 2, unit: 'pts' },
-      { key: 'hp', label: 'Max HP', value: 5, unit: 'pts' },
+      { key: 'atk', label: 'Attack', value: 47, unit: 'pts', text: 'Attack +47' },
+      { key: 'def', label: 'Defence', value: 7, unit: 'pts', text: 'Defence +7' },
+      { key: 'heal', label: 'Healing', value: 2, unit: 'pts', text: 'Healing +2' },
+      { key: 'hp', label: 'Max HP', value: 5, unit: 'pts', text: 'Max HP +5' },
     ]);
-    expect(d.affixes.map((a: any) => a.label)).toEqual(['Epic bonus: Attack +12', 'Soothing: Healing +2', 'Hale: Max HP +5']);
+    expect(d.affixes.map((a: any) => a.label)).toEqual(['Epic bonus: Attack +12, Defence +3', 'Soothing: Healing +2', 'Hale: Max HP +5']);
     expect(d.effects).toEqual([]);
     expect(d.value).toBe(E.gearValue(s.gear.find((g: any) => g.uid === 'gE')));
     // worn: the starter bronze sword (Common, Rough): atk 35, def 4
@@ -39,7 +40,7 @@ describe('E.gearDetail', () => {
     expect(d.compare.at).toEqual({ section: 'fight', slot: 'weapon' });
     expect(d.compare.diff).toEqual([
       { key: 'atk', label: 'Attack', unit: 'pts', mine: 47, theirs: 35, delta: 12 },
-      { key: 'def', label: 'Defence', unit: 'pts', mine: 4, theirs: 4, delta: 0 },
+      { key: 'def', label: 'Defence', unit: 'pts', mine: 7, theirs: 4, delta: 3 },
       { key: 'heal', label: 'Healing', unit: 'pts', mine: 2, theirs: 0, delta: 2 },
       { key: 'hp', label: 'Max HP', unit: 'pts', mine: 5, theirs: 0, delta: 5 },
     ]);
@@ -61,8 +62,8 @@ describe('E.gearDetail', () => {
     const b = E.gearDetail(s, 'gB');
     expect(b.broken).toBe(true);
     expect(b.stats.map((x: any) => x.key)).toEqual(['atk', 'def', 'fire']);
-    expect(b.stats.find((x: any) => x.key === 'fire')).toEqual({ key: 'fire', label: 'Fire damage', value: 5, unit: 'pct' });
-    expect(b.affixes.map((a: any) => a.label)).toEqual([expect.stringMatching(/^Rare bonus: Attack \+\d+$/), 'of Embers: Fire damage +5%', 'Enduring: +20% max durability']);
+    expect(b.stats.find((x: any) => x.key === 'fire')).toEqual({ key: 'fire', label: 'Fire damage', value: 5, unit: 'pct', text: 'Fire damage +5.0%' });
+    expect(b.affixes.map((a: any) => a.label)).toEqual([expect.stringMatching(/^Rare bonus: Attack \+\d+, Defence \+\d+$/), 'of Embers: Fire damage +5.0%', 'Enduring: +20% max durability']);
     expect(b.name).toBe('Enduring Bronze sword of Embers');
     expect(b.repair).toMatchObject({ can: true });
   });
@@ -166,10 +167,11 @@ describe('E.gearDetail effects (tools and work outfit)', () => {
     const { E } = await freshEngine();
     const s = E.newState();
     tool(s, 'pC', 'bronze_pickaxe');                                            // 1.0
-    tool(s, 'pU', 'bronze_pickaxe', 'uncommon', 50, [{ id: 'primary', roll: 1 }]); // 1.0 x (1 + 0.12) = 1.12
+    tool(s, 'pU', 'bronze_pickaxe', 'uncommon', 50, [{ id: 'primary', roll: 1 }]); // 1.12, lifted to 1.2: one shown step above Common Pristine (1.1)
     tool(s, 'pW', 'bronze_pickaxe', 'common', 20, [], 24.4);                     // Rough 0.97; cond 24 → -5%
     expect(E.gearDetail(s, 'pC').effects).toEqual([{ key: 'speed', label: 'Speed', value: 1, unit: 'pct', text: 'Speed +1.0%' }]);
-    expect(E.gearDetail(s, 'pU').effects).toEqual([{ key: 'speed', label: 'Speed', value: 1.12, unit: 'pct', text: 'Speed +1.1%' }]);
+    expect(E.gearDetail(s, 'pU').effects).toEqual([{ key: 'speed', label: 'Speed', value: 1.2, unit: 'pct', text: 'Speed +1.2%' }]);
+    expect(E.gearDetail(s, 'pU').affixes[0].label).toBe('Uncommon bonus: Speed +0.20%');
     const w = E.gearDetail(s, 'pW');
     expect(w).toMatchObject({ section: 'tool', toolSkill: 'mining', cond: 24, wear: 5, stats: [] });
     expect(w.effects[0].value).toBe(0.97);
@@ -180,7 +182,7 @@ describe('E.gearDetail effects (tools and work outfit)', () => {
     const s = E.newState();
     tool(s, 'ap', 'artisans_apron');
     delete s.gear.find((g: any) => g.uid === 'ap').cond;
-    expect(E.gearDetail(s, 'ap').effects.map((e: any) => e.text)).toEqual(['Double output (food, potions) +0.3%', 'Quality (gear crafts) +0.5']);
+    expect(E.gearDetail(s, 'ap').effects.map((e: any) => e.text)).toEqual(['Double output (food, potions) +0.25%', 'Quality (gear crafts) +0.50']);
     expect(E.gearDetail(s, 'ap').repair).toBeNull();
   });
   it('a tool compares with the one in its slot; final shows the skill totals now and if worn', async () => {

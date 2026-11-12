@@ -15,6 +15,7 @@
   import { openSalvage } from './salvage.svelte';
   import { buyFromShop, lastBuy } from './shopActions';
   import { gradeName } from '../engine/grades';
+  import { fmtEffectValue } from '../tabs/war/gearUi';
 
   type Action = { id: string; skill: string; kind: string; name: string; level?: number; sec?: number; xp?: number; inputs?: Record<string, number>; outputs?: Record<string, number>; bonus?: Array<{ item: string }>; drops?: Array<{ item: string }>; zone?: string; enemy?: string };
   const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring', amulet: 'Amulet', body: 'Body', hands: 'Hands', feet: 'Feet', tool: 'Tool' };
@@ -119,12 +120,16 @@
     return () => { live = false; };
   });
   const sign = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '') + fmtN(Math.abs(n));
-  const n2 = (n: number) => String(Math.round(n * 100) / 100);
+  // One formatter for work effects (shared with the War Room): gearUi.fmtEffectValue.
   const sgn = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '');
-  const fmtU = (v: number, unit?: string) => (unit === 'pct' ? `${sgn(v)}${n2(Math.abs(v))}%` : unit === 'pts' && !Number.isInteger(v) ? `${sgn(v)}${n2(Math.abs(v))}` : sign(v));
-  const fmtStat = (l: StatLine) => fmtU(l.value, l.unit);
+  const fmtU = (v: number, unit?: string, key?: string) => (key && effectNames[key] ? fmtEffectValue(key, v) : unit === 'pct' ? `${sgn(v)}${Math.abs(Math.round(v * 10) / 10)}%` : sign(v));
+  const effLine = (e: EffectLine) => `${e.label} ${fmtEffectValue(e.key, e.value)}`;
+  // Affix rows: the first is the slot's primary bonus (own row, tag above). Work effects are re-formatted from the value.
+  const affBody = (a: { name: string; key: string; value: number; unit: string; label: string }) =>
+    effectNames[a.key] ? `${effectNames[a.key]} ${fmtEffectValue(a.key, a.value)}` : a.label.includes(': ') ? a.label.slice(a.label.indexOf(': ') + 2) : a.label;
+  const fmtStat = (l: StatLine) => fmtU(l.value, l.unit, l.key);
   const effUnit = (id: string) => ((DATA as any).effects ?? []).find((e: any) => e.id === id)?.unit ?? 'pct';
-  const fmtEff = (id: string, v: number) => `${sgn(v)}${n2(Math.abs(v))}${effUnit(id) === 'pct' ? '%' : ''}`;
+  const fmtEff = fmtEffectValue;
   const wbOf = (a: Action): any => { const w = a.kind === 'combat' ? null : view?.extras?.workBonus?.[a.skill] ?? null; return w && (w.lines?.length || w.toolItemId) ? w : null; };
   const WEAR_AT: Record<number, number> = { 3: 50, 5: 25, 8: 10 };
   const gname = () => (g ? (view?.gearNames?.[g.uid] ?? itemName(g.itemId)) : ref ? itemName(ref.itemId) : '');
@@ -290,11 +295,17 @@
             {/if}
             {#if detail.effects?.length}
               <h3>Effects</h3>
-              <ul class="aff">{#each detail.effects as e (e.key + e.label)}<li><span>{e.text}</span></li>{/each}</ul>
+              <ul class="aff">{#each detail.effects as e (e.key + e.label)}<li><span>{effLine(e)}</span></li>{/each}</ul>
             {/if}
             {#if detail.affixes.length}
-              <ul class="aff" style:color={`var(--r-${detail.rarity})`}>
-                {#each detail.affixes as a, i (a.id)}<li><span>{a.label}</span>{#if i === 0}<span class="tag">Primary bonus</span>{/if}</li>{/each}
+              <ul class="aff affx" style:color={`var(--r-${detail.rarity})`}>
+                {#each detail.affixes as a, i (a.id)}
+                  {#if i === 0 && a.label && a.value}
+                    <li class="prim"><span class="tag">Primary bonus</span><span>{affBody(a)}</span></li>
+                  {:else if i > 0 && a.label}
+                    <li><span>{a.id === 'primary' || !a.name ? '' : `${a.name}: `}{affBody(a)}</span></li>
+                  {/if}
+                {/each}
               </ul>
             {/if}
             {#if detail.section === 'tool' && detail.final}
@@ -328,7 +339,7 @@
               {#if detail.compare.diff.some((d) => d.delta !== 0)}
                 <ul class="dl">
                   {#each detail.compare.diff.filter((d) => d.delta !== 0) as d (d.key)}
-                    <li class={d.delta > 0 ? 'up' : 'down'}><span>{d.label}</span><b class="num"><span aria-hidden="true">{d.delta > 0 ? '▲' : '▼'}</span> {fmtU(d.delta, d.unit)}<span class="sr"> {d.delta > 0 ? 'better' : 'worse'}</span></b></li>
+                    <li class={d.delta > 0 ? 'up' : 'down'}><span>{d.label}</span><b class="num"><span aria-hidden="true">{d.delta > 0 ? '▲' : '▼'}</span> {fmtU(d.delta, d.unit, d.key)}<span class="sr"> {d.delta > 0 ? 'better' : 'worse'}</span></b></li>
                   {/each}
                 </ul>
               {:else}<p class="meta">Same as your worn piece.</p>{/if}
@@ -367,7 +378,7 @@
             <div class="wb" aria-label="Work bonuses">
               <h3>Your bonuses</h3>
               {#if wb.toolItemId}<p class="meta">Tool: {itemName(wb.toolItemId)}{wb.toolCond != null ? ` ${wb.toolCond}%` : ''}</p>{/if}
-              {#each wb.lines ?? [] as l (l.key)}<p class="wbl num">{l.text}</p>{/each}
+              {#each wb.lines ?? [] as l (l.key)}<p class="wbl num">{effLine(l)}</p>{/each}
               {#if !wb.lines?.length}<p class="meta">No bonus yet.</p>{/if}
               {#if wb.wearText}<p class="meta warn">{wb.wearText}</p>{/if}
             </div>
@@ -448,6 +459,7 @@
   .dl .up b { color: var(--ok); } .dl .down b { color: var(--bad); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .apart { padding-top: 8px; border-top: 1px solid var(--rule); display: flex; justify-content: flex-start; }
+  .affx { gap: 6px; } .prim { display: grid !important; gap: 1px; }
   .tag { font-size: var(--t-xs); color: var(--ink-3); font-family: var(--f-label); text-transform: uppercase; letter-spacing: .06em; }
   .aff li { align-items: baseline; }
   .cond { display: grid; gap: 4px; width: 100%; }

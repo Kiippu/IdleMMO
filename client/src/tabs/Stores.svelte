@@ -183,7 +183,7 @@
 </nav>
 
 {#if sub === 'mine'}
-  <section class="group">
+  <section class="group" class:selpad={selecting}>
     <h3>Bag</h3>
     {@render filters(bagFilter)}
     <div class="chips" role="group" aria-label="Gear section">
@@ -250,6 +250,7 @@
   .sec { position: absolute; right: 1px; top: 1px; padding: 1px 3px; background: var(--sunk); border: 1px solid var(--rule); color: var(--ink-2); font: 700 9px/1.2 var(--f-body); letter-spacing: .02em; pointer-events: none; }
   .sec[data-s='tool'] { color: var(--brass); } .sec[data-s='outfit'] { color: var(--woad); }
   .chk { position: absolute; left: 1px; top: 1px; width: 18px; height: 18px; display: grid; place-items: center; background: var(--woad); color: var(--on-woad); font: 700 12px/1 var(--f-num); }
+  .selpad { padding-bottom: 76px; }
   .selbar { position: sticky; bottom: calc(var(--tabbar-h) + 8px); z-index: 5; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 60px; padding: 8px 10px; background: var(--paper); border: 1px solid var(--woad); box-shadow: 0 -4px 12px var(--shadow); }
   .selbar .sc { color: var(--ink); font-size: var(--t-md); }
   .selbar .hid { color: var(--ink-3); font-size: var(--t-sm); }

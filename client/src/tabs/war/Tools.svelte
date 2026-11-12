@@ -7,7 +7,7 @@
   import { openItem } from '../../overlays/itemRef.svelte';
   import { fmtG } from '../../format';
   import { ui } from '../../ui.svelte';
-  import { workDeltaChips, fmtEffect, repairCostGuess, wearOf } from './gearUi';
+  import { workDeltaChips, fmtEffect, lineText, repairCostGuess, wearOf } from './gearUi';
 
   const GROUPS: Array<{ name: string; skills: string[] }> = [
     { name: 'Gathering', skills: ['mining', 'woodcutting', 'herbalism', 'fishing'] },
@@ -30,7 +30,7 @@
   const repairOf = (g: any) => info(g.uid).repairGold ?? repairCostGuess(condOf(g), items[g.itemId]?.tier ?? 1);
   const effOf = (g: any) => {
     const l: any[] = info(g.uid).effectLines ?? [];
-    if (l.length) return l.map((x) => x.text || fmtEffect(x.key, x.value)).join(', ');
+    if (l.length) return l.map((x) => lineText(x)).join(', ');
     return (items[g.itemId]?.effects ?? []).map((e: any) => fmtEffect(e.id, e.value)).join(', ');
   };
   const rowOf = (skill: string) => { const uid = tools[skill]; return uid ? bag.find((g) => g.uid === uid) ?? null : null; };
@@ -80,7 +80,7 @@
       {#each grp.skills as skill (skill)}
         {@const g = rowOf(skill)}
         {@const spare = spareFor(skill)}
-        <li class:open={open === skill}>
+        <li class="card" class:open={open === skill}>
           <div class="row">
             <button type="button" class="main" aria-expanded={open === skill} aria-label="{skillName(skill)} tool{g ? `: ${nameOf(g)}` : ': none'}. Tap to swap" onclick={() => (open = open === skill ? null : skill)} style:--ink-r={g ? `var(--r-${g.rarity})` : undefined}>
               {#if g}<ItemIcon id={g.itemId} rarity={g.rarity} />{:else}<span class="ph" aria-hidden="true">·</span>{/if}
@@ -144,10 +144,9 @@
   .grp + .grp { margin-top: 12px; }
   h3 { margin: 0 0 6px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
   .rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  .rows > li { background: var(--paper); border: 1px solid var(--rule); border-left: 3px solid var(--ink-r, var(--rule)); }
-  .rows > li.open { border-color: var(--woad); }
+  .rows > li.open { background: var(--woad-soft); }
   .row { display: flex; align-items: stretch; }
-  .main { flex: 1; min-width: 0; min-height: 64px; display: flex; align-items: flex-start; gap: 10px; padding: 8px; background: none; border: 0; text-align: left; color: var(--ink); }
+  .main { flex: 1; min-width: 0; min-height: 64px; display: flex; align-items: flex-start; gap: 10px; padding: 0; background: none; border: 0; text-align: left; color: var(--ink); }
   .ph { width: 32px; height: 32px; display: grid; place-items: center; border: 1px dashed var(--rule); color: var(--ink-3); }
   .info { display: grid; gap: 2px; min-width: 0; flex: 1; }
   .sk { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
@@ -160,8 +159,8 @@
   .fill.low { background: var(--bad); }
   .cond b { font: 700 var(--t-xs)/1 var(--f-num); color: var(--ink); }
   .pen { padding: 1px 5px; border: 1px solid var(--bad); color: var(--bad); font: 700 var(--t-xs)/1.3 var(--f-num); }
-  .rep { flex: none; align-self: center; margin: 0 8px 0 0; min-width: 84px; padding: 0 8px; white-space: nowrap; }
-  .pick { padding: 0 8px 8px; display: grid; gap: 6px; }
+  .rep { flex: none; align-self: center; margin: 0 0 0 8px; min-width: 84px; padding: 0 8px; white-space: nowrap; }
+  .pick { padding: 8px 0 0; display: grid; gap: 6px; }
   .det { width: 100%; }
   .spare { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .swap { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 6px 8px; background: var(--sunk); border: 1px solid var(--rule); border-left: 3px solid var(--ink-r); text-align: left; color: var(--ink); }

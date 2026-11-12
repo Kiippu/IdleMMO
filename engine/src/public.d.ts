@@ -503,7 +503,7 @@ export interface EquipResult { ok: boolean; reason: string; section: GearSection
 export interface RepairResult { ok: boolean; reason: string; gold: number; cond?: number; maxDur?: number }
 export interface RepairAllResult { ok: boolean; reason: string; gold: number; count: number }
 /** keys atk def heal hp (pts, x10), fire frost venom holy (pct share of weapon damage), ward_<element> (pct less damage) */
-export interface StatLine { key: string; label: string; value: number; unit?: 'pts' | 'pct' }
+export interface StatLine { key: string; label: string; value: number; unit?: 'pts' | 'pct'; /** statText(key, value), e.g. "Fire damage +3.3%" */ text?: string }
 /** value in display units: 1.5 = +1.5% when unit is 'pct', points when 'pts'. text e.g. "Speed +1.2%". */
 export interface EffectLine { key: EffectId | string; label: string; value: number; unit: 'pct' | 'pts'; text: string }
 export interface AffixLine { id: string; name: string; key: string; value: number; unit: 'pct' | 'pts'; label: string }
@@ -598,6 +598,17 @@ export const ctx: EngineContext;
 
 /** Static game content. */
 export const DATA: any;
+
+/** Work-effect number format (one format everywhere): >= 1 → one decimal, < 1 → two, with sign and unit.
+ *  fmtEffect(1, 'pct') → "+1.0%"; fmtEffect(0.25) → "+0.25%"; fmtEffect(2, 'pts') → "+2.0". */
+export function fmtEffect(value: number, unit?: 'pct' | 'pts'): string;
+/** the number part only: "1.0", "0.25" */
+export function fmtEffectNum(value: number): string;
+/** the value as shown (rounded to 1 decimal at >= 1, else 2) */
+export function effectShown(value: number): number;
+/** the one stat wording: statText('atk', 47) → "Attack +47"; statText('fire', 3.3) → "Fire damage +3.3%";
+ *  statText('ward_fire', 2) → "Fire resistance +2.0%". Element keys are fire / frost / venom ("Poison") / holy. */
+export function statText(key: string, value: number): string;
 
 /** Economy unit: one hour of a typical level-40 player's income, in gold (see data.ts). */
 export const H: number;

@@ -62,6 +62,42 @@ describe('gear balance', () => {
     }
   });
 
+  it('cross-grade over the export set: rarity r at Rough beats r-1 at Pristine on EVERY stat, the piece\'s role power and every shown effect', async () => {
+    const { E, mod } = await freshEngine();
+    const { powersOf } = await import('../src/stats');
+    const s = E.newState(); const items = mod.DATA.items; let checked = 0;
+    const view = (g: any) => { s.gear = [g]; const d = E.gearDetail(s, g.uid); const st: any = {}; d.stats.forEach((l: any) => { st[l.key] = l.value; });
+      const ef: any = {}; d.effects.forEach((l: any) => { ef[l.label] = l.value; }); return { st, ef }; };
+    for (const id of Object.keys(items).filter((k) => items[k].kind === 'gear')) {
+      const it = items[id];
+      for (let r = 1; r < RAR.length; r++) {
+        const lo = view(mk(mod, id, r, Q[0])), hi = view(mk(mod, id, r - 1, Q[4]));
+        for (const k of ['atk', 'def', 'heal', 'hp']) if (hi.st[k] != null) expect(lo.st[k], `${id} ${k} ${RAR[r]} Rough vs ${RAR[r - 1]} Pristine`).toBeGreaterThan(hi.st[k]);
+        if (it.section === 'fight') {
+          const ps = (x: any) => ({ atk: x.st.atk || 0, def: x.st.def || 0, heal: x.st.heal || 0, maxHp: 600 + (x.st.hp || 0), elements: {}, wards: {} });
+          expect(powersOf(ps(lo), null)[it.role], `${id} ${it.role} power`).toBeGreaterThan(powersOf(ps(hi), null)[it.role]);
+        }
+        for (const label of Object.keys(hi.ef)) expect(lo.ef[label], `${id} ${label} ${RAR[r]}`).toBeGreaterThan(hi.ef[label]);
+        checked++;
+      }
+    }
+    expect(checked).toBe(171 * 5);
+  });
+
+  it('effect format: >= 1 one decimal, < 1 two decimals, never +0.0', async () => {
+    const { fmtEffect, statText } = await import('../src/index');
+    expect(fmtEffect(1, 'pct')).toBe('+1.0%'); expect(fmtEffect(0.25, 'pct')).toBe('+0.25%'); expect(fmtEffect(2, 'pts')).toBe('+2.0');
+    expect(fmtEffect(0.995)).toBe('+1.0%'); expect(fmtEffect(0.004)).toBe('+0.00%');
+    expect(statText('fire', 3.3)).toBe('Fire damage +3.3%'); expect(statText('venom', 5)).toBe('Poison damage +5.0%');
+    expect(statText('ward_frost', 2)).toBe('Frost resistance +2.0%'); expect(statText('atk', 47)).toBe('Attack +47');
+    // no work affix or primary bonus can show as zero
+    const { E, mod } = await freshEngine(); const s = E.newState(); const items = mod.DATA.items;
+    for (const id of Object.keys(items).filter((k) => items[k].kind === 'gear' && items[k].section !== 'fight')) for (let r = 1; r < 6; r++) {
+      const g = mk(mod, id, r, Q[0], [{ id: (items[id].section === 'tool' ? ({ gathering: 'brisk', refining: 'thrifty' } as any)[items[id].toolGroup] || 'masterful' : 'brisk'), roll: 0.8 }]); s.gear = [g];
+      for (const a of E.gearDetail(s, g.uid).affixes) expect(a.label, id).not.toMatch(/\+0\.00?%?($|,| )/);
+    }
+  });
+
   it('each tier beats the last at equal rarity and grade (same family type)', async () => {
     const { E, mod } = await freshEngine();
     PE = await import('../src/gear');
@@ -208,7 +244,7 @@ describe('gear balance', () => {
     const t5 = gain(5, 5, 97, ['brisk', 'bountiful'], 1.2); expect(t5).toBeLessThanOrEqual(11); expect(t5).toBeGreaterThan(9);
   });
 
-  it('expected gains: T1 Common kit +2% income; the shop Uncommon T1 tool pays back in 15–50 h vs no tool', async () => {
+  it('expected gains: T1 Common kit +2% income; the shop Uncommon T1 tool pays back in 14–50 h vs no tool', async () => {
     const { E, mod } = await freshEngine();
     const s = E.newState(); s.skills.mining.xp = E.xpForLevel(40);
     ['hessian_field_gloves', 'hessian_field_boots', 'anglers_hat', 'foragers_satchel'].forEach((id, i) => {
@@ -227,7 +263,8 @@ describe('gear balance', () => {
       const r = E.storeBuyTool(Object.assign(b, { gold: 1000 }), row.itemId); expect(r.ok).toBe(true);
       E.equip(b, r.uids[0]);
       const hours = row.price / (E.incomePerHour(b, best.id, { withGear: true }) - g0);
-      expect(hours, skill).toBeGreaterThan(15); expect(hours, skill).toBeLessThan(50);
+      // herbalism is the outlier (mint pays best at level 7): 14.6 h since the Uncommon tool shows a full +0.1 step (1.2%)
+      expect(hours, skill).toBeGreaterThan(14); expect(hours, skill).toBeLessThan(50);
     }
   });
 });

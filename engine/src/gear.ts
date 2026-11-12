@@ -80,11 +80,31 @@ export function makeGear(state, itemId, rIdx, quality, opts?) {
 
 // ---------------------------------------------------------------- fight stats (x10 scale)
 const gm = (quality) => GEAR_GRADE_MULT[gradeOf(quality)] || 1;
-/** primary stat/effect value: base x (grade + 12% per rarity step), backstopped so it beats the lower rarity's Pristine by 1 */
+/**
+ * A fight stat: base x (grade + 12% per rarity step). The rarity bonus (the "primary" affix) lifts every base stat of the
+ * piece, and a backstop keeps rarity r at Rough at least 1 above rarity r-1 at Pristine, so a higher rarity always wins
+ * at any grade on every stat (and so on the piece's role power).
+ */
 export function primaryValue(base, gIdx, r) {
-  let v = Math.round(base * ((GEAR_GRADE_MULT[gIdx] || 1) + PRIMARY_STEP * r));
+  let v = Math.max(base > 0 ? 1 : 0, Math.round(base * ((GEAR_GRADE_MULT[gIdx] || 1) + PRIMARY_STEP * r)));
   if (r > 0 && base > 0) v = Math.max(v, primaryValue(base, GEAR_GRADE_MULT.length - 1, r - 1) + 1);
   return v;
+}
+// ---- the ONE work-effect number format (tester 2026-11-13): >= 1 → one decimal ("+1.0%"), < 1 → two ("+0.25%")
+/** the value as shown: rounded to 1 decimal when it shows >= 1, else to 2 */
+export function effectShown(v) { const a = Math.abs(num(v, 0)); const r2v = Math.round(a * 100) / 100; const out = r2v >= 1 ? Math.round(a * 10) / 10 : r2v; return v < 0 ? -out : out; }
+/** "1.0", "0.25", "12.5" (no sign, no unit) */
+export function fmtEffectNum(v) { const sh = Math.abs(effectShown(v)); return sh >= 1 ? sh.toFixed(1) : sh.toFixed(2); }
+/** "+1.0%", "+0.25%", "+2.0" (pts): use for every work effect the player sees */
+export function fmtEffect(v, unit?) { return `${num(v, 0) < 0 ? '−' : '+'}${fmtEffectNum(v)}${unit === 'pts' ? '' : '%'}`; }
+E.fmtEffect = fmtEffect;
+const shownStep = (shown) => (Math.abs(shown) >= 1 ? 0.1 : 0.01);
+/** a work piece's primary effect: base x (grade + 12% per rarity step), backstopped so rarity r at Rough SHOWS at least one
+ *  display step above rarity r-1 at Pristine */
+export function workPrimaryValue(base, gIdx, r) {
+  let v = base * ((GEAR_GRADE_MULT[gIdx] || 1) + PRIMARY_STEP * r);
+  if (r > 0 && base > 0) { const prev = effectShown(workPrimaryValue(base, GEAR_GRADE_MULT.length - 1, r - 1)); v = Math.max(v, prev + shownStep(prev) + 1e-9); }
+  return Math.round(v * 10000) / 10000;
 }
 const slotBudget = (it) => TIER_BUDGET[clamp(num(it.tier, 1), 1, 5)] * shareOf(it.slot, it.hands);
 const isJewel = (it) => it && (it.slot === 'ring' || it.slot === 'amulet');
@@ -105,7 +125,7 @@ export function fightStats(g) {
   const raw = baseStatsRaw(it); const gIdx = gradeOf(g.quality); const r = rarityIdx(g.rarity);
   const hasPrimary = arr(g.affixes).some((a) => a && a.id === 'primary') || r > 0;
   Object.keys(raw).forEach((k) => {
-    const v = k === it.primary ? primaryValue(raw[k], gIdx, hasPrimary ? r : 0) : Math.max(1, Math.round(raw[k] * gm(g.quality)));
+    const v = primaryValue(raw[k], gIdx, hasPrimary ? r : 0);
     out[k] = num(out[k], 0) + v;
   });
   if (it.element) out.elements[it.element] = num(out.elements[it.element], 0) + num(it.elementShare, 0);
@@ -147,7 +167,7 @@ export function pieceEffects(g, group?) {
   arr(it.effects).forEach((e) => {
     if (e.group && !groups.includes(e.group)) return;
     if (!allowed.has(e.id)) return;
-    out[e.id] = r4(out[e.id] + num(e.value, 0) * (gm(g.quality) + (hasPrimary ? PRIMARY_STEP * r : 0)));
+    out[e.id] = r4(out[e.id] + workPrimaryValue(num(e.value, 0), gradeOf(g.quality), hasPrimary ? r : 0));
   });
   arr(g.affixes).forEach((af) => {
     const d = affixDef(af && af.id); if (!d || d.kind !== 'work' || !allowed.has(d.key)) return;
@@ -160,11 +180,10 @@ export const softCap = (total, cap) => {
   const x = Math.max(0, total); if (!(cap > 0)) return x; const h = cap / 2;
   return x <= h ? x : h + h * (1 - Math.exp(-(x - h) / h));
 };
-const fmtV = (v) => (Math.round(v * 10) / 10).toFixed(1); // work effects always show one decimal ("+1.0%")
 export function effectLine(id, value, labelExtra?) {
   const d = effectDef(id) || { name: id, unit: 'pct' }; const unit = d.unit === 'pts' ? 'pts' : 'pct';
   const label = labelExtra ? `${d.name} ${labelExtra}` : d.name;
-  return { key: id, label, value: r2(value), unit, text: `${label} ${value >= 0 ? '+' : ''}${fmtV(value)}${unit === 'pct' ? '%' : ''}` };
+  return { key: id, label, value: effectShown(value), unit, text: `${label} ${fmtEffect(value, unit)}` };
 }
 /** EffectLine[] for a work piece's own contribution (craft outfit: quality for gear crafts, double for food/potions) */
 export function pieceEffectLines(g) {
@@ -239,13 +258,21 @@ export function wearTool(state, skillId, secs) {
 // ---------------------------------------------------------------- names, values, labels
 const STAT_LABEL = { atk: 'Attack', def: 'Defence', heal: 'Healing', hp: 'Max HP' };
 export const statLabel = (key) => STAT_LABEL[key] || (key.startsWith('ward_') ? `${elementLabel(key.slice(5))} resistance` : elements().includes(key) ? `${elementLabel(key)} damage` : key);
+const isPts = (k) => ['atk', 'def', 'heal', 'hp'].includes(k);
+/** the ONE stat wording: "Attack +47", "Max HP +150", "Fire damage +3.3%" (share of weapon damage), "Fire resistance +2.0%" */
+export function statText(key, value) {
+  const v = num(value, 0); const sign = v < 0 ? '−' : '+';
+  return isPts(key) ? `${statLabel(key)} ${sign}${Math.abs(Math.round(v))}` : `${statLabel(key)} ${sign}${Math.abs(Math.round(v * 10) / 10).toFixed(1)}%`;
+}
+E.statText = statText;
+export const statLine = (k, v) => ({ key: k, label: statLabel(k), value: v, unit: isPts(k) ? 'pts' : 'pct', text: statText(k, v) });
 const statOrder = () => ['atk', 'def', 'heal', 'hp'].concat(elements(), elements().map((e) => 'ward_' + e));
 /** fight piece stat lines (nominal: a broken piece shows what repairing it gives back) */
 export function statLines(g) {
   const it = g && item(g.itemId); if (!it || sectionOf(it) !== 'fight') return [];
   const s = fightStats(g); const flat = { atk: s.atk, def: s.def, heal: s.heal, hp: s.hp };
   elements().forEach((e) => { flat[e] = num(s.elements[e], 0); flat['ward_' + e] = num(s.wards[e], 0); });
-  return statOrder().filter((k) => num(flat[k], 0) !== 0).map((k) => ({ key: k, label: statLabel(k), value: flat[k], unit: ['atk', 'def', 'heal', 'hp'].includes(k) ? 'pts' : 'pct' }));
+  return statOrder().filter((k) => num(flat[k], 0) !== 0).map((k) => statLine(k, flat[k]));
 }
 E.gearName = function (g) {
   if (!g) return '';
@@ -278,19 +305,28 @@ function affixLines(g) {
   return arr(g.affixes).map((af) => {
     const d = affixDef(af && af.id); if (!d) return null;
     if (d.id === 'primary') {
+      const gIdx = gradeOf(g.quality); const name = `${rarityDef(g.rarity).name} bonus`;
       if (sec === 'fight') {
-        const raw = baseStatsRaw(it)[it.primary] || 0; const gIdx = gradeOf(g.quality);
-        const v = primaryValue(raw, gIdx, r) - primaryValue(raw, gIdx, 0);
-        return { id: 'primary', name: `${rarityDef(g.rarity).name} bonus`, key: it.primary, value: v, unit: 'pts', label: `${rarityDef(g.rarity).name} bonus: ${statLabel(it.primary)} +${v}` };
+        // the rarity bonus lifts every base stat; the line lists each gain vs the same piece at Common
+        const raw = baseStatsRaw(it); const parts = [];
+        ['atk', 'def', 'heal', 'hp'].forEach((k) => { if (!(raw[k] > 0)) return; const dv = primaryValue(raw[k], gIdx, r) - primaryValue(raw[k], gIdx, 0); if (dv) parts.push(statText(k, dv)); });
+        const v = primaryValue(raw[it.primary] || 0, gIdx, r) - primaryValue(raw[it.primary] || 0, gIdx, 0);
+        return { id: 'primary', name, key: it.primary, value: v, unit: 'pts', label: `${name}: ${parts.join(', ')}` };
       }
-      const e = arr(it.effects)[0]; if (!e) return null; const v = r2(num(e.value, 0) * PRIMARY_STEP * r); const unit = (effectDef(e.id) || {}).unit === 'pts' ? 'pts' : 'pct';
-      return { id: 'primary', name: `${rarityDef(g.rarity).name} bonus`, key: e.id, value: v, unit, label: `${rarityDef(g.rarity).name} bonus: ${(effectDef(e.id) || {}).name} +${fmtV(v)}${unit === 'pct' ? '%' : ''}` };
+      const parts = []; let first = null;
+      arr(it.effects).forEach((e) => {
+        const dv = effectShown(workPrimaryValue(num(e.value, 0), gIdx, r)) - effectShown(workPrimaryValue(num(e.value, 0), gIdx, 0));
+        const unit = (effectDef(e.id) || {}).unit === 'pts' ? 'pts' : 'pct';
+        if (!first) first = { key: e.id, value: effectShown(dv), unit };
+        parts.push(`${(effectDef(e.id) || {}).name}${e.group ? (e.group === 'gearcraft' ? ' (gear crafts)' : ' (food, potions)') : ''} ${fmtEffect(dv, unit)}`);
+      });
+      if (!first) return null;
+      return { id: 'primary', name, key: first.key, value: first.value, unit: first.unit, label: `${name}: ${parts.join(', ')}` };
     }
     if (d.key === 'dur') return { id: d.id, name: d.name, key: 'dur', value: ENDURING_PCT, unit: 'pct', label: `${d.name}: +${ENDURING_PCT}% max durability` };
     const v = affixValue(it, af);
-    if (d.kind === 'work') { const unit = (effectDef(d.key) || {}).unit === 'pts' ? 'pts' : 'pct'; return { id: d.id, name: d.name, key: d.key, value: v, unit, label: `${d.name}: ${(effectDef(d.key) || {}).name} +${fmtV(v)}${unit === 'pct' ? '%' : ''}` }; }
-    const unit = ['atk', 'def', 'heal', 'hp'].includes(d.key) ? 'pts' : 'pct';
-    return { id: d.id, name: d.name, key: d.key, value: v, unit, label: `${d.name}: ${statLabel(d.key)} +${v}${unit === 'pct' ? '%' : ''}` };
+    if (d.kind === 'work') { const unit = (effectDef(d.key) || {}).unit === 'pts' ? 'pts' : 'pct'; return { id: d.id, name: d.name, key: d.key, value: effectShown(v), unit, label: `${d.name}: ${(effectDef(d.key) || {}).name} ${fmtEffect(v, unit)}` }; }
+    return { id: d.id, name: d.name, key: d.key, value: v, unit: isPts(d.key) ? 'pts' : 'pct', label: `${d.name}: ${statText(d.key, v)}` };
   }).filter(Boolean);
 }
 

@@ -6,7 +6,7 @@
   import { engineClient } from '../../engine/client';
   import { openItem } from '../../overlays/itemRef.svelte';
   import { ui } from '../../ui.svelte';
-  import { SLOT_LABEL, SET_LABEL, SET_BLURB, OUTFIT_PIECES, EFFECTS, workTags, workDeltaChips, fmtEffect, effectName } from './gearUi';
+  import { SLOT_LABEL, SET_LABEL, SET_BLURB, OUTFIT_PIECES, EFFECTS, workTags, workDeltaChips, fmtEffect, lineText, effectName } from './gearUi';
 
   const SETS = ['gather', 'refine', 'craft'] as const;
   const items: Record<string, any> = (DATA as any).items;
@@ -22,7 +22,7 @@
   const linesOf = (uid: string): any[] => extras.gearInfo?.[uid]?.effectLines ?? [];
   const effText = (g: any) => {
     const l = linesOf(g.uid);
-    if (l.length) return l.map((x) => x.text || fmtEffect(x.key, x.value)).join(', ');
+    if (l.length) return l.map((x) => lineText(x)).join(', ');
     return (items[g.itemId]?.effects ?? []).map((e: any) => fmtEffect(e.id, e.value)).join(', ');
   };
 
@@ -68,7 +68,7 @@
 
 {#each SETS as set (set)}
   {@const tot = extras.outfitTotals?.[set]}
-  <section class="set">
+  <section class="set card">
     <h3>{SET_LABEL[set]} set</h3>
     <p class="meta">{SET_BLURB[set]}</p>
     <ul class="pieces" aria-label="{SET_LABEL[set]} outfit">
@@ -98,7 +98,7 @@
       </div>
     {/if}
     <p class="tot num">
-      {#if tot?.lines?.length}{#each tot.lines as l, i}{i ? ' · ' : ''}{l.text || fmtEffect(l.key, l.value)}{/each}{:else}No bonus yet{/if}
+      {#if tot?.lines?.length}{#each tot.lines as l, i}{i ? ' · ' : ''}{lineText(l)}{/each}{:else}No bonus yet{/if}
     </p>
   </section>
 {/each}
@@ -151,7 +151,7 @@
   .fb { margin: 0 0 8px; min-height: 1.3em; color: var(--ok); font-size: var(--t-sm); font-weight: 700; }
   .fb.bad { color: var(--bad); }
   h3 { margin: 0 0 4px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
-  .set { padding: 10px; background: var(--paper); border: 1px solid var(--rule); margin-bottom: 10px; }
+  .set { margin-bottom: 10px; }
   .meta { margin: 0; color: var(--ink-3); font-size: var(--t-xs); }
   .pieces { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .pieces li { display: grid; justify-items: center; gap: 2px; }

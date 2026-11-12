@@ -60,12 +60,6 @@ LAYERS = {
 for mat in ('bronze', 'iron', 'steel', 'gold'):
     for part in ('bg', 'fg'):
         LAYERS[f'sword_{mat}_{part}'] = ({'slash': P(f'weapon/sword/arming/attack_slash/{part}/{mat}.png')}, None)
-LAYERS['mace_bg'] = ({'slash': P('weapon/blunt/mace/attack_slash/behind/mace.png')}, None)
-LAYERS['mace_fg'] = ({'slash': P('weapon/blunt/mace/attack_slash/mace.png')}, None)
-LAYERS['staff_bg'] = ({'cast': P('weapon/magic/simple/background/spellcast/simple.png')}, None)
-LAYERS['staff_fg'] = ({'cast': P('weapon/magic/simple/foreground/spellcast/simple.png')}, None)
-LAYERS['bow_bg'] = ({'shoot': P('weapon/ranged/bow/normal/universal/background/shoot/normal.png')}, None)
-LAYERS['bow_fg'] = ({'shoot': P('weapon/ranged/bow/normal/universal/foreground/shoot/normal.png')}, None)
 LAYERS['rod_bg'] = ({'fish': P('tools/fishing_rod/bg.png')}, None)
 LAYERS['rod_fg'] = ({'fish': P('tools/fishing_rod/fg.png')}, None)
 for t in ('pickaxe', 'axe', 'hammer'):
@@ -88,12 +82,46 @@ shield_layers('sh_kite', ('dual', OAK, IRON), lambda pt, a: P(f'shield/crusader/
 shield_layers('sh_tower', ('dual', YEW, BRASS), lambda pt, a: P(f'shield/plus/{pt}/{a}/plus.png'))                           # Yew tower
 shield_layers('sh_aegis', ('ramp', DRAKE), lambda pt, a: P(f'shield/spartan/{pt}/{a}/spartan.png'))                          # Drakescale aegis (round, scale green)
 
-OUTLINED = {'sword', 'mace', 'staff', 'bow', 'rod', 'pickaxe', 'axe', 'hammer'}   # 1px dark outline so held tools read on any backdrop
+# ---- worn look per weapon type, three material looks each (key w_<type>_<mat>_<bg|fg>); closest LPC layer, recoloured by material ----
+# Licences (generator CREDITS.csv, option relied on): longsword OGA-BY 3.0, dagger OGA-BY 3.0, rapier OGA-BY 3.0, mace OGA-BY 3.0,
+# wand OGA-BY 3.0, simple staff CC0, bow OGA-BY 3.0+/CC-BY 4.0, hand tools OGA-BY 3.0/CC-BY 4.0. The polearms (spear, halberd), war axe and
+# flail are CC-BY-SA/GPL only and are NOT used: spear and halberd borrow the rapier and the pickaxe.
+BRONZE_R = ['#45283c', '#8f563b', '#d9a066', '#eec39a']
+IRON_R = ['#222034', '#595652', '#847e87', '#cbdbfc']
+STEEL_R = ['#222034', '#696a6a', '#9badb7', '#ffffff']
+PINE_R = ['#663931', '#8f563b', '#d9a066', '#eec39a']
+METAL = {'bronze': BRONZE_R, 'iron': IRON_R, 'steel': STEEL_R}
+WOODEN = {'pine': PINE_R, 'oak': OAK, 'yew': YEW}
+SHIFT = {}
+def wlayers(key, anim, bg, fg, mats, shift=0):
+    for mat, ramp in mats.items():
+        for part, path in (('bg', bg), ('fg', fg)):
+            if path:
+                LAYERS[f'w_{key}_{mat}_{part}'] = ({anim: P(path)}, ('ramp', ramp))
+                if shift: SHIFT[f'w_{key}_{mat}_{part}'] = shift   # -1 = mirrored (points to the off side), drawn behind the body
+wlayers('greatsword', 'slash', 'weapon/sword/longsword/attack_slash/behind/longsword.png', 'weapon/sword/longsword/attack_slash/longsword.png', METAL)
+wlayers('dagger', 'slash', 'weapon/sword/dagger/behind/slash/dagger.png', 'weapon/sword/dagger/slash/dagger.png', METAL)
+wlayers('spear', 'slash', 'weapon/sword/rapier/attack_slash/behind/rapier.png', 'weapon/sword/rapier/attack_slash/rapier.png', METAL)
+wlayers('axe', 'slash', 'tools/axe/bg.png', 'tools/axe/fg.png', METAL)
+wlayers('halberd', 'slash', 'tools/pickaxe/bg.png', 'tools/pickaxe/fg.png', METAL)
+wlayers('warhammer', 'slash', 'tools/hammer/bg.png', 'tools/hammer/fg.png', METAL)
+wlayers('mace', 'slash', 'weapon/blunt/mace/attack_slash/behind/mace.png', 'weapon/blunt/mace/attack_slash/mace.png', METAL)
+wlayers('scepter', 'slash', 'weapon/blunt/mace/attack_slash/behind/mace.png', 'weapon/blunt/mace/attack_slash/mace.png', {'bronze': BRASS, 'iron': ['#222034', '#8a6f30', '#d9a066', '#fbf236'], 'steel': ['#3f3f74', '#5b6ee1', '#639bff', '#cbdbfc']})
+wlayers('wand', 'slash', None, 'weapon/magic/wand/male/slash/wand.png', {'pine': PINE_R, 'oak': ['#8f563b', '#d9a066', '#eec39a', '#fbf236'], 'yew': ['#5b6ee1', '#639bff', '#5fcde4', '#cbdbfc']})
+wlayers('staff', 'cast', 'weapon/magic/simple/background/spellcast/simple.png', 'weapon/magic/simple/foreground/spellcast/simple.png', WOODEN)
+wlayers('bow', 'shoot', 'weapon/ranged/bow/normal/universal/background/shoot/normal.png', 'weapon/ranged/bow/normal/universal/foreground/shoot/normal.png', WOODEN)
+# offhand parrying dagger: the dagger drawn in front and shifted back, so it reads as held at the off side
+wlayers('pd', 'slash', 'weapon/sword/dagger/behind/slash/dagger.png', 'weapon/sword/dagger/slash/dagger.png', METAL, shift=-1)
+# offhand tome: no book layer in LPC; the small round shield recoloured as leather-bound board
+shield_layers('sh_tome', ('ramp', ['#222034', '#45283c', '#8f563b', '#d9a066']), lambda pt, a: P(f'shield/spartan/{pt}/{a}/spartan.png'))
+
+OUTLINED = {'w', 'sword', 'rod', 'pickaxe', 'axe', 'hammer'}   # 1px dark outline so held tools read on any backdrop
 
 def row_frames(path, cols, row=EAST):
+    """First `cols` frames of the east-facing row (frame size = sheet height / 4; wider sheets such as the wand's 13 columns are cut)."""
     im = Image.open(path).convert('RGBA')
-    fs = im.width // cols
-    assert im.height == fs * 4, (path, im.size, cols)
+    fs = im.height // 4
+    assert im.height == fs * 4 and im.width >= fs * cols, (path, im.size, cols)
     frames = []
     for c in range(cols):
         f = im.crop((c * fs, row * fs, (c + 1) * fs, (row + 1) * fs))
@@ -128,6 +156,8 @@ for key, (paths, tint) in LAYERS.items():
         if anim == 'fish' and not rod: frames = [frames[i] for i in FISH_SEQ]
         cols = ANIMS[anim][0]
         frames = apply_tint(frames, tint)
+        if key in SHIFT:
+            frames = [f.transpose(Image.FLIP_LEFT_RIGHT) for f in frames]
         boxes = [b for b in (f.getchannel('A').point(lambda v: 255 if v >= 128 else 0).getbbox() for f in frames) if b]
         if not boxes: continue
         outl = key.split('_')[0] in OUTLINED
