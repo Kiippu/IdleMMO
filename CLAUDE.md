@@ -122,8 +122,8 @@ Art and UI
   credits file; Menu → Credits is generated from it and a test fails if a shipped pack or LPC layer is uncredited).
 - Item icons from 2026-11-12: the Seveneves "1,000+ RPG Icons" pack (32px) for all items, remapped to DB32 with
   `scripts/art/remap.py`; 7 tool icons (sickle, bellows, chisel, needle, gem file, mortar and pestle, rolling pin) are drawn by
-  us. The raw pack lives in a gitignored private folder and is never committed; only the built atlas is. Credits say "item
-  icons by Seveneves AI" until the owner hears back from the author on how the pack was made. The line below describes the
+  us. The raw pack lives in a gitignored private folder and is never committed; only the built atlas is. Credits say the item
+  icons are by Seveneves AI, AI-generated then hand-modified (author's answer, 2026-11-13). The line below describes the
   older icon sources and is superseded for item icons.
 - Icon pipeline: one 32px atlas, `npm run art` → `scripts/art/build.py`, mapping in `art/icon-map.json`. Idylwild and Kyrise
   item icons are retired (2026-11-13); Shikashi stays for tab icons only, Ninja Adventure for scene art. Everything is

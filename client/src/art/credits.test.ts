@@ -33,7 +33,7 @@ describe('credits', () => {
     expect(r!.url).toContain('sevenevesai.itch.io/1000-modern-rpg-icon-pack');
     expect(r!.licence).toMatch(/no attribution required/);
     expect(r!.licence).toMatch(/no reselling or redistributing/);
-    expect(r!.note).toMatch(/hand-crafted/);
+    expect(r!.note).toMatch(/AI-generated, then hand-modified/);
   });
   it('lists the bundled fonts and the palette', () => {
     const names = CREDITS.map((r) => r.asset).join(' ');
