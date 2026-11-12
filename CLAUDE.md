@@ -88,8 +88,8 @@ Game design
     The `boundTo` auto-equip-on-start and the flat 14-affix list are gone.
   - Tools wear but never break: condition 100 to 1, -3% / -5% / -8% action speed below 50 / 25 / 10%. Repair is gold only,
     100g per 10% condition x tier factor (x1/2/4/7/12). Work outfits don't wear. Fight gear wear/repair/salvage unchanged.
-  - Shop sells Common T1 tools (1,000g, always on sale) and T1 fight gear; every Shop item is Rough grade (owner
-    playtest 2026-11-13). Shop is a grid of tiles (icon, name, price); details and Buy live in the item sheet. Other
+  - Shop sells no tools (every new save gets a free Common T1 set) and only T1 fight gear plus resources; every Shop item
+    is Rough grade (owner playtest 2026-11-13). Shop is a grid of tiles (icon, name, price); details and Buy live in the item sheet. Other
     tools: crafting, or raid boss drops (T3+, Rare+).
   - Crafted quality uses crafter level and tier: 0.5 x avg input quality + 25 + clamp(crafter level - recipe level, -10, +30)
     - 3 x (tier - 1) + mastery + tool/outfit quality points +-4. A new save gets a free Common T1 starter tool in all 15 slots.

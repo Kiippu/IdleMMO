@@ -244,7 +244,7 @@ describe('gear balance', () => {
     const t5 = gain(5, 5, 97, ['brisk', 'bountiful'], 1.2); expect(t5).toBeLessThanOrEqual(11); expect(t5).toBeGreaterThan(9);
   });
 
-  it('expected gains: T1 Common kit +2% income; the shop Common Rough T1 tool pays back in 20–50 h vs no tool', async () => {
+  it('expected gains: a T1 Common work kit gives +2% income', async () => {
     const { E, mod } = await freshEngine();
     const s = E.newState(); s.skills.mining.xp = E.xpForLevel(40);
     ['hessian_field_gloves', 'hessian_field_boots', 'anglers_hat', 'foragers_satchel'].forEach((id, i) => {
@@ -254,17 +254,6 @@ describe('gear balance', () => {
     expect(wb.totals).toMatchObject({ speed: 1, double: 1 });
     const gain = E.incomePerHour(s, 'mine_silver', { withGear: true }) * (1 + wb.totals.double / 100) / E.incomePerHour(s, 'mine_silver') - 1;
     expect(gain * 100).toBeCloseTo(2.01, 1);
-    for (const skill of ['mining', 'woodcutting', 'herbalism', 'fishing']) {
-      const b = E.newState(); Object.keys(b.tools).forEach((k) => { b.tools[k] = null; }); b.skills[skill].xp = E.xpForLevel(7);
-      const best = mod.DATA.actions.filter((x: any) => x.skill === skill && x.level <= 7).sort((x: any, y: any) => E.incomePerHour(b, y.id) - E.incomePerHour(b, x.id))[0];
-      const g0 = E.incomePerHour(b, best.id, { withGear: true });
-      const row = E.storeTools().find((t: any) => t.skill === skill);
-      expect(row.price).toBe(1000);
-      const r = E.storeBuyTool(Object.assign(b, { gold: 1000 }), row.itemId); expect(r.ok).toBe(true);
-      E.equip(b, r.uids[0]);
-      const hours = row.price / (E.incomePerHour(b, best.id, { withGear: true }) - g0);
-      expect(hours, skill).toBeGreaterThanOrEqual(20); expect(hours, skill).toBeLessThanOrEqual(50);
-    }
   });
 
   it('the starter hessian robe (Common, Rough) shows its cloth profile only: no bonus or affix line', async () => {

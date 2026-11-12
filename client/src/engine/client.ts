@@ -93,7 +93,7 @@ export const engineClient = {
   /** fight gear: today's rule (max durability -20%); tools: back to 100% for 100g per 10% x tier factor */
   repair: (uid: string) => rpc<RepairResult>({ id: nextId(), type: 'repair', uid }),
   repairAllTools: () => rpc<RepairAllResult>({ id: nextId(), type: 'repairAllTools' }),
-  /** one Uncommon T1 tool from the always-on shelf (derived.extras.store.tools) into the bag */
+  /** kept for compatibility: the shop sells NO tools (owner 2026-11-13), so this always refuses and extras.store.tools is [] */
   storeBuyTool: (itemId: string) => rpc<StoreResult>({ id: nextId(), type: 'storeBuyTool', itemId }),
   saveLoadout: (name?: string) => rpc<void>({ id: nextId(), type: 'saveLoadout', name, fromEquipped: true }),
   deleteLoadout: (loadoutId: string) => rpc<void>({ id: nextId(), type: 'deleteLoadout', loadoutId }),

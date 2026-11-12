@@ -13,7 +13,7 @@
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
   import { openSalvage } from './salvage.svelte';
-  import { buyFromShop, buyToolFromShop, lastBuy, buyDetail } from './shopActions';
+  import { buyFromShop, lastBuy, buyDetail } from './shopActions';
   import { gradeName } from '../engine/grades';
   import { fmtEffectValue } from '../tabs/war/gearUi';
 
@@ -37,7 +37,7 @@
   let cstat = $derived<string>(ref ? (engine.derived?.extras?.codex?.items?.[ref.itemId]?.status ?? 'known') : 'known');
   // A hint: not yet discovered. Only inputs you have already seen are named.
   // Anything on sale in the Shop right now counts as known (real name, stats, price, Buy).
-  let onSale = $derived.by(() => { const st = engine.derived?.extras?.store as any; return !!ref && (ref.shopSlot != null || !!st?.slots?.some((s: any) => s.itemId === ref!.itemId && s.qty > 0) || !!st?.tools?.some((t: any) => t.itemId === ref!.itemId)); });
+  let onSale = $derived.by(() => { const st = engine.derived?.extras?.store as any; return !!ref && (ref.shopSlot != null || !!st?.slots?.some((s: any) => s.itemId === ref!.itemId && s.qty > 0)); });
   let hint = $derived(!!ref && cstat === 'hint' && !engine.snapshot?.seen?.[ref.itemId] && !ref.uid && !ref.actionId && !onSale);
   const seenId = (id: string) => !!engine.snapshot?.seen?.[id];
   let salvageYield = $derived.by(() => {
@@ -78,14 +78,11 @@
   let usedIn = $derived(ref ? actions.filter((a) => a.inputs && ref!.itemId in a.inputs) : []);
   let contracts = $derived<any[]>(ref ? (view?.contracts ?? []).filter((c: any) => c.itemId === ref!.itemId && c.status === 'open') : []);
   let shopSlot = $derived<any>(ref ? (ref.shopSlot != null ? (store?.slots ?? []).find((s: any) => s.slot === ref!.shopSlot) : (store?.slots ?? []).find((s: any) => s.itemId === ref!.itemId && s.qty > 0)) ?? null : null);
-  // A tool on the always-open shelf (Uncommon, fixed price).
-  let shopTool = $derived<any>(ref && !ref.uid && !shopSlot ? (store?.tools ?? []).find((t: any) => t.itemId === ref!.itemId) ?? null : null);
   // A gear offer you do not own yet: base stats from the data (shop gear is Common, Rough grade).
-  let offer = $derived(!!ref && !ref.uid && !ref.actionId && it?.kind === 'gear' && (!!shopSlot || !!shopTool));
-  let offerRarity = $derived<string>(shopTool?.rarity ?? shopSlot?.rarity ?? 'common');
+  let offer = $derived(!!ref && !ref.uid && !ref.actionId && it?.kind === 'gear' && !!shopSlot);
+  let offerRarity = $derived<string>(shopSlot?.rarity ?? 'common');
   let offerCmp = $derived.by(() => (offer ? buyDetail({ kind: 'gear', itemId: ref!.itemId, rarity: offerRarity }).replace(/^[^.]*\.\s*/, '') : ''));
   let rarity = $derived<string>(hint ? 'common' : g?.rarity ?? (offer ? offerRarity : null) ?? (ref ? itemRarity[ref.itemId] : null) ?? 'common');
-  async function buyTool() { if (shopTool && (await buyToolFromShop(shopTool))) note = `Bought for ${fmtG(lastBuy.gold)}.`; }
 
   const statLine = (id: string) => Object.entries(itemsMap[id]?.stats ?? {}).filter(([, v]) => v).map(([k, v]) => `+${v} ${STAT_NAME[k] ?? k}`).join(', ');
   // Full gear card from the engine (stats, affixes, compare). Falls back to base stats until it loads.
@@ -380,7 +377,7 @@
             <ul class="aff">{#each it.effects as e (e.id + (e.group ?? ''))}<li><span>{effectNames[e.id] ?? e.id} {fmtEffectValue(e.id, e.value)}</span></li>{/each}</ul>
           {/if}
           {#if offerRarity !== 'common'}<p class="meta">{cap(offerRarity)}: bonus affixes on top of these base values.</p>{/if}
-          <p class="meta">Price <span class="num brass">{fmtG((shopSlot ?? shopTool).price)}</span></p>
+          <p class="meta">Price <span class="num brass">{fmtG(shopSlot.price)}</span></p>
         </section>
         <p class="meta">{offerCmp}</p>
       {/if}
@@ -433,7 +430,6 @@
       {#if detail?.repair && !detail.repair.can && detail.repair.reason && !hint && g && !ref.readOnly}<p class="meta">{detail.repair.reason}</p>{/if}
       <div class="actions">
         <button type="button" class="btn ghost" onclick={closeItem}>Close</button>
-        {#if !hint && shopTool && !ref.readOnly}<button type="button" class="btn primary" onclick={buyTool}>Buy <span class="num">{fmtG(shopTool.price)}</span></button>{/if}
         {#if !hint && shopSlot && !ref.readOnly}<button type="button" class="btn primary" onclick={async () => { if (await buyFromShop(shopSlot)) note = `Bought ${lastBuy.qty} for ${fmtG(lastBuy.gold)}.`; }}>Buy <span class="num">{fmtG(shopSlot.price)}</span></button>{/if}
         {#if !hint && g && inBag && !ref.readOnly}
           {#if detail?.repair && (detail.section === 'fight' ? (detail.dur ?? 0) < (detail.maxDur ?? 0) : (detail.cond ?? 100) < 100)}

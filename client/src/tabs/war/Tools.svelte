@@ -106,8 +106,7 @@
             <div class="pick">
               {#if g}<button type="button" class="btn ghost det" onclick={() => openItem({ itemId: g.itemId, uid: g.uid })}>Details for {nameOf(g)}</button>{/if}
               {#if spare.length === 0}
-                <p class="meta">No other {skillName(skill).toLowerCase()} tools in your bag. Buy an Uncommon one in the Shop or craft one.</p>
-                <button type="button" class="btn ghost" onclick={() => (ui.goTab = 'Shop')}>Open the Shop</button>
+                <p class="meta">No other {skillName(skill).toLowerCase()} tools in your bag. Craft one, or find one in a raid.</p>
               {:else}
                 <p class="meta">Swap in a tool from your bag:</p>
                 <ul class="spare">

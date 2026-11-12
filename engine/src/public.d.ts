@@ -213,7 +213,7 @@ export interface StoreView {
   /** game-clock ms when the stock rotates */
   refreshesAt: number;
   slots: StoreSlot[];
-  /** Common T1 tools (Rough), always on sale (owner playtest 2026-11-13); buy with E.storeBuyTool(state, itemId) */
+  /** always [] : the shop sells no tools (owner 2026-11-13). Kept for compatibility; storeBuyTool always refuses. */
   tools: StoreToolRow[];
   buyMult: { resource: number; gear: number };
   sellMult: number;
@@ -466,7 +466,7 @@ export const Engine: any;
 // Verbs: E.equip(state, uid, slot?) → EquipResult; E.unequip(state, fightSlot); E.unequipGear(state, uid);
 //   E.repair(state, uid) → RepairResult (fight or tool); E.repairAllTools(state); E.toolRepairAll(state) → { count, gold };
 //   E.workBonus(state, skillId) → WorkBonus; E.activeWork(state); E.workDeltas(state); E.outfitTotals(state);
-//   E.storeBuyTool(state, itemId) → StoreBuyResult; E.storeTools() → StoreToolRow[]; E.craftQuality(state, actionId).
+//   E.storeBuyTool / E.storeTools: kept, but the shop sells no tools (always refused / []); E.craftQuality(state, actionId).
 // Removed: equipped.ring, loadout.boundTo, E.bindLoadout, E.boundLoadout, E.autoBuild, E.compareGear, item tags,
 //   DATA.statTags, E.gearTags, E.statTags, E.tagValue, E.activityTag, E.skillBonus, Swift, playerStats.speed.
 export type GearSection = 'fight' | 'outfit' | 'tool';
@@ -620,7 +620,6 @@ export const ECON: {
   storeResourceSlots: number; storeGearSlots: number; storeGearMaxTier: number;
   raidEvenShare: number; raidContribShare: number; raidCapIncomeHours: number;
   salvagePct: Record<string, number>;
-  storeToolPrice: number; storeToolTier: number; storeToolRarity: string;
 };
 
 declare const _default: typeof createEngine;

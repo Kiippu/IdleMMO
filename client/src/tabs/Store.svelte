@@ -32,9 +32,6 @@
     for (const [sk, uid] of Object.entries<any>((snap as any)?.tools ?? {})) m[`tool:${sk}`] = uid;
     return m;
   });
-  // The always-on Tools shelf: Uncommon Tier 1 tools, no stock limit.
-  let toolShelf = $derived<Array<{ itemId: string; name: string; skill: string; price: number; rarity: string }>>((store?.tools ?? []) as any);
-  const skillName = (id: string) => ((DATA as any).skills as any[] | undefined)?.find((x) => x.id === id)?.name ?? cap(id);
   let slots = $derived<any[]>(store?.slots ?? []);
   let resources = $derived(slots.filter((s) => s.kind !== 'gear'));
   let gearSlots = $derived(slots.filter((s) => s.kind === 'gear'));
@@ -144,13 +141,6 @@
     <h3>Gear <span class="sub">rotating stock</span></h3>
     <ul class="tiles">
       {#each gearSlots as s (s.slot)}{@render tileBtn(s.itemId, s.name, s.rarity, s.price, s.qty < 1)}{/each}
-    </ul>
-  </section>
-
-  <section class="group" aria-label="Tools shelf">
-    <h3>Tools <span class="sub">always in stock</span></h3>
-    <ul class="tiles">
-      {#each toolShelf as t (t.itemId)}{@render tileBtn(t.itemId, t.name, t.rarity, t.price, false)}{/each}
     </ul>
   </section>
 
