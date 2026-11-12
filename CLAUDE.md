@@ -91,6 +91,12 @@ Game design
   - Crafted quality uses crafter level and tier: 0.5 x avg input quality + 25 + clamp(crafter level - recipe level, -10, +30)
     - 3 x (tier - 1) + mastery + tool/outfit quality points +-4. A new save gets a free Common T1 starter tool in all 15 slots.
   - H (14,820g/h) and the raid payout cap are measured with NO tools or outfits.
+  - Final tuning (2026-11-13, differs from the spec doc): work-effect caps speed 4%, double 5%, save 5%, quality 10, find 30%,
+    rarity odds 25%; soft cap is linear to half the cap, then curves. Role power: striker atk x2.16 x element factor,
+    guardian def x1.16 + max HP x0.05, mender heal x2.05 (full Common kit = 1.0–1.15x its tier boss). Rarity bonus raises
+    every base stat; higher rarity beats one lower at any grade (tested over all items). Crafted tool recipes scaled to
+    pay back in 20–50 h; starter tools can't be sold or salvaged. One effect formatter (engine fmtEffect): >=1 one decimal,
+    <1 two decimals, never +0.0.
 - Name stays Guildwright.
 Tech
 - Stack: Svelte 5 UI, plain Canvas 2D scenes, Vite, rules engine in TypeScript running in a Web Worker.
@@ -119,10 +125,11 @@ Art and UI
   us. The raw pack lives in a gitignored private folder and is never committed; only the built atlas is. Credits say "item
   icons by Seveneves AI" until the owner hears back from the author on how the pack was made. The line below describes the
   older icon sources and is superseded for item icons.
-- Item icons, older sources (one 32px atlas, `npm run art` → `scripts/art/build.py`, mapping in `art/icon-map.json`): Idylwild packs
-  (CC0), Shikashi (CC BY 4.0 + game-icons.net CC BY 3.0), Kyrise (CC BY 4.0), Ninja Adventure (CC0). Everything is
+- Icon pipeline: one 32px atlas, `npm run art` → `scripts/art/build.py`, mapping in `art/icon-map.json`. Idylwild and Kyrise
+  item icons are retired (2026-11-13); Shikashi stays for tab icons only, Ninja Adventure for scene art. Everything is
   remapped to DawnBringer 32 by one shared tool, `scripts/art/remap.py`. Not Kenney.
-- UI frames (card, button, slot, bar, sheet only), the app texture: own art drawn by `scripts/art/ui-frames.py` (ETA's
+- UI frames: own rounded pixel frames (dark/light) in client/src/ui-art/frames/ drawn by `scripts/art/ui-frames.py`;
+  slot tiles keep square frames; the app texture is own art too (ETA's
   pack went paid, Mounir Tohami's page is gone). Tab icons from Shikashi. Sounds are synthesised (Web Audio), no files.
 - Hero/crew: LPC layers (OGA-BY 3.0 / CC-BY 4.0 / CC0 options only, NO share-alike). Guardian plate/chainmail, Striker
   leather, Mender longsleeve2 shirt + hood (the LPC robe is SA-only, not used). Backdrops + boss portraits: Ninja
