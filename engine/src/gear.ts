@@ -7,7 +7,8 @@ import { addItem, consume, lowestGrade, markSeen } from './inventory';
 import { ECON } from './data';
 import { pushEvent } from './events';
 import { emitGain } from './gains';
-import { statsFor } from './stats';
+import { statsFor, TAG_PHRASE } from './stats';
+import { tagDefs } from './v4-helpers';
 
 // ---------------------------------------------------------------- gear
 export function findGear(state, uid) { return arr(state.gear).find((g) => g.uid === uid) || null; }
@@ -64,6 +65,22 @@ export function statLines(g) {
   elements().forEach((e) => { flat[e] = num(s.elements[e], 0); });
   return statOrder().filter((k) => num(flat[k], 0) !== 0).map((k) => ({ key: k, label: statLabel(k), value: flat[k] }));
 }
+// Gathering/crafting effects from gear tags (E.gearTags, rarity- and grade-scaled), e.g. "Mining speed +15%".
+// Nominal like statLines (a broken piece shows what repairing it gives back). Combat-kind tags are skipped
+// (they are the atk/def/heal/hp stat lines), and so is 'speed': on gear it only comes from the Swift affix,
+// which already shows as an affix and a Speed stat line (and applies through playerStats, not skillBonus).
+const EFFECT_LABEL = { quality: 'Crafting quality' };
+const fmtNum = (v) => String(Math.round(v * 10) / 10);
+export function effectLines(g) {
+  if (!g) return [];
+  const t = E.gearTags(num(g.dur, 0) > 0 ? g : Object.assign({}, g, { dur: 1 }));
+  return tagDefs().filter((td) => td && td.kind === 'skill' && td.id !== 'speed' && num(t[td.id], 0) !== 0).map((td) => {
+    const raw = num(t[td.id], 0); const unit = td.unit === 'pct' ? 'pct' : 'pts';
+    const value = unit === 'pct' ? Math.round(raw * 1000) / 10 : raw;
+    const label = EFFECT_LABEL[td.id] || titleCase(TAG_PHRASE[td.id] || td.name);
+    return { key: td.id, label, value, unit, text: `${label} ${value >= 0 ? '+' : ''}${fmtNum(value)}${unit === 'pct' ? '%' : ''}` };
+  });
+}
 export function inAnyLoadout(state, uid) { return arr(state && state.loadouts).some((l) => l && l.slots && SLOTS.some((s) => l.slots[s] === uid)); }
 const findAnyGear = (state, uid) => findGear(state, uid) || arr(state && state.crew && state.crew.vault && state.crew.vault.gear).find((g) => g && g.uid === uid) || null;
 E.gearDetail = function (state, uid) {
@@ -71,6 +88,7 @@ E.gearDetail = function (state, uid) {
   const it = item(g.itemId); const grade = gradeOf(g.quality);
   const slot = it && it.slot ? it.slot : '';
   const stats = statLines(g);
+  const effects = effectLines(g);
   const affixes = arr(g.affixes).map((af) => {
     const d = affixDefs().find((x) => x.id === af.id); if (!d) return null;
     const key = d.stat === 'dur' ? 'durPct' : d.stat; const v = num(af.value, 0);
@@ -89,11 +107,11 @@ E.gearDetail = function (state, uid) {
       const mine = num(mineBy[k], 0), other = num(theirBy[k], 0);
       return { key: k, label: statLabel(k), mine, theirs: other, delta: mine - other };
     });
-    compare = { uid: cur.uid, name: E.gearName(cur), rarity: cur.rarity, grade: gradeOf(cur.quality), stats: theirs, diff, broken: !(num(cur.dur, 0) > 0) };
+    compare = { uid: cur.uid, name: E.gearName(cur), rarity: cur.rarity, grade: gradeOf(cur.quality), stats: theirs, effects: effectLines(cur), diff, broken: !(num(cur.dur, 0) > 0) };
   }
   return {
     uid: g.uid, itemId: g.itemId, name: E.gearName(g), slot, rarity: g.rarity, grade, gradeName: (grades()[grade] || {}).name || '',
-    dur: num(g.dur, 0), maxDur: num(g.maxDur, 0), value: E.gearValue(g), stats, affixes, equipped, compare,
+    dur: num(g.dur, 0), maxDur: num(g.maxDur, 0), value: E.gearValue(g), stats, effects, affixes, equipped, compare,
     broken: !(num(g.dur, 0) > 0), inLoadout: inAnyLoadout(state, g.uid)
   };
 };

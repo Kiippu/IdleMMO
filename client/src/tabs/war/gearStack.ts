@@ -44,3 +44,26 @@ export function nextSelCount(cur: number, n: number): number {
   const i = steps.indexOf(cur);
   return i < 0 ? steps[0] : i + 1 >= steps.length ? 0 : steps[i + 1];
 }
+
+type PickTile = { key: string; rarity: string; uids?: string[] };
+
+/** "Select all common": every common tile, counting only pieces that are not protected (worn or in a loadout). */
+export function commonPicks(tiles: PickTile[], prot: Set<string>): Record<string, number> {
+  const m: Record<string, number> = {};
+  for (const t of tiles) {
+    if (t.rarity !== 'common') continue;
+    const n = (t.uids ?? []).filter((u) => !prot.has(u)).length;
+    if (n > 0) m[t.key] = n;
+  }
+  return m;
+}
+
+/** Uids for the current picks, from every tile (visible or not) so the count and the confirm list always agree. */
+export function pickedUids(tiles: PickTile[], sel: Record<string, number>): string[] {
+  return tiles.flatMap((t) => (t.uids ?? []).slice(0, sel[t.key] ?? 0));
+}
+
+/** How many picked pieces sit on tiles the current filter hides. */
+export function hiddenPicks(sel: Record<string, number>, visibleKeys: Set<string>): number {
+  return Object.entries(sel).reduce((a, [k, n]) => a + (visibleKeys.has(k) ? 0 : n), 0);
+}

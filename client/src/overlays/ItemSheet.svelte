@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import ItemIcon from '../art/ItemIcon.svelte';
   // The one item sheet: what it is, how it is made, where it comes from, what uses it, and what you can do with it.
   import { DATA } from '@guildwright/engine';
@@ -75,25 +76,29 @@
   let shopSlot = $derived<any>(ref ? (store?.slots ?? []).find((s: any) => s.itemId === ref!.itemId && s.qty > 0) ?? null : null);
 
   const statLine = (id: string) => Object.entries(itemsMap[id]?.stats ?? {}).filter(([, v]) => v).map(([k, v]) => `+${v} ${STAT_NAME[k] ?? k}`).join(', ');
-  function diffText(): string {
-    const slot = it?.slot; const wornUid = slot ? equipped[slot] : null;
-    const worn = wornUid && wornUid !== g?.uid ? bag.find((x) => x.uid === wornUid) : null;
-    if (!worn) return 'Slot is empty: all stats are new.';
-    const a = it?.stats ?? {}; const b = itemsMap[worn.itemId]?.stats ?? {};
-    const parts = Object.keys(STAT_NAME).map((k) => ({ k, d: (a[k] ?? 0) - (b[k] ?? 0) })).filter((x) => x.d !== 0).map((x) => `${x.d > 0 ? '+' : '−'}${Math.abs(x.d)} ${STAT_NAME[x.k]}`);
-    return parts.length ? `Against your worn piece: ${parts.join(', ')}.` : 'Same base stats as your worn piece.';
-  }
   // Full gear card from the engine (stats, affixes, compare). Falls back to base stats until it loads.
   type StatLine = { key: string; label: string; value: number };
   type GearDetail = { uid: string; name: string; rarity: string; grade: number; gradeName: string; dur: number; maxDur: number; value: number; stats: StatLine[];
     affixes: Array<{ id: string; label: string; value: number; stat: string }>; equipped: boolean;
     compare: null | { uid: string; name: string; rarity: string; grade: number; stats: StatLine[]; diff: Array<{ key: string; label: string; mine: number; theirs: number; delta: number }> } };
-  let detail = $state<GearDetail | null>(null);
+  type EffectLine = { key: string; label: string; value: number; unit: 'pct' | 'pts'; text: string };
+  let detail = $state<(GearDetail & { effects?: EffectLine[]; compare: null | (NonNullable<GearDetail['compare']> & { effects?: EffectLine[] }) }) | null>(null);
+  // Fetch keyed on primitives only: every response replaces the engine snapshot, so reading snap here would loop.
+  let detailKey = $derived.by(() => {
+    const uid = ref?.uid; if (!uid) return '';
+    const slot = itemsMap[ref!.itemId]?.slot;
+    return [uid, slot ? (snap?.equipped?.[slot] ?? '') : '', g ? Math.round(g.dur) : '', g?.rarity ?? ''].join('|');
+  });
+  let loadedKey = $state('');
   $effect(() => {
-    const uid = ref?.uid; void snap?.equipped; void snap?.gear;
-    if (!uid) { detail = null; return; }
+    const key = detailKey;
+    if (!key) { detail = null; loadedKey = ''; return; }
+    const uid = key.split('|')[0];
     let live = true;
-    Promise.resolve(engineClient.gearDetail(uid)).then((d: GearDetail | null) => { if (live) detail = d ?? null; }).catch(() => { if (live) detail = null; });
+    untrack(() => {
+      if (detail && detail.uid !== uid) detail = null;
+      Promise.resolve(engineClient.gearDetail(uid)).then((d: any) => { if (live) { detail = d ?? null; loadedKey = key; } }).catch(() => { if (live) { detail = null; loadedKey = key; } });
+    });
     return () => { live = false; };
   });
   const sign = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '') + fmtN(Math.abs(n));
@@ -210,7 +215,7 @@
       <header>
         <span class="tile" style:--ink-r={`var(--r-${rarity})`} aria-hidden="true"><ItemIcon id={ref.itemId} size={64} rarity={hint ? undefined : rarity} silhouette={hint} /></span>
         <div>
-          <h2 id="it-title" style:color={hint ? undefined : `var(--r-${rarity})`}>{hint ? '???' : gname()}</h2>
+          <h2 id="it-title" style:color={hint ? undefined : `var(--r-${rarity})`}>{hint ? '???' : gname()}{#if !hint && (ref.count ?? 0) > 1} <span class="num cnt">×{fmtN(ref.count ?? 0)}</span>{/if}</h2>
           {#if hint}<p class="meta">{hintLine}</p>{:else}<p class="meta">{cap(rarity)} · {it.kind === 'gear' ? (SLOT_LABEL[it.slot] ?? 'Gear') : cap(it.kind ?? 'item')}{it.tier ? ` · tier ${it.tier}` : ''}</p>{/if}
         </div>
       </header>
@@ -236,12 +241,15 @@
           <section class="gear" aria-label="Gear stats">
             <p class="meta">
               <span style:color={`var(--r-${detail.rarity})`}>{cap(detail.rarity)}</span> · {detail.gradeName}
-              {#if ref.count && ref.count > 1} · <span class="num">×{fmtN(ref.count)}</span>{/if}
               {#if detail.equipped} · <b>Equipped</b>{/if}
             </p>
             <dl class="facts">
               {#each detail.stats as s (s.key)}<div><dt>{s.label}</dt><dd class="num">{fmtStat(s)}</dd></div>{/each}
             </dl>
+            {#if detail.effects?.length}
+              <h3>Effects</h3>
+              <ul class="aff">{#each detail.effects as e (e.key)}<li><span>{e.text}</span></li>{/each}</ul>
+            {/if}
             {#if detail.affixes.length}
               <ul class="aff" style:color={`var(--r-${detail.rarity})`}>
                 {#each detail.affixes as a (a.id)}<li><span>{a.label}</span></li>{/each}
@@ -259,12 +267,14 @@
                   {/each}
                 </ul>
               {:else}<p class="meta">Same stats as your worn piece.</p>{/if}
+              {#if detail.compare.effects?.length}<p class="meta">Worn effects: {detail.compare.effects.map((e) => e.text).join(', ')}</p>{/if}
             </section>
           {:else if !detail.equipped && it.slot}<p class="meta">Slot is empty: all stats are new.</p>{/if}
+        {:else if loadedKey !== detailKey}
+          <p class="meta" role="status">Loading stats…</p>
         {:else}
           {#if statLine(ref.itemId)}<p class="body num">{statLine(ref.itemId)}</p>{/if}
-          {#if g}<p class="meta">Durability <span class="num">{Math.round(g.dur)}/{g.maxDur}</span> · Quality <span class="num">{Math.round(g.quality)}</span></p>{/if}
-          {#if it.slot && !isEq}<p class="body">{diffText()}</p>{/if}
+          {#if g}<p class="meta">Durability <span class="num">{Math.round(g.dur)}/{g.maxDur}</span></p>{/if}
         {/if}
       {/if}
 
@@ -328,6 +338,7 @@
   .scrim { position: fixed; inset: 0; z-index: 48; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
   .sheet { width: 100%; max-width: var(--col); max-height: 88dvh; overflow-y: auto; display: grid; gap: 10px; align-content: start; padding: 16px var(--gut-r) calc(16px + env(safe-area-inset-bottom, 0px)) var(--gut-l); background: var(--paper); border: 1px solid var(--rule); border-bottom: 0; box-shadow: 0 -8px 24px var(--shadow); }
   header { display: flex; gap: 12px; align-items: center; }
+  .cnt { font-size: var(--t-sm); color: var(--ink-3); font-weight: 400; }
   h2 { margin: 0; font: 600 var(--t-lg)/1.2 var(--f-display); }
   h3 { margin: 0 0 4px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
   .tile { flex: none; width: 72px; height: 72px; display: grid; place-items: center; background: var(--paper); border: 2px solid var(--ink-r); }

@@ -7,7 +7,7 @@
   import { ui, bagFilter, vaultFilter, resetFilter, type BagFilter } from '../ui.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
   import { openSalvage, salvageReq } from '../overlays/salvage.svelte';
-  import { groupGear, protectedUids, nextSelCount } from './war/gearStack';
+  import { groupGear, protectedUids, nextSelCount, commonPicks, pickedUids, hiddenPicks } from './war/gearStack';
   import { fmtG, fmtN } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import { markDone } from '../guide.svelte';
@@ -101,11 +101,15 @@
   let mineVis = $derived(shown(mineTiles, bagFilter));
   let mineGear = $derived(mineVis.filter((t) => t.kind === 'gear'));
   let mineGearUids = $derived(mineGear.flatMap((t) => t.uids ?? []));
+  let allGear = $derived(mineTiles.filter((t) => t.kind === 'gear'));
+  let protSet = $derived(protectedUids(equipped, loadouts));
 
   // Select mode (Mine > gear): tap a row to pick it; a stack cycles 1 / 10 / all / none. Salvage still goes through the sheet.
   let selecting = $state(false);
   let sel = $state<Record<string, number>>({});
+  // Picks are kept across filter changes; the count and the salvage list both come from ALL bag gear, not only what is visible.
   let selTotal = $derived(Object.values(sel).reduce((a, b) => a + b, 0));
+  let selHidden = $derived(hiddenPicks(sel, new Set(mineGear.map((t) => t.key))));
   let commonStacks = $derived(mineGear.filter((t) => t.rarity === 'common'));
   function exitSelect() { selecting = false; sel = {}; }
   function tapTile(t: Tile, readOnly: boolean) {
@@ -116,10 +120,10 @@
       sel = next ? { ...rest, [t.key]: next } : rest;
       return;
     }
-    openItem({ itemId: t.id, uid: t.gear?.uid, readOnly });
+    openItem({ itemId: t.id, uid: t.gear?.uid, readOnly, count: t.uids && t.uids.length > 1 ? t.uids.length : undefined });
   }
-  function selectCommon() { const m: Record<string, number> = {}; for (const t of commonStacks) m[t.key] = t.uids?.length ?? 1; sel = m; }
-  const selUids = () => mineGear.flatMap((t) => (t.uids ?? []).slice(0, sel[t.key] ?? 0));
+  function selectCommon() { sel = commonPicks(mineGear, protSet); }
+  const selUids = () => pickedUids(allGear, sel);
   // Drop picks that no longer exist (salvaged, equipped, filtered out is kept).
   $effect(() => { const live = new Set(mineTiles.map((t) => t.key)); const k = Object.keys(sel).filter((x) => !live.has(x)); if (k.length) { const m = { ...sel }; for (const x of k) delete m[x]; sel = m; } });
   let lastDone = salvageReq.done;
@@ -189,7 +193,7 @@
   </section>
   {#if selecting}
     <div class="selbar" role="region" aria-label="Selected gear">
-      <span class="sc"><b class="num">{selTotal}</b> selected</span>
+      <span class="sc"><b class="num">{selTotal}</b> selected{#if selHidden > 0} <span class="hid">(<span class="num">{selHidden}</span> hidden by filters)</span>{/if}</span>
       <button type="button" class="btn danger solid" disabled={selTotal === 0} onclick={() => openSalvage(selUids(), `${selTotal} selected`)}>Salvage <span class="num">{selTotal}</span></button>
     </div>
   {/if}
@@ -221,7 +225,6 @@
 {/if}
 
 <style>
-  .group + .group { margin-top: 16px; }
   .group h3 { margin: 0 0 8px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
   .muted { margin: 0; padding: 12px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
   .chips { display: flex; flex-wrap: nowrap; gap: 6px; margin: 0 calc(-1 * var(--gut-r, 0px)) 8px 0; padding-right: var(--gut-r, 0px); overflow-x: auto; scrollbar-width: none; }
@@ -235,6 +238,7 @@
   .chk { position: absolute; left: 1px; top: 1px; width: 18px; height: 18px; display: grid; place-items: center; background: var(--woad); color: var(--on-woad); font: 700 12px/1 var(--f-num); }
   .selbar { position: sticky; bottom: calc(var(--tabbar-h) + 8px); z-index: 5; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 60px; padding: 8px 10px; background: var(--paper); border: 1px solid var(--woad); box-shadow: 0 -4px 12px var(--shadow); }
   .selbar .sc { color: var(--ink); font-size: var(--t-md); }
+  .selbar .hid { color: var(--ink-3); font-size: var(--t-sm); }
   .selbar .btn { min-height: 44px; flex: none; }
   .cyc { flex: none; padding: 0 12px; white-space: nowrap; }
 

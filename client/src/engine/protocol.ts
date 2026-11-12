@@ -79,9 +79,9 @@ export interface Derived {
     gearInfo: Record<string, GearInfo> } | null;
 }
 
-import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons, GearDetail, StatLine, GearInfo } from '@guildwright/engine';
+import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons, GearDetail, StatLine, EffectLine, GearInfo } from '@guildwright/engine';
 /** Gear pass 2026-11-12: engineClient.gearDetail(uid). Labels are plain English; stats non-zero only, stable order. */
-export type { GearDetail, StatLine, GearInfo };
+export type { GearDetail, StatLine, EffectLine, GearInfo };
 /** Engine summary (items, xp, gold, skills, bestFind, loot, goldBySource, ...) plus the real seconds away added by the worker. */
 export type OfflineSummary = EngineOfflineSummary & { awaySec?: number };
 

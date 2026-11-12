@@ -447,16 +447,23 @@ export const Engine: any;
 // Craft gains: { type: 'gain', source: 'craft', items: [{ itemId, qty: 1, grade, rarity, uid }] } per rep
 //   (offline catch-up: aggregated, offline: true).
 export interface StatLine { key: string; label: string; value: number }
+/** A gathering/crafting effect from gear tags (rarity- and grade-scaled; nominal even when broken).
+ *  value is in display units: 15 = +15% when unit is 'pct', points when 'pts'. text e.g. "Mining speed +15%". */
+export interface EffectLine { key: string; label: string; value: number; unit: 'pct' | 'pts'; text: string }
 export interface GearDetail {
   uid: string; itemId: string; name: string;
   slot: string; rarity: string; grade: number; gradeName: string;
   dur: number; maxDur: number; value: number;
   stats: StatLine[];
+  /** gathering/crafting effects (mining speed, foraging/fishing yield, hunting drops, crafting quality) */
+  effects: EffectLine[];
   affixes: Array<{ id: string; label: string; value: number; stat: string }>;
   equipped: boolean;
   compare: null | {
     uid: string; name: string; rarity: string; grade: number;
     stats: StatLine[];
+    /** the worn piece's effects (not diffed) */
+    effects: EffectLine[];
     diff: Array<{ key: string; label: string; mine: number; theirs: number; delta: number }>;
     /** the equipped piece is at 0 durability (counts for nothing until repaired) */
     broken?: boolean;

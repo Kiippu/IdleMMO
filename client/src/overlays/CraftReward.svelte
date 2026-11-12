@@ -5,19 +5,14 @@
   import { untrack } from 'svelte';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
+  import type { GearDetail } from '../engine/protocol';
   import { reducedMotion } from '../settings.svelte';
   import { play } from '../sound';
   import ItemIcon from '../art/ItemIcon.svelte';
   import { gradeName } from '../engine/grades';
   import { craftReward, enqueueRewards, nextReward, skipRewards } from './rewardQueue.svelte';
 
-  // Mirrors the GearDetail contract in engine/protocol.ts.
-  type StatLine = { key: string; label: string; value: number };
-  type Detail = {
-    uid: string; itemId: string; name: string; slot: string; rarity: string; grade: number; gradeName: string;
-    stats: StatLine[]; affixes: Array<{ id: string; label: string; value: number; stat: string }>; equipped: boolean;
-    compare: null | { uid: string; name: string; rarity: string; grade: number; stats: StatLine[]; diff: Array<{ key: string; label: string; mine: number; theirs: number; delta: number }> };
-  };
+  type Detail = GearDetail;
   const RANK: Record<string, number> = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 };
   const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
@@ -88,11 +83,13 @@
 
         {#if detail}
           <ul class="st">{#each detail.stats as s (s.key)}<li><span>{s.label}</span><b class="num">{s.value}</b></li>{/each}</ul>
+          {#if detail.effects?.length}<ul class="af ef">{#each detail.effects as e (e.key)}<li>{e.text}</li>{/each}</ul>{/if}
           {#if detail.affixes.length}<ul class="af">{#each detail.affixes as a (a.id)}<li>{a.label}</li>{/each}</ul>{/if}
           <div class="cmp">
             {#if detail.compare}
               <p class="ch">Compared to <span style:color={`var(--r-${detail.compare.rarity})`}>{detail.compare.name}</span></p>
-              <ul>{#each detail.compare.diff as d (d.key)}<li class:up={d.delta > 0} class:dn={d.delta < 0}><span>{d.label}</span><b class="num">{d.mine} <small>(was {d.theirs})</small> <span class="ar">{d.delta > 0 ? '▲' : d.delta < 0 ? '▼' : '='} {sign(d.delta)}{d.delta === 0 ? '' : fmt(d.delta)}</span></b></li>{/each}</ul>
+              <ul>{#each detail.compare.diff as d (d.key)}<li class:up={d.delta > 0} class:dn={d.delta < 0}><span>{d.label}</span><b class="num">{d.mine} <small>(was {d.theirs})</small> <span class="ar">{d.delta > 0 ? '▲' : d.delta < 0 ? '▼' : '='} {sign(d.delta)}{d.delta === 0 ? '' : fmt(d.delta)}</span></b></li>{/each}
+              {#each detail.effects ?? [] as e (e.key)}{@const w = detail.compare.effects?.find((x) => x.key === e.key)}{#if w}{@const dl = Math.round((e.value - w.value) * 100) / 100}<li class="ef2" class:up={dl > 0} class:dn={dl < 0}><span>{e.label}</span><b class="num">{e.value}{e.unit === 'pct' ? '%' : ''} <small>(was {w.value}{w.unit === 'pct' ? '%' : ''})</small> <span class="ar">{dl > 0 ? '▲' : dl < 0 ? '▼' : '='} {sign(dl)}{dl === 0 ? '' : fmt(dl)}</span></b></li>{/if}{/each}</ul>
             {:else if !detail.equipped}<p class="ch">New slot: nothing equipped</p>{/if}
           </div>
         {:else if loadedFor}

@@ -144,3 +144,36 @@ describe('craft gain events', () => {
     expect(off[0].items.length).toBe(s.gear.length - n0);
   });
 });
+
+describe('E.gearDetail effects (gear tags)', () => {
+  it('a copper pickaxe shows Mining speed, scaled by rarity, nominal when broken', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    piece(s, 'pC', 'copper_pickaxe');                         // common Standard: 0.15
+    piece(s, 'pU', 'copper_pickaxe', 'uncommon');             // x1.15 = 0.1725 → 17.3%
+    piece(s, 'pB', 'copper_pickaxe', 'common', 50, [], 0);    // broken: still shows what repair gives back
+    expect(E.gearDetail(s, 'pC').effects).toEqual([{ key: 'mining', label: 'Mining speed', value: 15, unit: 'pct', text: 'Mining speed +15%' }]);
+    expect(E.gearDetail(s, 'pU').effects).toEqual([{ key: 'mining', label: 'Mining speed', value: 17.3, unit: 'pct', text: 'Mining speed +17.3%' }]);
+    expect(E.gearDetail(s, 'pB').effects.map((e: any) => e.text)).toEqual(['Mining speed +15%']);
+  });
+  it('words yield, drops and quality, skips combat tags and the Swift speed affix', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    piece(s, 'f', 'foragers_satchel');
+    piece(s, 'h', 'leather_cap');
+    piece(s, 'q', 'gemstone_ring', 'common', 50, [{ id: 'swift', value: 5 }]);
+    expect(E.gearDetail(s, 'f').effects.map((e: any) => e.text)).toEqual(['Foraging yield +15%']);
+    expect(E.gearDetail(s, 'h').effects.map((e: any) => e.text)).toEqual(['Hunting drops +5%']);
+    expect(E.gearDetail(s, 'q').effects).toEqual([{ key: 'quality', label: 'Crafting quality', value: 3, unit: 'pts', text: 'Crafting quality +3' }]);
+  });
+  it('compare carries the worn piece effects', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState();
+    piece(s, 'old', 'copper_pickaxe');
+    piece(s, 'new', 'iron_pickaxe');
+    expect(E.equip(s, 'old').ok).toBe(true);
+    const d = E.gearDetail(s, 'new');
+    expect(d.effects.map((e: any) => e.text)).toEqual(['Mining speed +25%']);
+    expect(d.compare.effects.map((e: any) => e.text)).toEqual(['Mining speed +15%']);
+  });
+});
