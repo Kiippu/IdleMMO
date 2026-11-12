@@ -26,6 +26,10 @@ function statDiff(itemId: string): string {
 /** Result of the last successful buy, so the caller can show inline feedback. */
 export const lastBuy = { qty: 0, gold: 0 };
 
+export function buyDetail(s: any): string {
+  return s.kind === 'gear' ? `${SLOT_LABEL[itemsMap[s.itemId]?.slot] ?? 'Gear'} · ${cap(s.rarity)}. ${statDiff(s.itemId)}.` : `${GRADE_LABEL[s.grade] ?? ''} · ${cap(s.rarity)}.`;
+}
+
 export async function buyFromShop(s: any): Promise<boolean> {
   const gold = Math.floor(engine.snapshot?.gold ?? 0);
   if (s.qty < 1) return false;

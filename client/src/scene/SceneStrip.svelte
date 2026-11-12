@@ -8,7 +8,7 @@
   import { engine } from '../engine/store.svelte';
   import { reducedMotion } from '../settings.svelte';
   import { heroLook } from './hero';
-  import { loadSceneArt, MAN, BD, SCENE_H, FEET_Y, figure, backdropRow, foeRow, FOES, type Equipped, type Gear, type Look } from './sprites';
+  import { lookFrame, loadSceneArt, MAN, BD, SCENE_H, FEET_Y, figure, backdropRow, foeRow, FOES, type Equipped, type Gear, type Look } from './sprites';
 
   const SCALE = 2;   // 64 native px -> 128 css px tall: a short panoramic strip
   const H = SCENE_H;
@@ -37,10 +37,6 @@
     return () => ro.disconnect();
   });
 
-  function frameOf(look: Look, t: number, phase: number, still: boolean): number {
-    const a = MAN.anims[look.anim];
-    return still ? 0 : Math.floor((t + phase) / 1000 * a.fps) % a.frames;
-  }
 
   function drawFigure(ctx: CanvasRenderingContext2D, atlas: HTMLImageElement, look: Look, gx: number, fr: number) {
     ctx.fillStyle = 'rgba(34,32,52,0.35)';
@@ -66,8 +62,8 @@
       lastTick = now;
       const still = reducedMotion();
       const { hero, crew, foe } = scene;
-      const fh = frameOf(hero, now, 0, still);
-      const fc = crew ? frameOf(crew, now, 280, still) : 0;
+      const fh = lookFrame(hero, now, still);
+      const fc = crew ? lookFrame(crew, now, still, 280) : 0;
       const ff = foe == null ? 0 : still ? 0 : Math.floor(now / 1000 * 5) % FOES.frames;
       const sig = `${W}|${hero.key}|${fh}|${crew?.key ?? ''}|${fc}|${foe}|${ff}`;
       if (sig === lastSig) return;

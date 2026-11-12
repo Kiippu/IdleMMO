@@ -10,7 +10,8 @@
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
-  import { buyFromShop, lastBuy } from '../overlays/shopActions';
+  import { buyDetail } from '../overlays/shopActions';
+  import BuySheet from './shop/BuySheet.svelte';
 
   type Props = { onContracts: () => void };
   let { onContracts }: Props = $props();
@@ -49,6 +50,7 @@
     }
     return out.sort((a, b) => a.name.localeCompare(b.name));
   });
+  let guideId = $derived((sellGroups.find((g) => g.id !== 'bread') ?? sellGroups[0])?.id ?? null);
   let sellPct = $derived(Math.round(sellMult * 100));
   let sellGear = $derived(gear.filter((g) => !Object.values(equipped).includes(g.uid)));
 
@@ -71,8 +73,11 @@
     say(okText);
   }
 
-  async function buy(s: any) {
-    if (await buyFromShop(s)) say(`Bought ${lastBuy.qty} ${s.name} for ${fmtG(lastBuy.gold)}.`);
+  let buyTarget = $state<any>(null);
+  function buy(s: any) {
+    if (s.qty < 1) return;
+    if (s.price > gold) { say(`${s.name} costs ${fmtG(s.price)} and you have ${fmtG(gold)}.`, true); return; }
+    buyTarget = s;
   }
 
   async function sell(r: { id: string; name: string; grade: number; qty: number; price: number }) {
@@ -110,6 +115,10 @@
 </script>
 
 <h2 class="title">General store</h2>
+
+{#if buyTarget}
+  <BuySheet s={buyTarget} {gold} detail={buyDetail(buyTarget)} onClose={() => (buyTarget = null)} onBought={(qty, spent) => { say(`Bought ${qty} ${buyTarget.name} for ${fmtG(spent)}.`); buyTarget = null; }} />
+{/if}
 
 {#if !store}
   <p class="muted">The shutters are down. Check back shortly.</p>
@@ -171,8 +180,8 @@
       <button type="button" class="btn next" onclick={() => (ui.goTab = 'Workshop')}>Go gather something</button>
     {:else}
       <ul class="list">
-        {#each sellGroups as g, gi (g.id)}
-          <li class="grp" data-guide={gi === 0 ? 'sell' : undefined}>
+        {#each sellGroups as g (g.id)}
+          <li class="grp" data-guide={g.id === guideId ? 'sell' : undefined}>
             <div class="ghead">
               <button type="button" class="sinfo" onclick={() => openItem({ itemId: g.id })}>
                 <ItemIcon id={g.id} rarity={g.rarity} />
@@ -223,9 +232,9 @@
 
   .tiles > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 10px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink); }
-  .tile:hover:not(:disabled) { background: var(--woad-soft); border-color: var(--woad); }
-  .tile.out { opacity: .5; cursor: not-allowed; background: var(--sunk); }
+  .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 10px; background: none; border: 0; color: var(--ink); }
+  .tile:hover:not(:disabled) { background: var(--woad-soft); }
+  .tile.out { opacity: .5; cursor: not-allowed; }
   .sq { width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid; background: var(--sunk); }
   .nm { font: 700 var(--t-sm)/1.15 var(--f-body); }
   .price { color: var(--brass); font-weight: 700; font-size: var(--t-lg); line-height: 1; }
@@ -243,9 +252,10 @@
   .gchip:hover { background: var(--woad-soft); border-color: var(--woad); }
   .gchip .gl { padding: 2px 6px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-2); }
   .gchip .brass { font-size: var(--t-xs); }
-  .tl { display: flex; flex-direction: column; }
+  .tl { display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--rule); }
+  .tl:has(.tile:hover:not(.out)) { border-color: var(--woad); }
   .tl .tile { flex: 1; }
-  .buy { width: 100%; margin-top: 4px; }
+  .buy { width: calc(100% - 16px); margin: 0 8px 8px; }
   .seg { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 8px; }
   .seg .btn { border-left-width: 0; }
   .seg .btn:first-child { border-left-width: 1px; }

@@ -179,6 +179,7 @@
   .muted { margin: 0; padding: 12px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
   .chips { display: flex; flex-wrap: nowrap; gap: 6px; margin: 0 calc(-1 * var(--gut-r, 0px)) 8px 0; padding-right: var(--gut-r, 0px); overflow-x: auto; scrollbar-width: none; }
   .chips::-webkit-scrollbar { display: none; }
+  .chips { padding-right: 32px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
   .chip { flex: none; padding: 0 12px; white-space: nowrap; }
   .chip.rar.on { border-color: var(--ink-r); color: var(--ink-r); }
   .foot { margin-top: 12px; display: flex; align-items: center; gap: 10px; }

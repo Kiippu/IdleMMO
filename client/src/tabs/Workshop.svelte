@@ -57,7 +57,14 @@
 
   // Guide hooks: the first gather tile you can use, the Copper bar tile, the first craft tile you can make now.
   let guideGather = $derived(actionsAll.find((a) => a.kind === 'gather' && !locked(a))?.id ?? null);
-  let guideCraft = $derived(actionsAll.find((a) => a.kind === 'craft' && startable(a))?.id ?? null);
+  // First makeable craft; otherwise the unlocked one with the fewest missing inputs (its sheet shows what is missing).
+  let guideCraft = $derived.by(() => {
+    const crafts = actionsAll.filter((a) => a.kind === 'craft' && !locked(a));
+    const ok = crafts.find((a) => startable(a));
+    if (ok) return ok.id;
+    const miss = (a: Action) => Object.entries(a.inputs ?? {}).reduce((t, [id, n]) => t + Math.max(0, n - have(id)) / n, 0);
+    return [...crafts].sort((a, b) => miss(a) - miss(b))[0]?.id ?? null;
+  });
   const guideOf = (a: Action) => (a.id === guideGather ? 'gather' : a.id === 'smelt_copper' ? 'refine' : a.id === guideCraft ? 'craft' : undefined);
 
   // Recently unlocked (levelled into, not yet dismissed).
@@ -93,6 +100,10 @@
     <div class="rh"><h3 id="ru-title">Recently unlocked</h3><button type="button" class="btn ghost x" aria-label="Dismiss recently unlocked" onclick={dismissRecent}>×</button></div>
     <div class="grid">{#each recent as a (a.id)}{@render tile(a)}{/each}</div>
   </section>
+{/if}
+
+{#if (skillsByTier[cat] ?? []).some((sk) => (actionsBySkill[sk.id] ?? []).some((a) => !locked(a) && short(a)))}
+  <p class="legend"><i class="mark" aria-hidden="true">!</i> = missing materials. Tap the tile to see what is needed.</p>
 {/if}
 
 {#each skillsByTier[cat] ?? [] as skill (skill.id)}
@@ -139,5 +150,7 @@
   @keyframes runbar { 0% { transform: scaleX(.1); } 100% { transform: scaleX(1); } }
   @media (prefers-reduced-motion: reduce) { .run { animation: none; } }
   .tn { max-width: 100%; font: 400 11px/1.1 var(--f-body); color: var(--ink-2); text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+  .legend { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; color: var(--ink-3); font-size: var(--t-xs); }
+  .legend .mark { position: static; flex: none; }
   .next { margin: 0; color: var(--ink-3); font-size: var(--t-sm); }
 </style>

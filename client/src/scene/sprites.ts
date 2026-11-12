@@ -62,7 +62,15 @@ const MATS = ['bronze', 'bronze', 'iron', 'steel', 'gold'];
 
 export interface Gear { itemId: string | null; tier: number; role: string }
 export interface Equipped { weapon: Gear | null; head: Gear | null; chest: Gear | null; legs: Gear | null }
-export interface Look { back: string[]; front: string[]; anim: AnimName; backdrop: string; key: string }
+/** `hold`: a fixed frame for a calm standing pose (idle with a weapon in hand: only the action anims carry weapon layers). */
+export interface Look { back: string[]; front: string[]; anim: AnimName; backdrop: string; key: string; hold?: number }
+const HOLD: Record<AnimName, number> = { idle: 0, slash: 0, cast: 0, shoot: 3, fish: 0 };
+/** Frame to draw for `look` at time `t` (ms). Honours `hold`; `still` (reduced motion) shows frame 0 or the hold frame. */
+export function lookFrame(look: Look, t: number, still = false, phase = 0): number {
+  if (look.hold != null) return look.hold;
+  const a = MAN.anims[look.anim];
+  return still ? 0 : Math.floor((t + phase) / 1000 * a.fps) % a.frames;
+}
 
 function bodyLayers(eq: Equipped, crew: boolean): { under: string[]; over: string[] } {
   if (crew) return { under: ['c_body', 'c_head', 'c_boots', 'c_pants', 'c_shirt', 'c_hair'], over: [] };
@@ -106,8 +114,14 @@ export function figure(skill: string | null, active: boolean, eq: Equipped, crew
     else if (!w && GESTURE.has(skill)) anim = 'cast';
     if (w) { anim = w.anim; bg = w.bg; fg = w.fg; }
   }
+  // Idle with a weapon equipped: show it, held still (worn gear should be visible everywhere).
+  let hold: number | undefined;
+  if (!(active && skill) && !crew && eq.weapon) {
+    const w = weaponLayers(weaponKind(eq.weapon.itemId), eq.weapon);
+    if (w) { anim = w.anim; bg = w.bg; fg = w.fg; hold = HOLD[w.anim]; }
+  }
   const back = bg, front = fg;
-  return { back, front: [...under, ...over, ...front], anim, backdrop: backdropFor(active ? skill : null), key: [crew ? 'c' : 'h', anim, ...bg, ...under, ...over, ...front].join(',') };
+  return { back, front: [...under, ...over, ...front], anim, backdrop: backdropFor(active ? skill : null), hold, key: [crew ? 'c' : 'h', anim, hold ?? '', ...bg, ...under, ...over, ...front].join(',') };
 }
 
 /** Frame index in each animation where the tool actually lands / the spell or arrow is released (the "hit"). */

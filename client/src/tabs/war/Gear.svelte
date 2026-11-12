@@ -168,6 +168,7 @@
   .cyc { flex: none; padding: 0 12px; white-space: nowrap; }
   .chips { display: flex; gap: 6px; margin-bottom: 8px; overflow-x: auto; scrollbar-width: none; }
   .chips::-webkit-scrollbar { display: none; }
+  .chips { padding-right: 32px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
   .chip { flex: none; padding: 0 12px; white-space: nowrap; }
   .gear { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .gear li { display: flex; align-items: stretch; background: var(--paper); border: 1px solid var(--rule); border-left: 3px solid var(--ink-r); }

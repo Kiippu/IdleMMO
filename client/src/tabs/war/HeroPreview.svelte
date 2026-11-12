@@ -3,9 +3,9 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../../engine/store.svelte';
   import { reducedMotion } from '../../settings.svelte';
-  import { loadSceneArt, MAN, figure, type Equipped, type Gear } from '../../scene/sprites';
+  import { loadSceneArt, MAN, figure, lookFrame, type Equipped, type Gear } from '../../scene/sprites';
 
-  const W = 48, H = 44, FEET = 40, SCALE = 3;
+  const W = 48, H = 56, FEET = 50, SCALE = 3;
   const items: Record<string, any> = (DATA as any).items;
   let canvasEl: HTMLCanvasElement;
 
@@ -33,7 +33,7 @@
       if (document.hidden || !art || now - last < 66) return;
       last = now;
       const a = MAN.anims[look.anim];
-      const fr = reducedMotion() ? 0 : Math.floor(now / 1000 * a.fps) % a.frames;
+      const fr = lookFrame(look, now, reducedMotion());
       const key = `${look.key}|${fr}`;
       if (key === sig) return;
       sig = key;

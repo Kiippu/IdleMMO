@@ -33,4 +33,10 @@ export const STEPS: Step[] = [
   { id: 'contract', text: 'Hand in bread to a contract', tab: 'Crew', subs: { crew: 'contracts' }, selector: '[data-guide="contract"]' },
 ];
 
+/** Where "Show me" should really go: with no spare gear to equip, point at crafting gear instead. */
+export function resolveStep(st: Step, hasSpareGear: boolean): Step {
+  if (st.id === 'equip' && !hasSpareGear) return { ...st, text: 'Craft gear to equip', tab: 'Workshop', subs: { ws: 'crafting' }, selector: '[data-guide="craft"]' };
+  return st;
+}
+
 export const nextStep = (): Step | null => STEPS.find((s) => !guide.done[s.id]) ?? null;
