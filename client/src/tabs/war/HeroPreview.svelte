@@ -1,11 +1,11 @@
 <script lang="ts">
-  // The hero drawn idle from the LPC layers, wearing the equipped gear. Native 48x44 canvas shown at 4x, pixelated.
+  // The hero drawn idle from the LPC layers, wearing the equipped gear. Native 64x56 canvas shown at 4x, pixelated.
   import { DATA } from '@guildwright/engine';
   import { engine } from '../../engine/store.svelte';
   import { reducedMotion } from '../../settings.svelte';
   import { loadSceneArt, MAN, figure, lookFrame, type Equipped, type Gear } from '../../scene/sprites';
 
-  const W = 48, H = 56, FEET = 50, SCALE = 3;
+  const W = 64, H = 56, FEET = 50, SCALE = 3;
   const items: Record<string, any> = (DATA as any).items;
   let canvasEl: HTMLCanvasElement;
 
@@ -17,7 +17,7 @@
     return it ? { itemId: g.itemId, tier: it.tier ?? 1, role: it.role ?? '' } : null;
   }
   let look = $derived.by(() => {
-    const eq: Equipped = { weapon: gearAt('weapon'), head: gearAt('head'), chest: gearAt('chest'), legs: gearAt('legs') };
+    const eq: Equipped = { weapon: gearAt('weapon'), head: gearAt('head'), chest: gearAt('chest'), legs: gearAt('legs'), offhand: gearAt('offhand') };
     return figure(null, false, eq, false);
   });
 

@@ -16,6 +16,6 @@ function gearAt(s: any, slot: string): Gear | null {
 
 export function heroLook(s: any): { look: Look; action: any; eq: Equipped } {
   const action = s?.active ? actionOf(s.active.actionId) : null;
-  const eq: Equipped = { weapon: gearAt(s, 'weapon'), head: gearAt(s, 'head'), chest: gearAt(s, 'chest'), legs: gearAt(s, 'legs') };
+  const eq: Equipped = { weapon: gearAt(s, 'weapon'), head: gearAt(s, 'head'), chest: gearAt(s, 'chest'), legs: gearAt(s, 'legs'), offhand: gearAt(s, 'offhand') };
   return { look: figure(action?.skill ?? null, !!action, eq, false), action, eq };
 }

@@ -72,6 +72,22 @@ for t in ('pickaxe', 'axe', 'hammer'):
     for part in ('bg', 'fg'):
         LAYERS[f'{t}_{part}'] = ({'slash': P(f'tools/{t}/{part}.png')}, None)
 
+# Offhand shields (bluecarrot16 + Sander Frenken, OGA-BY 3.0). Only slash/cast/shoot/fish (thrust) exist; a shield-only idle holds slash frame 0.
+SHIELD_A = ['slash', 'cast', 'shoot', 'fish']
+SHIELD_DIR = {'slash': 'slash', 'cast': 'spellcast', 'shoot': 'shoot', 'fish': 'thrust'}
+def shield_layers(key, tint, path):
+    for part in ('bg', 'fg'):
+        LAYERS[f'{key}_{part}'] = ({a: path(part, SHIELD_DIR[a]) for a in SHIELD_A}, tint)
+OAK = ['#45283c', '#663931', '#8f563b', '#d9a066']
+YEW = ['#222034', '#45283c', '#663931', '#8f563b']
+IRON = ['#222034', '#595652', '#847e87', '#cbdbfc']
+BRASS = ['#663931', '#8a6f30', '#d9a066', '#fbf236']
+DRAKE = ['#222034', '#324c3a', '#37946e', '#99e550']
+shield_layers('sh_buckler', None, lambda pt, a: P(f'shield/spartan/{pt}/{a}/spartan.png'))                                   # Pine buckler: round wooden, as drawn
+shield_layers('sh_kite', ('dual', OAK, IRON), lambda pt, a: P(f'shield/crusader/{pt}/{a}/crusader.png' if pt == 'bg' else f'shield/crusader/fg/male/{a}/crusader.png'))   # Oak kite
+shield_layers('sh_tower', ('dual', YEW, BRASS), lambda pt, a: P(f'shield/plus/{pt}/{a}/plus.png'))                           # Yew tower
+shield_layers('sh_aegis', ('ramp', DRAKE), lambda pt, a: P(f'shield/spartan/{pt}/{a}/spartan.png'))                          # Drakescale aegis (round, scale green)
+
 OUTLINED = {'sword', 'mace', 'staff', 'bow', 'rod', 'pickaxe', 'axe', 'hammer'}   # 1px dark outline so held tools read on any backdrop
 
 def row_frames(path, cols, row=EAST):
@@ -86,10 +102,20 @@ def row_frames(path, cols, row=EAST):
         frames.append(canvas)
     return frames
 
+def dual_tint(img, body, accent):
+    """Recolour a heraldic shield: saturated pixels (the cross) take the accent ramp, the rest the body ramp (both by luminance)."""
+    a = np.array(img.convert('RGBA')).astype(np.float32)
+    mx, mn = a[..., :3].max(-1), a[..., :3].min(-1)
+    acc = ((mx - mn) / np.maximum(mx, 1)) > 0.30
+    b, c = np.array(ramp_tint(img, body)), np.array(ramp_tint(img, accent))
+    out = np.where(acc[..., None], c, b); out[..., 3] = a[..., 3].astype(np.uint8)
+    return Image.fromarray(out.astype(np.uint8), 'RGBA')
+
 def apply_tint(frames, tint):
     if not tint: return frames
-    kind, arg = tint
-    return [ramp_tint(f, arg) if kind == 'ramp' else mult_tint(f, arg) for f in frames]
+    kind, *arg = tint
+    if kind == 'dual': return [dual_tint(f, *arg) for f in frames]
+    return [ramp_tint(f, arg[0]) if kind == 'ramp' else mult_tint(f, arg[0]) for f in frames]
 
 # feet anchor: bottom of the body layer, idle frame 0 (192 canvas coords), x centre = 96
 bf = row_frames(LAYERS['body'][0]['idle'], 2)[0]

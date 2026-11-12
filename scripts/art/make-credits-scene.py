@@ -9,7 +9,8 @@ DEFS = ['body/body.json', 'head/heads/human/heads_human_male.json', 'hair/short/
         'torso/torso_chainmail.json', 'torso/shirts/longsleeve/torso_clothes_longsleeve2.json', 'headwear/helmets/helmets/hat_helmet_kettle.json',
         'headwear/helmets/helmets/hat_helmet_mail.json', 'headwear/hats/caps/hat_cap_leather.json', HOOD,
         'weapons/sword/weapon_sword_arming.json', 'weapons/blunt/weapon_blunt_mace.json', 'weapons/magic/weapon_magic_simple.json',
-        'weapons/ranged/bow/weapon_ranged_bow_normal.json', 'tools/tool_pickaxe.json', 'tools/tool_axe.json', 'tools/tool_hammer.json', 'tools/tool_rod.json']
+        'weapons/ranged/bow/weapon_ranged_bow_normal.json', 'tools/tool_pickaxe.json', 'tools/tool_axe.json', 'tools/tool_hammer.json', 'tools/tool_rod.json',
+        'weapons/shields/shield_spartan.json', 'weapons/shields/engrailed/shield_crusader.json', 'weapons/shields/engrailed/shield_plus.json']
 PERM = ('OGA-BY', 'CC-BY 3', 'CC-BY 4', 'CC0')
 def permissive(l):
     u = l.upper().replace('-', ' ')

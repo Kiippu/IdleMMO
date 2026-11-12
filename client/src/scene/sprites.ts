@@ -61,7 +61,14 @@ export function weaponKind(id: string | null): WeaponKind {
 const MATS = ['bronze', 'bronze', 'iron', 'steel', 'gold'];
 
 export interface Gear { itemId: string | null; tier: number; role: string }
-export interface Equipped { weapon: Gear | null; head: Gear | null; chest: Gear | null; legs: Gear | null }
+export interface Equipped { weapon: Gear | null; head: Gear | null; chest: Gear | null; legs: Gear | null; offhand?: Gear | null }
+/** Offhand shield look (atlas layer prefix `<key>_bg` / `<key>_fg`). Guardian offhands only; the Forager's satchel and other non-shields stay hidden. */
+const SHIELD_BY_ID: Record<string, string> = { pine_buckler: 'sh_buckler', oak_kite_shield: 'sh_kite', yew_tower_shield: 'sh_tower', drakescale_aegis: 'sh_aegis' };
+const SHIELD_BY_TIER = ['sh_buckler', 'sh_buckler', 'sh_kite', 'sh_tower', 'sh_aegis'];
+export function shieldKey(g: Gear | null | undefined): string | null {
+  if (!g || g.role !== 'guardian') return null;
+  return SHIELD_BY_ID[g.itemId ?? ''] ?? SHIELD_BY_TIER[Math.min(4, Math.max(1, g.tier))];
+}
 /** `hold`: a fixed frame for a calm standing pose (idle with a weapon in hand: only the action anims carry weapon layers). */
 export interface Look { back: string[]; front: string[]; anim: AnimName; backdrop: string; key: string; hold?: number }
 const HOLD: Record<AnimName, number> = { idle: 0, slash: 0, cast: 0, shoot: 3, fish: 0 };
@@ -119,6 +126,13 @@ export function figure(skill: string | null, active: boolean, eq: Equipped, crew
   if (!(active && skill) && !crew && eq.weapon) {
     const w = weaponLayers(weaponKind(eq.weapon.itemId), eq.weapon);
     if (w) { anim = w.anim; bg = w.bg; fg = w.fg; hold = HOLD[w.anim]; }
+  }
+  // Offhand shield: drawn in every animation that has shield art (slash, cast, shoot, fish). Shield-only idle holds slash frame 0.
+  const sh = crew ? null : shieldKey(eq.offhand);
+  if (sh) {
+    if (anim === 'idle') { anim = 'slash'; hold = HOLD.slash; }
+    bg = [`${sh}_bg`, ...bg];
+    fg = [`${sh}_fg`, ...fg];
   }
   const back = bg, front = fg;
   return { back, front: [...under, ...over, ...front], anim, backdrop: backdropFor(active ? skill : null), hold, key: [crew ? 'c' : 'h', anim, hold ?? '', ...bg, ...under, ...over, ...front].join(',') };
