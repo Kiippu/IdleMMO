@@ -285,6 +285,8 @@ Save schema stays v7 (new fields additive).
 - SHELVED after M0 (owner 2026-11-12): the gear and tool overhaul comes first.
 - Tunnel headers captured 2026-11-12 (phone, GET /api/health through the quick tunnel): `host` is the public
   `*.trycloudflare.com` host (cloudflared does NOT rewrite it to localhost), `x-forwarded-proto: https`,
-  `cf-connecting-ip` is the player's IP, `x-forwarded-host` absent, `origin` null on a plain GET. So for M1: require
+  `cf-connecting-ip` carries the player's IP (not used), `x-forwarded-host` absent, `origin` null on a plain GET. So for M1: require
   Origin == `https://` + Host on state-changing requests (browsers send Origin on POST/PUT fetches), plus the custom
-  request header; rate-limit by `cf-connecting-ip`; Secure cookies are fine. LOG_HEADERS set back to 0.
+  request header; Secure cookies are fine. Identity is username + password + session cookie only. Do NOT store or
+  use IP addresses (shared mobile/home IPs; privacy): wrong passwords lock the account for 15 minutes after 10 tries.
+  LOG_HEADERS set back to 0.
