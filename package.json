@@ -7,7 +7,8 @@
   "scripts": {
     "dev:client": "npm run dev -w @guildwright/client",
     "dev:server": "npm run dev -w @guildwright/server",
-    "tunnel": "cloudflared tunnel --url http://localhost:8787",
+    "serve": "npm run dev -w @guildwright/server -- --port 4173",
+    "tunnel": "cloudflared tunnel --url http://localhost:4173",
     "art": "python3 scripts/art/build.py",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",

@@ -2,10 +2,15 @@
 // Usage (from the repo root):
 //   npm run dev -w @guildwright/server                 -> port 8787
 //   npm run dev -w @guildwright/server -- --port 4173  -> any extra args go to wrangler dev
+//   npm run serve                                      -> port 4173 (the tunnel port), from the repo root
+// PowerShell eats a bare `--`, so npm swallows `--port` and passes just `4173`: a lone number is read as the port.
 import { mkdirSync } from 'node:fs';
 import { dataDir, DB_NAME, runWrangler } from './paths.mjs';
 
-const extra = process.argv.slice(2);
+const raw = process.argv.slice(2);
+// A bare number (PowerShell dropped `--port`) or GW_PORT sets the port.
+const extra = raw.flatMap((a) => (/^\d{2,5}$/.test(a) ? ['--port', a] : [a]));
+if (process.env.GW_PORT && !extra.some((a) => a === '--port' || a.startsWith('--port='))) extra.push('--port', process.env.GW_PORT);
 mkdirSync(dataDir, { recursive: true });
 console.log(`[gw] server data: ${dataDir}`);
 

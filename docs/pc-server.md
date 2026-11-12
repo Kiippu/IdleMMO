@@ -28,10 +28,12 @@ The tunnel already points at `http://localhost:4173`, so run the server on that 
 2. After every `git pull`, rebuild the client: `npm run build -w @guildwright/client`
 3. Start the server:
    ```powershell
-   npm run dev -w @guildwright/server -- --port 4173
+   npm run serve
    ```
-   It applies any new database migrations first, then starts `wrangler dev`. A brand-new data folder just works.
-   Without `-- --port 4173` it uses port 8787.
+   That runs the server on port 4173. It applies any new database migrations first, then starts `wrangler dev`.
+   A brand-new data folder just works. `npm run dev:server` uses port 8787 instead.
+   PowerShell drops a bare `--`, so `npm run dev -w @guildwright/server -- --port 4173` loses the `--port`; the
+   script now reads a lone number as the port, but `npm run serve` is the simple way.
 
 Players keep their local saves when you switch from `vite preview` to the server, because the address stays the same.
 
@@ -43,7 +45,7 @@ Players keep their local saves when you switch from `vite preview` to the server
   `LOG_HEADERS=1` in `.dev.vars`). Copy one of those lines from a request made through the tunnel (ideally from your
   phone) and send it to Claude: it's needed to write the sign-in Origin check. Then set `LOG_HEADERS=0`.
 - A 502 from the tunnel usually means nothing is listening on 4173, or `localhost` resolves differently for the tunnel
-  and the server. Try `npm run dev -w @guildwright/server -- --port 4173 --ip 127.0.0.1`.
+  and the server. Set `GW_PORT=4173` and run `npm run dev -w @guildwright/server '--' --ip 127.0.0.1` (quote the `--` in PowerShell).
 
 ## Daily backup
 Run one backup by hand first (it also creates the backups folder):
