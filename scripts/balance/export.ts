@@ -111,7 +111,7 @@ for (const [label, tier, r, q, best] of [['T1 Common Standard', 1, 0, 50, false]
 }
 
 // ---- tool payback: shop Uncommon T1 tool (600g) vs no tool, at the T1 mid level (7), each gathering skill
-console.log('\nPayback (hours) vs no tool at the tier mid level (7/22/37): shop Uncommon T1 (600g) and crafted Common tools (value = 1.3 x inputs)');
+console.log('\nPayback (hours) vs no tool at the tier mid level (7/22/37): crafted Common tools (value = 1.3 x inputs)');
 for (const skill of ['mining', 'woodcutting', 'herbalism', 'fishing']) {
   const line: string[] = [];
   for (const [tier, lvl] of [[1, 7], [2, 22], [3, 37]]) {
@@ -120,12 +120,12 @@ for (const skill of ['mining', 'woodcutting', 'herbalism', 'fishing']) {
     const best = DATA.actions.filter((a: any) => a.skill === skill && a.level <= lvl).sort((a: any, b: any) => E.incomePerHour(s, b.id) - E.incomePerHour(s, a.id))[0];
     const g0 = E.incomePerHour(s, best.id, { withGear: true });
     const toolId = Object.keys(items).find((id) => items[id].section === 'tool' && items[id].toolSkill === skill && items[id].tier === tier)!;
-    for (const shop of tier === 1 ? [true, false] : [false]) {
+    for (const shop of [false]) {
       s.gear = s.gear.filter((x: any) => x.uid !== 'tt');
-      const g = piece(toolId, shop ? 1 : 0, 50); g.uid = 'tt'; s.gear.push(g); s.tools[skill] = 'tt';
+      const g = piece(toolId, 0, shop ? 30 : 50); g.uid = 'tt'; s.gear.push(g); s.tools[skill] = 'tt';
       const gain = E.incomePerHour(s, best.id, { withGear: true }) - g0;
-      const cost = shop ? 600 : E.gearValue(g);
-      line.push(`T${tier} ${shop ? 'shop 600g' : `crafted ${cost}g`} → ${(cost / gain).toFixed(1)} h`);
+      const cost = shop ? (DATA as any).config && 1000 : E.gearValue(g);
+      line.push(`T${tier} ${shop ? `shop Common Rough ${cost}g` : `crafted ${cost}g`} → ${(cost / gain).toFixed(1)} h`);
     }
   }
   console.log(`  ${skill.padEnd(12)} ${line.join(' | ')}`);

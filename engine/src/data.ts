@@ -369,9 +369,7 @@ export const ECON = {
   storeResourceSlots: 6,       // resource slots per hourly rotation
   storeGearSlots: 3,           // gear slots per hourly rotation
   storeGearMaxTier: 1,         // fight gear tiers in the hourly rotation (gear spec: T1 only)
-  storeToolPrice: 600,         // Uncommon T1 tools, always on sale (gear overhaul 2026-11-12)
-  storeToolTier: 1,
-  storeToolRarity: 'uncommon',
+  // The shop sells NO tools (owner 2026-11-13): every new save has a free tool set; tools come from crafting and raid drops.
 };
 
 // Display rarity per item id (the collect reveal orders rarer items last and flashes their ink).

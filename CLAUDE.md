@@ -58,7 +58,8 @@ Game design
   Hunt merged into Raid, which runs prep → live → recap; stance/tactic/eat threshold lock at lock-in, gear swaps stay
   allowed during a live raid. The log opens as a sheet from the top strip (2026-11-09).
 - Juice pass (owner 2026-11-12): when a job ends it ends — the slot stays empty until the player picks a job (no
-  auto-resume). Refine/craft ask how many (`start(actionId, count)`). Top bar = gold, HP, raid timer, cog menu only;
+  auto-resume). Refine/craft ask how many (`start(actionId, count)`). Number prompts: − [qty] + then +10 (adds 10) · Max (· Until out);
+  no "1" button (owner 2026-11-13). Top bar = gold, HP, raid timer, cog menu only;
   job name/progress/Stop sit under the Workshop scene. Workshop = skill headers + item icon tiles (time/XP live in the
   item sheet), no "Ready now", a dismissible "Recently unlocked" card. Gear is equipped in War Room › Loadout (hero
   preview + slots + filterable gear list), not Stores. No toasts: item gains burst from the tab bar as a fountain
@@ -87,7 +88,9 @@ Game design
     The `boundTo` auto-equip-on-start and the flat 14-affix list are gone.
   - Tools wear but never break: condition 100 to 1, -3% / -5% / -8% action speed below 50 / 25 / 10%. Repair is gold only,
     100g per 10% condition x tier factor (x1/2/4/7/12). Work outfits don't wear. Fight gear wear/repair/salvage unchanged.
-  - Shop sells Uncommon T1 tools and T1 fight gear. Other tools: crafting, or raid boss drops (T3+, Rare+).
+  - Shop sells no tools (every new save gets a free Common T1 set) and only T1 fight gear plus resources; every Shop item
+    is Rough grade (owner playtest 2026-11-13). Shop is a grid of tiles (icon, name, price); details and Buy live in the item sheet. Other
+    tools: crafting, or raid boss drops (T3+, Rare+).
   - Crafted quality uses crafter level and tier: 0.5 x avg input quality + 25 + clamp(crafter level - recipe level, -10, +30)
     - 3 x (tier - 1) + mastery + tool/outfit quality points +-4. A new save gets a free Common T1 starter tool in all 15 slots.
   - H (14,820g/h) and the raid payout cap are measured with NO tools or outfits.

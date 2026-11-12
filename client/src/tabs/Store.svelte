@@ -10,8 +10,6 @@
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
-  import { buyDetail } from '../overlays/shopActions';
-  import BuySheet from './shop/BuySheet.svelte';
 
   type Props = { onContracts: () => void };
   let { onContracts }: Props = $props();
@@ -34,17 +32,6 @@
     for (const [sk, uid] of Object.entries<any>((snap as any)?.tools ?? {})) m[`tool:${sk}`] = uid;
     return m;
   });
-  // The always-on Tools shelf: Uncommon Tier 1 tools, no stock limit.
-  let toolShelf = $derived<Array<{ itemId: string; name: string; skill: string; price: number; rarity: string }>>((store?.tools ?? []) as any);
-  const skillName = (id: string) => ((DATA as any).skills as any[] | undefined)?.find((x) => x.id === id)?.name ?? cap(id);
-  async function buyTool(t: { itemId: string; name: string; price: number }) {
-    if (t.price > gold) { say(`${t.name} costs ${fmtG(t.price)} and you have ${fmtG(gold)}.`, true); return; }
-    try {
-      const res: any = await engineClient.storeBuyTool(t.itemId);
-      if (res && res.ok === false) { say(res.reason || 'Could not complete.', true); return; }
-      say(`Bought ${t.name} for ${fmtG(res?.gold ?? t.price)}. It is in your bag; swap it in under War Room › Loadout › Tools.`);
-    } catch (e) { console.error(e); say('Could not complete.', true); }
-  }
   let slots = $derived<any[]>(store?.slots ?? []);
   let resources = $derived(slots.filter((s) => s.kind !== 'gear'));
   let gearSlots = $derived(slots.filter((s) => s.kind === 'gear'));
@@ -70,10 +57,6 @@
   let sellPct = $derived(Math.round(sellMult * 100));
   let sellGear = $derived(gear.filter((g) => !Object.values(equipped).includes(g.uid)));
 
-  function gatherText(s: any): string {
-    if (s.gatherSecs == null) return "Can't make yet";
-    return `~${fmtSecs(s.gatherSecs)} to ${s.kind === 'gear' ? 'make' : 'gather'} yourself`;
-  }
 
   // Buy / Sell switch. ui.shopSub (set by the guide) can jump straight to Sell.
   let view = $state<'buy' | 'sell'>('buy');
@@ -89,12 +72,6 @@
     say(okText);
   }
 
-  let buyTarget = $state<any>(null);
-  function buy(s: any) {
-    if (s.qty < 1) return;
-    if (s.price > gold) { say(`${s.name} costs ${fmtG(s.price)} and you have ${fmtG(gold)}.`, true); return; }
-    buyTarget = s;
-  }
 
   async function sell(r: { id: string; name: string; grade: number; qty: number; price: number }) {
     const qty = await askNumber({
@@ -132,10 +109,6 @@
 
 <h2 class="title">General store</h2>
 
-{#if buyTarget}
-  <BuySheet s={buyTarget} {gold} detail={buyDetail(buyTarget)} onClose={() => (buyTarget = null)} onBought={(qty, spent) => { say(`Bought ${qty} ${buyTarget.name} for ${fmtG(spent)}.`); buyTarget = null; }} />
-{/if}
-
 {#if !store}
   <p class="muted">The shutters are down. Check back shortly.</p>
 {:else}
@@ -148,59 +121,26 @@
   <p class="fb" class:bad={msgBad} role="status" aria-live="polite">{msg}</p>
 
   {#if view === 'buy'}
+  {#snippet tileBtn(itemId: string, name: string, rarity: string, price: number, out: boolean)}
+    <li>
+      <button type="button" class="tile card" class:out onclick={() => openItem({ itemId })} aria-label="{name}, {out ? 'sold out' : fmtG(price)}">
+        <span class="sq" style:color={`var(--r-${rarity})`} style:border-color={`var(--r-${rarity})`} aria-hidden="true"><ItemIcon id={itemId} {rarity} /></span>
+        <span class="nm">{name}</span>
+        <span class="price num">{out ? 'Sold out' : fmtG(price)}</span>
+      </button>
+    </li>
+  {/snippet}
   <section class="group">
-    <h3>Resources</h3>
+    <h3>Resources <span class="sub">rotating stock</span></h3>
     <ul class="tiles">
-      {#each resources as s (s.slot)}
-        <li class="tl card">
-          <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
-            <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true"><ItemIcon id={s.itemId} rarity={s.rarity} /></span>
-            <span class="nm">{s.name}</span>
-            <span class="meta">{GRADE_LABEL[s.grade] ?? ''}</span>
-            <span class="price num">{fmtG(s.price)}</span>
-            <span class="meta num">{s.qty < 1 ? 'Sold out' : `${s.qty} left`}</span>
-            <span class="meta">{gatherText(s)}</span>
-          </button>
-          <button type="button" class="btn buy" disabled={s.qty < 1} onclick={() => buy(s)}>{s.qty < 1 ? 'Sold out' : 'Buy'}</button>
-        </li>
-      {/each}
+      {#each resources as s (s.slot)}{@render tileBtn(s.itemId, s.name, s.rarity, s.price, s.qty < 1)}{/each}
     </ul>
   </section>
 
   <section class="group">
-    <h3>Gear</h3>
+    <h3>Gear <span class="sub">rotating stock</span></h3>
     <ul class="tiles">
-      {#each gearSlots as s (s.slot)}
-        <li class="tl card">
-          <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
-            <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true"><ItemIcon id={s.itemId} rarity={s.rarity} /></span>
-            <span class="nm">{s.name}</span>
-            <span class="meta">{SLOT_LABEL[itemsMap[s.itemId]?.slot] ?? 'Gear'} · {cap(s.rarity)}</span>
-            <span class="price num">{fmtG(s.price)}</span>
-            <span class="meta num">{s.qty < 1 ? 'Sold out' : `${s.qty} left`}</span>
-            <span class="meta">{gatherText(s)}</span>
-          </button>
-          <button type="button" class="btn buy" disabled={s.qty < 1} onclick={() => buy(s)}>{s.qty < 1 ? 'Sold out' : 'Buy'}</button>
-        </li>
-      {/each}
-    </ul>
-  </section>
-
-  <section class="group" aria-label="Tools shelf">
-    <h3>Tools</h3>
-    <p class="note">Always in stock. Better tools come from crafting or raid drops.</p>
-    <ul class="tiles tools">
-      {#each toolShelf as t (t.itemId)}
-        <li class="tl card">
-          <button type="button" class="tile" onclick={() => openItem({ itemId: t.itemId })} aria-label="{t.name}, {fmtG(t.price)}">
-            <span class="sq" style:color={`var(--r-${t.rarity})`} style:border-color={`var(--r-${t.rarity})`} aria-hidden="true"><ItemIcon id={t.itemId} rarity={t.rarity} /></span>
-            <span class="nm">{t.name}</span>
-            <span class="meta">{skillName(t.skill)} · {cap(t.rarity)}</span>
-            <span class="price num">{fmtG(t.price)}</span>
-          </button>
-          <button type="button" class="btn buy" onclick={() => buyTool(t)}>Buy</button>
-        </li>
-      {/each}
+      {#each gearSlots as s (s.slot)}{@render tileBtn(s.itemId, s.name, s.rarity, s.price, s.qty < 1)}{/each}
     </ul>
   </section>
 
@@ -264,14 +204,16 @@
   .link { background: none; border: 0; padding: 12px 0; min-height: 44px; color: var(--woad); font: inherit; font-weight: 700; text-decoration: underline; }
   .meta { color: var(--ink-3); font-size: var(--t-xs); }
 
-  .tiles > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
-  .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 0 0 6px; background: none; border: 0; color: var(--ink); }
-  .tile:hover:not(:disabled) { background: var(--woad-soft); }
-  .tile.out { opacity: .5; cursor: not-allowed; }
+  .sub { margin-left: 6px; color: var(--ink-3); letter-spacing: .02em; text-transform: none; font: 400 var(--t-xs)/1 var(--f-body); }
+  .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  @media (min-width: 440px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+  .tiles > li { min-width: 0; display: flex; }
+  .tile.card { width: 100%; min-height: 44px; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; gap: 3px; text-align: center; padding: 4px; color: var(--ink); background-color: var(--paper); }
+  .tile.card:hover:not(.out) { background-color: var(--woad-soft); }
+  .tile.out { opacity: .5; }
   .sq { width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid; background: var(--sunk); }
-  .nm { font: 700 var(--t-sm)/1.15 var(--f-body); }
-  .price { color: var(--brass); font-weight: 700; font-size: var(--t-lg); line-height: 1; }
+  .nm { width: 100%; font: 700 var(--t-xs)/1.2 var(--f-body); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; min-height: 2.4em; }
+  .price { color: var(--brass); font-weight: 700; font-size: var(--t-md); line-height: 1; }
 
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--paper); border: 1px solid var(--rule); }
@@ -286,9 +228,6 @@
   .gchip:hover { background: var(--woad-soft); border-color: var(--woad); }
   .gchip .gl { padding: 2px 6px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-2); }
   .gchip .brass { font-size: var(--t-xs); }
-  .tl { display: flex; flex-direction: column; min-width: 0; }
-  .tl .tile { flex: 1; }
-  .buy { width: 100%; margin: 0; }
   .seg { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 8px; }
   .seg .btn { border-left-width: 0; }
   .seg .btn:first-child { border-left-width: 1px; }

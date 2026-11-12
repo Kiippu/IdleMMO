@@ -69,19 +69,18 @@
       {#if opts.number}
         {@const o = opts.number}
         <div class="field">
-          {#if o.max > 1}
-            <div class="quick" role="group" aria-label="Quick amounts">
-              <button type="button" class="btn" aria-pressed={clamp(num) === 1} onclick={() => (num = 1)}>1</button>
-              {#if o.max >= 10}<button type="button" class="btn" aria-pressed={clamp(num) === 10} onclick={() => (num = 10)}>10</button>{/if}
-              <button type="button" class="btn" aria-pressed={clamp(num) === o.max && o.max !== 10} onclick={() => (num = o.max)}>Max <span class="num">{o.max}</span></button>
-            </div>
-          {/if}
           {#if o.label}<label for="cs-num">{o.label}</label>{/if}
           <div class="stepper">
             <button type="button" class="btn" aria-label="Decrease" disabled={clamp(num) <= o.min} onclick={() => (num = clamp(num) - 1)}>−</button>
             <input id="cs-num" type="number" inputmode="numeric" min={o.min} max={o.max} step="1" bind:value={num} onblur={() => (num = clamp(num))} />
             <button type="button" class="btn" aria-label="Increase" disabled={clamp(num) >= o.max} onclick={() => (num = clamp(num) + 1)}>+</button>
           </div>
+          {#if o.max > o.min}
+            <div class="quick" role="group" aria-label="Quick amounts">
+              {#if o.max - o.min >= 10}<button type="button" class="btn" aria-label="Add 10" disabled={clamp(num) >= o.max} onclick={() => (num = clamp(clamp(num) + 10))}>+10</button>{/if}
+              <button type="button" class="btn" aria-pressed={clamp(num) === o.max} onclick={() => (num = o.max)}>Max <span class="num">{o.max}</span></button>
+            </div>
+          {/if}
           <span class="range num">{o.min}–{o.max}{o.suffix ? ` ${o.suffix}` : ''}</span>
           {#if o.lines}<ul class="sum num">{#each o.lines(clamp(num)) as ln}<li>{ln}</li>{/each}</ul>{/if}
         </div>

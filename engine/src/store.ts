@@ -20,7 +20,7 @@ import { pushEvent } from './events';
 import { emitGain } from './gains';
 
 export const HOUR_MS = 3600000;
-const GEAR_QUALITY = 50; // Standard grade
+const GEAR_QUALITY = 30; // every shop piece (tools and the rotating fight gear) is Rough grade (owner playtest 2026-11-13)
 
 export const storeHour = (state) => Math.floor(nowOf(state) / HOUR_MS);
 
@@ -84,11 +84,11 @@ export function stockFor(state, hour) {
       const id = pool[i]; pool.splice(i, 1); w.splice(i, 1);
       const tier = clamp(num(item(id).tier, 1), 1, 5);
       if (kind === 'resource') {
-        const x = rng(); const grade = x < 0.25 ? 0 : x < 0.85 ? 1 : 2;
+        const grade = 0; rng(); // every shop item is Rough (owner playtest 2026-11-13); rng() kept so the stock rolls stay the same
         const base = [40, 25, 15, 8, 4][tier - 1];
         slots.push({ itemId: id, kind, grade, stock: Math.max(1, Math.round(base * (0.6 + 0.4 * rng()))), sold: 0 });
       } else {
-        slots.push({ itemId: id, kind, grade: 1, stock: rng() < 0.3 ? 2 : 1, sold: 0 });
+        slots.push({ itemId: id, kind, grade: 0, stock: rng() < 0.3 ? 2 : 1, sold: 0 });
       }
     }
   };
@@ -172,29 +172,11 @@ E.storeView = function (state) {
     buyMult: { resource: ECON.storeResourceMult, gear: ECON.storeGearMult }, sellMult: ECON.storeSellMult, sellPrices, gearSellPrices };
 };
 
-// ---- tool shelf (gear overhaul 2026-11-12): every Uncommon T1 tool, always on sale, fixed price, no stock limit
-let toolShelf = { items: undefined, list: null };
-export function storeTools() {
-  const items = itemsMap();
-  if (toolShelf.items === items && toolShelf.list) return toolShelf.list;
-  const tier = num(ECON.storeToolTier, 1);
-  const list = TOOL_SKILLS.map((skill) => Object.keys(items).find((id) => { const it = item(id); return it && sectionOf(it) === 'tool' && it.toolSkill === skill && num(it.tier, 1) === tier; }))
-    .filter(Boolean).map((id) => ({ itemId: id, name: item(id).name, skill: item(id).toolSkill, price: num(ECON.storeToolPrice, 600), rarity: ECON.storeToolRarity || 'uncommon' }));
-  toolShelf = { items, list };
-  return list;
-}
+// ---- tools: the shop sells none (owner 2026-11-13; every new save has a free tool set). storeTools() is always empty
+// and storeBuyTool refuses; both stay so older callers keep compiling.
+export function storeTools() { return []; }
 E.storeTools = storeTools;
-E.storeBuyTool = function (state, itemId) {
-  const fail = (reason) => ({ ok: false, reason, qty: 0, gold: 0 });
-  const row = storeTools().find((t) => t.itemId === itemId); if (!row) return fail('That tool is not on sale.');
-  if (num(state.gold, 0) < row.price) return fail(`That costs ${fmtGold(row.price)} and you have ${fmtGold(Math.floor(num(state.gold, 0)))}.`);
-  state.gold -= row.price;
-  const rIdx = Math.max(0, ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'].indexOf(row.rarity));
-  const g = makeGear(state, itemId, rIdx, GEAR_QUALITY);
-  emitGain('buy', [{ itemId, qty: 1, grade: gradeOf(g.quality), rarity: g.rarity, uid: g.uid }]);
-  pushEvent(state, 'gold', `Bought ${E.gearName(g)} at the general store for ${fmtGold(row.price)}.`, { itemId, qty: 1, gold: -row.price, rarity: g.rarity });
-  return { ok: true, reason: '', qty: 1, gold: row.price, itemId, uids: [g.uid] };
-};
+E.storeBuyTool = function () { return { ok: false, reason: 'The shop does not sell tools. Craft one, or find one in a raid.', qty: 0, gold: 0 }; };
 
 // ---- verbs
 E.storeBuy = function (state, slot, qty) {
