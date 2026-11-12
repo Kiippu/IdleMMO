@@ -2,6 +2,7 @@
 // Ported from legacy/engine.js lines 1467-1595. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
+import { HP_DIV } from './data/gear/model';
 import { E, SLOTS, STANCES, TACTICS, num, cfg, grades, item, clamp, lcFirst, gradeMult } from './core';
 import { addItem, ownedOfKind } from './inventory';
 import { findGear } from './gear';
@@ -70,8 +71,12 @@ E.raidPlan = function (state) {
   const slots = cleanSlots(state, l ? l.slots : state.equipped);
   return { role: RAID_ROLE_IDS.includes(plan.role) ? plan.role : bestRole(state, slots), roleChosen: !!plan.role, loadoutId: l ? l.id : null, slots };
 };
-export function healOfAny(id, gr) { const it = item(id); return it ? Math.max(0, Math.round(num(it.heal, 0) * gradeMult(Math.max(0, gr)))) : 0; }
-export function pouchHealTotal(state) { const p = state.raid.pouch || {}; let h = 0; Object.keys(p).forEach((id) => p[id].forEach((q, g) => { h += q * healOfAny(id, g); })); return h; }
+/** heal on the x2 HP scale (rounded on the x10 scale first: exactly the old heal / 5) */
+export function healOfAny(id, gr) { const it = item(id); return it ? Math.max(0, Math.round(num(it.heal, 0) * HP_DIV * gradeMult(Math.max(0, gr)))) / HP_DIV : 0; }
+/** HP the pouch carries (x2 scale) */
+export function pouchHealHp(state) { const p = state.raid.pouch || {}; let h = 0; Object.keys(p).forEach((id) => p[id].forEach((q, g) => { h += q * healOfAny(id, g); })); return Math.round(h * 10) / 10; }
+/** supply-line power (x10 scale, like the other roles): the pouch's heal on the x10 scale */
+export function pouchHealTotal(state) { return Math.round(pouchHealHp(state) * HP_DIV); }
 E.pouch = function (state) {
   const p = state.raid.pouch || {}; let food = 0, potions = 0;
   const items = Object.keys(p).filter((id) => invCount(p, id) > 0).map((id) => {
@@ -79,7 +84,7 @@ E.pouch = function (state) {
     if (it.kind === 'food') food += total; else potions += total;
     return { itemId: id, grades: p[id].slice(), total, heal: healOfAny(id, 1), kind: it.kind, buff: it.buff || null };
   });
-  return { items, food, potions, units: food + potions, cap: num(cfg().pouchCap, 60), totalHeal: pouchHealTotal(state), locked: lockedNow(state) || raidDoneThisWeek(state) };
+  return { items, food, potions, units: food + potions, cap: num(cfg().pouchCap, 60), totalHeal: pouchHealHp(state), locked: lockedNow(state) || raidDoneThisWeek(state) };
 };
 E.packPouch = function (state, itemId, qty, grade) {
   if (lockedNow(state)) return { ok: false, reason: 'The pouch is sealed once you lock in.', moved: 0 };

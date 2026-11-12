@@ -114,15 +114,15 @@ describe('gear balance', () => {
     }
   });
 
-  it('worked numbers: T1 sword and plate chest, chest HP = 2.5 x defence, x1.5 a tier', async () => {
+  it('worked numbers: T1 sword and plate chest, chest HP = 0.5 x defence (HP x2 scale), x1.5 a tier', async () => {
     const { E, mod } = await freshEngine();
     PE = await import('../src/gear');
     const s = E.newState();
     // sword: 60 x 0.66 x 0.9 = 35.64 → Rough/Standard/Pristine 35/36/38; Mythic 56/57/59
     expect([20, 50, 97].map((q) => primaryOf(E, mod, s, mk(mod, 'bronze_sword', 0, q)))).toEqual([[35], [36], [38]]);
     expect([20, 50, 97].map((q) => primaryOf(E, mod, s, mk(mod, 'bronze_sword', 5, q)))).toEqual([[56], [57], [59]]);
-    expect(mod.DATA.items.bronze_cuirass.stats).toEqual({ def: 60, hp: 150 });
-    expect(mod.DATA.items.iron_cuirass.stats).toEqual({ def: 90, hp: 225 });
+    expect(mod.DATA.items.bronze_cuirass.stats).toEqual({ def: 60, hp: 30 });
+    expect(mod.DATA.items.iron_cuirass.stats).toEqual({ def: 90, hp: 45 });
     expect(mod.DATA.items.steel_cuirass.stats.def).toBe(135);
     // named T3 weapons carry 25% of an element; bows add 10% to any element they carry
     expect(mod.DATA.items.frostbite_saber).toMatchObject({ element: 'frost', elementShare: 25, tier: 3 });
@@ -260,7 +260,7 @@ describe('gear balance', () => {
     const { E } = await freshEngine();
     const s = E.newState(); const d = E.gearDetail(s, s.equipped.chest);
     expect(d).toMatchObject({ itemId: 'hessian_robe', rarity: 'common', gradeName: 'Rough', affixes: [] });
-    expect(d.stats.map((l: any) => l.key)).toEqual(['def', 'heal', 'hp']); // cloth: defence + healing; a chest adds HP = 2.5 x defence
-    expect(E.playerStats(s).maxHp).toBe(600 + d.stats.find((l: any) => l.key === 'hp').value); // base 600 (x10 scale) + the robe
+    expect(d.stats.map((l: any) => l.key)).toEqual(['def', 'heal', 'hp']); // cloth: defence + healing; a chest adds HP = 0.5 x defence
+    expect(E.playerStats(s).maxHp).toBe(120 + d.stats.find((l: any) => l.key === 'hp').value); // base 120 (HP x2 scale) + the robe
   });
 });

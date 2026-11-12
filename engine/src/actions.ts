@@ -7,7 +7,7 @@ import { emitGain } from './gains';
 import { addXp } from './skills';
 import { addItem, consume, ownedOfKind } from './inventory';
 import { findGear, makeGear, autoEat, workBonus, wearTool } from './gear';
-import { SKILL_GROUP, MASTERY_QUALITY } from './data/gear/model';
+import { SKILL_GROUP, MASTERY_QUALITY, HP_DIV } from './data/gear/model';
 import { invCount } from './v4-helpers';
 import { lockedNow } from './raid-rules';
 import { lootEvent, goldEvent, pushEvent } from './events';
@@ -318,17 +318,18 @@ export function completeOnce(state, act, events) {
     const ps = E.playerStats(state); const enemy = act.enemy || {};
     if (!findGear(state, state.equipped.weapon)) { stopWith('No weapon equipped.'); return; }
     autoEat(state, events, 0.5, ps.maxHp);
-    const dmg = Math.max(1, Math.round(num(enemy.dmg, 1) * (1 + rand() * 0.4) - ps.def * 0.3));
+    // enemy damage is on the x2 HP scale; worked out on the x10 scale against defence (x10), then / 5: same fights as before
+    const dmg = Math.max(1, Math.round(num(enemy.dmg, 1) * HP_DIV * (1 + rand() * 0.4) - ps.def * 0.3)) / HP_DIV;
     state.hp -= dmg;
     drainDurability(state, 0.5, events);
     if (state.hp <= 0) {
-      state.hp = Math.max(1, Math.round(ps.maxHp * 0.3));
+      state.hp = Math.max(1, Math.round(ps.maxHp * HP_DIV * 0.3)) / HP_DIV;
       state.active = null;
       events.push({ type: 'faint' });
       logq(state, 'warn', `You fainted fighting ${enemy.name || act.name}. Eat and gear up before heading back.`);
       return;
     }
-    if (act.skill === 'mender' && ps.heal > 0) state.hp = Math.min(ps.maxHp, state.hp + ps.heal * 0.5);
+    if (act.skill === 'mender' && ps.heal > 0) state.hp = Math.min(ps.maxHp, state.hp + ps.heal * 0.5 / HP_DIV); // Healing (x10) → HP (x2)
     const gold = Array.isArray(act.gold) ? randInt(num(act.gold[0], 0), num(act.gold[1], num(act.gold[0], 0))) : Math.max(0, Math.round(num(act.gold, 0)));
     state.gold += gold;
     const drops = [];

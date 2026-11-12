@@ -2,6 +2,7 @@
 // Ported from legacy/engine.js lines 1596-1816. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
+import { HP_DIV } from './data/gear/model';
 import { ctx } from './context';
 import { E, SLOTS, CHECKS, D, arr, num, cfg, item, clamp, lcFirst } from './core';
 import { findGear } from './gear';
@@ -83,7 +84,7 @@ export function simulateFight(state, ctx) {
     if (kind === 'food' || kind === 'potion') u.heal++; else u.buff++;
     if (stockOutFrame == null) stockOutFrame = curFrame;
   };
-  const vaultCreditOf = (id, g) => Math.max(40, healOfAny(id, g)) * num(c.vaultCreditMult, 1);
+  const vaultCreditOf = (id, g) => Math.max(40, healOfAny(id, g) * HP_DIV) * num(c.vaultCreditMult, 1); // points (x10), from heal (x2 HP)
   const vaultFind = (pred, needHp?) => { // smallest heal that covers needHp, else the biggest
     let best = null, biggest = null;
     Object.keys(vstock).forEach((id) => {
@@ -124,7 +125,7 @@ export function simulateFight(state, ctx) {
   const resist = clamp(num(ps.wards && ps.wards[boss.hits], 0) / 100, 0, 0.2); // Warded (gear overhaul)
   // supply line: delivers the pouch evenly across the fight
   const pouchStart = sumInv(pouch); const supplyUnits = role === 'supply' ? pouchStart : 0; let supplyAcc = 0, supplyDelivered = 0;
-  let hp = ctx.joined ? clamp(num(ctx.startHp, maxHp), 1, maxHp) : 0; let down = 0;
+  let hp = ctx.joined ? clamp(num(ctx.startHp, maxHp), 1 / HP_DIV, maxHp) : 0; let down = 0;
   let bossHp = rec.hpLeft; const bossMax = rec.maxHp; const hpBefore = bossHp;
   const serverBase = participants * fair * ROLE_MIX;
   let waveAuraMin = 99, waveDownMax = 0, waveWeakFrames = 0, waveLossSum = 0;
@@ -195,9 +196,9 @@ export function simulateFight(state, ctx) {
           const fid = Object.keys(pouch).find((id) => item(id) && item(id).kind === 'food' && invCount(pouch, id) > 0);
           const vfid = fid ? null : vaultFind((id) => (item(id) || {}).kind === 'food');
           const vg = vfid ? vaultTake('you', 'You', vfid, 'heal') : -1;
-          if (fid) { takeOne(fid); eaten[fid] = (eaten[fid] || 0) + 1; reviveFood++; hp = Math.round(maxHp * 0.6); }
-          else if (vg >= 0) { reviveFood++; hp = Math.round(maxHp * 0.6); frameCredit += vaultCreditOf(vfid, vg); }
-          else { vaultMiss('you', 'You', 'food'); hp = Math.round(maxHp * 0.35); }
+          if (fid) { takeOne(fid); eaten[fid] = (eaten[fid] || 0) + 1; reviveFood++; hp = Math.round(maxHp * HP_DIV * 0.6) / HP_DIV; }
+          else if (vg >= 0) { reviveFood++; hp = Math.round(maxHp * HP_DIV * 0.6) / HP_DIV; frameCredit += vaultCreditOf(vfid, vg); }
+          else { vaultMiss('you', 'You', 'food'); hp = Math.round(maxHp * HP_DIV * 0.35) / HP_DIV; }
           ev.push({ kind: 'heal', value: hp, text: 'Back from camp' });
           moments.push({ frame: i, kind: 'revive', text: 'Back on your feet after camp', value: hp, score: 1 });
         }
@@ -220,7 +221,7 @@ export function simulateFight(state, ctx) {
         if (out.healing >= 0.5 && i % 2 === 0) ev.push({ kind: 'heal', value: Math.round(out.healing) });
         const raw = maxHp * pressure * (0.7 + rng() * 0.6) * stTaken * spike * (role === 'guardian' ? 1.25 : 1) * (check === 'healing' && rules.tactic === 'interrupt' ? 0.75 : 1) * (1 - resist) * (1 - buffs.def * 0.5);
         taken = raw * (1 - mitigFrac) * (1 - aura.mitigation);
-        hp = Math.min(maxHp, hp - taken + (pw.mender * 0.05 + maxHp * 0.01) * (1 + aura.healing));
+        hp = Math.min(maxHp, hp - taken + (pw.mender * 0.05 / HP_DIV + maxHp * 0.01) * (1 + aura.healing)); // mender power (x10) → HP (x2)
         if (hp <= 0) { hp = 0; faints++; down = num(c.faintFrames, 3); ev.push({ kind: 'faint', text: 'You faint!' }); moments.push({ frame: i, kind: 'faint', text: 'Fainted and carried to camp', value: 0, score: 0.2 }); }
       }
     } else if (role === 'supply') {
@@ -228,11 +229,11 @@ export function simulateFight(state, ctx) {
       while (supplyAcc >= 1) {
         supplyAcc -= 1;
         const id = Object.keys(pouch).find((x) => invCount(pouch, x) > 0); if (!id) break;
-        const g = takeOne(id, BEST); const h = Math.max(40, healOfAny(id, g));
+        const g = takeOne(id, BEST); const h = Math.max(40, healOfAny(id, g) * HP_DIV); // check points (x10)
         out.healing += h; // credited to whatever check is running
         crewFood += item(id).kind === 'food' ? 1 : 0;
         supplyDelivered++;
-        ev.push({ kind: 'heal', value: Math.round(h), text: 'Supplies delivered' });
+        ev.push({ kind: 'heal', value: Math.round(h / HP_DIV), text: 'Supplies delivered' });
       }
     }
     pDmg += out.damage; pHeal += out.healing; pMit += out.mitigation;

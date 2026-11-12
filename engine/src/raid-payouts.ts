@@ -2,6 +2,7 @@
 // Ported from legacy/engine.js lines 1817-2027. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
+import { HP_DIV } from './data/gear/model';
 import { E, SLOTS, CHECKS, D, arr, num, cfg, itemsMap, item, bosses, rand, clamp, randInt, allActions, itemName, nextId, fmtGold, qtyName, plural } from './core';
 import { addItem } from './inventory';
 import { emitGain } from './gains';
@@ -99,7 +100,7 @@ export function resolveRaid(state, opts, events) {
     state.raid.pouch = sim.pouch;
     const wear = lock.role === 'supply' ? 2 : 6 + num(c.reviveDurability, 2) * sim.faints;
     SLOTS.forEach((s) => { const g = findGear(state, lock.slots[s]); if (g && g.dur > 0) { g.dur = Math.max(0, Math.round((g.dur - wear) * 100) / 100); if (g.dur <= 0) E.log(state, 'warn', `Your ${E.gearName(g)} broke in the raid.`); } });
-    const mx = E.playerStats(state).maxHp; state.hp = Math.max(1, Math.round(sim.endHp > 0 ? Math.min(mx, sim.endHp) : mx * 0.3));
+    const mx = E.playerStats(state).maxHp; state.hp = Math.max(1, Math.round((sim.endHp > 0 ? Math.min(mx, sim.endHp) : mx * 0.3) * HP_DIV)) / HP_DIV; // x2 HP, rounded on x10
   }
   const hpBefore = rec.hpLeft;
   rec.hpLeft = Math.max(0, Math.round(sim.hpAfter)); rec.weekends++;

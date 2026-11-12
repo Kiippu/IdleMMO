@@ -24,14 +24,14 @@ describe('E.gearDetail', () => {
     expect(d.name).toBe('Soothing Bronze sword');
     // base = 60 x 0.66 = 39.6 budget; atk 0.9 → 35.64 x (0.97 + 3 x 0.12) = 47.4 → 47; the rarity bonus lifts every base stat,
     // and the backstop keeps each one 1 above the rarity below at Pristine: def 3.96 → Common 4 … Epic Rough 7;
-    // Soothing = 39.6 x 5% = 2; Hale = 39.6 x 5% x 2.5 = 5
+    // Soothing = 39.6 x 5% = 2; Hale = 39.6 x 5% x 2.5 = 5 on the x10 scale → 1 HP (HP x2 scale)
     expect(d.stats).toEqual([
       { key: 'atk', label: 'Attack', value: 47, unit: 'pts', text: 'Attack +47' },
       { key: 'def', label: 'Defence', value: 7, unit: 'pts', text: 'Defence +7' },
       { key: 'heal', label: 'Healing', value: 2, unit: 'pts', text: 'Healing +2' },
-      { key: 'hp', label: 'Max HP', value: 5, unit: 'pts', text: 'Max HP +5' },
+      { key: 'hp', label: 'Max HP', value: 1, unit: 'pts', text: 'Max HP +1' },
     ]);
-    expect(d.affixes.map((a: any) => a.label)).toEqual(['Epic bonus: Attack +12, Defence +3', 'Soothing: Healing +2', 'Hale: Max HP +5']);
+    expect(d.affixes.map((a: any) => a.label)).toEqual(['Epic bonus: Attack +12, Defence +3', 'Soothing: Healing +2', 'Hale: Max HP +1']);
     expect(d.effects).toEqual([]);
     expect(d.value).toBe(E.gearValue(s.gear.find((g: any) => g.uid === 'gE')));
     // worn: the starter bronze sword (Common, Rough): atk 35, def 4
@@ -42,7 +42,7 @@ describe('E.gearDetail', () => {
       { key: 'atk', label: 'Attack', unit: 'pts', mine: 47, theirs: 35, delta: 12 },
       { key: 'def', label: 'Defence', unit: 'pts', mine: 7, theirs: 4, delta: 3 },
       { key: 'heal', label: 'Healing', unit: 'pts', mine: 2, theirs: 0, delta: 2 },
-      { key: 'hp', label: 'Max HP', unit: 'pts', mine: 5, theirs: 0, delta: 5 },
+      { key: 'hp', label: 'Max HP', unit: 'pts', mine: 1, theirs: 0, delta: 1 },
     ]);
     expect(d.compare.power.striker.delta).toBe(Math.round(47 * 2.16) - Math.round(35 * 2.16)); // ROLE_POWER.striker.atk
     void mod;

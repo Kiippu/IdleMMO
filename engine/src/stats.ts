@@ -6,7 +6,7 @@ import { findGear, emptyElements } from './gear';
 import { roleDefs, roleDef } from './v4-helpers';
 import { bossReq } from './server';
 import { pouchHealTotal } from './raid-rules';
-import { ELEMENT_SHARE_CAP, WARD_CAP, ELEMENT_MULT, ROLE_POWER } from './data/gear/model';
+import { ELEMENT_SHARE_CAP, WARD_CAP, ELEMENT_MULT, ROLE_POWER, HP_DIV } from './data/gear/model';
 
 /** { atk, def, heal, maxHp, power, elements (share % of weapon damage, total <= 50), wards (% less damage, each <= 20) } */
 export function statsFor(state, slots) {
@@ -25,8 +25,9 @@ export function statsFor(state, slots) {
   Object.keys(out.elements).forEach((e) => { out.elements[e] = Math.round(out.elements[e] * k * 10) / 10; });
   Object.keys(out.wards).forEach((e) => { out.wards[e] = Math.round(Math.min(WARD_CAP, out.wards[e]) * 10) / 10; });
   const combatSum = combatSkillIds().reduce((a, id) => a + E.skillLevel(state, id), 0);
-  out.maxHp = Math.max(1, Math.round(num(c.baseHp, 600) + num(c.hpPerCombatLevel, 40) * (combatSum - 3) + gearHp));
-  out.power = Math.round(out.atk + out.def + out.heal + out.maxHp / 10);
+  // health on the x2 scale: rounded on the x10 scale, then / 5 (exact, so fights play out as before)
+  out.maxHp = Math.max(1, Math.round((num(c.baseHp, 120) + num(c.hpPerCombatLevel, 8) * (combatSum - 3) + gearHp) * HP_DIV)) / HP_DIV;
+  out.power = Math.round(out.atk + out.def + out.heal + out.maxHp / 2);
   return out;
 }
 /** element multiplier for the striker: 1 + sum over elements of share x (m - 1), m 1.25 weak / 0.75 the boss's own / 1 */
@@ -42,7 +43,7 @@ export function elementFactor(ps, boss) {
 }
 export function powersOf(ps, boss) {
   const P = ROLE_POWER;
-  return { striker: Math.round(ps.atk * P.striker.atk * elementFactor(ps, boss)), guardian: Math.round(ps.def * P.guardian.def + ps.maxHp * P.guardian.maxHp),
+  return { striker: Math.round(ps.atk * P.striker.atk * elementFactor(ps, boss)), guardian: Math.round(ps.def * P.guardian.def + ps.maxHp * HP_DIV * (P.guardian.maxHp / HP_DIV)),
     mender: Math.round(ps.heal * P.mender.heal), supply: 0 };
 }
 export function slotsOf(state, ref) {
