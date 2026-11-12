@@ -146,9 +146,7 @@
   .tile.dim .slot { opacity: .5; }
   .tile.running .slot { border-color: var(--woad); box-shadow: 0 0 0 2px var(--woad-soft), 0 0 0 3px var(--woad); }
   .mark { position: absolute; right: -4px; top: -4px; width: 14px; height: 14px; display: grid; place-items: center; background: var(--brass-fill); color: var(--ink); font: 700 10px/1 var(--f-num); font-style: normal; border: 1px solid var(--ink); }
-  .run { position: absolute; left: 2px; right: 2px; bottom: 2px; height: 3px; background: var(--woad); animation: runbar 1.4s ease-in-out infinite; transform-origin: left; }
-  @keyframes runbar { 0% { transform: scaleX(.1); } 100% { transform: scaleX(1); } }
-  @media (prefers-reduced-motion: reduce) { .run { animation: none; } }
+  .run { position: absolute; left: 2px; right: 2px; bottom: 2px; height: 3px; background: var(--woad); transform: scaleX(var(--rep, 0)); transform-origin: left; }
   .tn { max-width: 100%; font: 400 11px/1.1 var(--f-body); color: var(--ink-2); text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
   .legend { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; color: var(--ink-3); font-size: var(--t-xs); }
   .legend .mark { position: static; flex: none; }
