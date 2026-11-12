@@ -6,14 +6,15 @@
   import { engineClient } from '../engine/client';
   import { ui, bagFilter, vaultFilter, resetFilter, type BagFilter } from '../ui.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
-  import { openSalvage } from '../overlays/salvage.svelte';
+  import { openSalvage, salvageReq } from '../overlays/salvage.svelte';
+  import { groupGear, protectedUids, nextSelCount } from './war/gearStack';
   import { fmtG, fmtN } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import { markDone } from '../guide.svelte';
 
   type Item = { id: string; name: string; slot?: string; kind?: string; value?: number; stats?: Record<string, number> };
   type Gear = { uid: string; itemId: string; rarity: string; quality: number; dur: number; maxDur: number };
-  type Tile = { key: string; letter: string; name: string; rarity: string; qty?: number; kind: 'stack' | 'gear'; id: string; gear?: Gear; grades?: number[]; cat: 'Materials' | 'Gear' | 'Food & potions'; value: number; order: number };
+  type Tile = { key: string; letter: string; name: string; rarity: string; qty?: number; kind: 'stack' | 'gear'; id: string; gear?: Gear; uids?: string[]; grades?: number[]; cat: 'Materials' | 'Gear' | 'Food & potions'; value: number; order: number };
 
   const GRADE_LABEL = GRADE_NAMES;
   const STAT_NAME: Record<string, string> = { atk: 'attack', def: 'defence', heal: 'heal', hp: 'HP' };
@@ -32,6 +33,8 @@
   let view = $derived(engine.derived);
   let store = $derived<any>(view?.extras?.store ?? null);
   let equipped = $derived<Record<string, string | null>>(snap?.equipped ?? {});
+  let info = $derived<Record<string, { stackKey: string | null }> | undefined>((view?.extras as any)?.gearInfo);
+  let loadouts = $derived<any[]>(snap?.loadouts ?? []);
   let bag = $derived<Gear[]>((snap?.gear ?? []) as Gear[]);
   let inv = $derived<Record<string, number[]>>(snap?.inv ?? {});
   let vault = $derived(snap?.crew?.vault ?? { inv: {}, gear: [] });
@@ -44,7 +47,7 @@
     if (k === 'food' || k === 'potion' || k === 'catalyst') return 'Food & potions';
     return 'Materials';
   }
-  function tiles(src: Record<string, number[]>, gear: Gear[], skipEquipped: boolean): Tile[] {
+  function tiles(src: Record<string, number[]>, gear: Gear[], skipEquipped: boolean, stack = false): Tile[] {
     const out: Tile[] = [];
     for (const id of Object.keys(src ?? {})) {
       const grades = src[id];
@@ -54,11 +57,17 @@
       out.push({ key: `s:${id}`, letter: itemName(id)[0], name: itemName(id), rarity: itemRarity[id] ?? 'common', qty: total, kind: 'stack', id, grades, cat: catOf(id), value: itemsMap[id]?.value ?? 0, order: 0 });
     }
     out.sort((a, b) => a.name.localeCompare(b.name));
-    const gs: Tile[] = gear.filter((g) => !skipEquipped || !Object.values(equipped).includes(g.uid))
-      .map((g, i) => ({ key: `g:${g.uid}`, letter: itemName(g.itemId)[0], name: gname(g), rarity: g.rarity, kind: 'gear' as const, id: g.itemId, gear: g, cat: 'Gear' as const, value: store?.gearSellPrices?.[g.uid] ?? 0, order: i + 1 }));
+    const spare = gear.filter((g) => !skipEquipped || !Object.values(equipped).includes(g.uid));
+    const idx = new Map(gear.map((g, i) => [g.uid, i + 1] as const));
+    const prot = protectedUids(equipped, loadouts);
+    const rows = stack ? groupGear(spare, prot, DATA.grades, (g) => info?.[g.uid]?.stackKey) : spare.map((g) => ({ key: null, items: [g] }));
+    const gs: Tile[] = rows.map((r) => {
+      const g = r.items[0]; const n = r.items.length;
+      return { key: r.key ? `gs:${r.key}` : `g:${g.uid}`, letter: itemName(g.itemId)[0], name: gname(g), rarity: g.rarity, qty: n > 1 ? n : undefined, kind: 'gear' as const, id: g.itemId, gear: g, uids: r.items.map((x) => x.uid), cat: 'Gear' as const, value: store?.gearSellPrices?.[g.uid] ?? 0, order: Math.max(...r.items.map((x) => idx.get(x.uid) ?? 0)) };
+    });
     return [...gs, ...out];
   }
-  let mineTiles = $derived(tiles(inv, bag, true));
+  let mineTiles = $derived(tiles(inv, bag, true, true));
   let vaultTiles = $derived(tiles(vault.inv ?? {}, (vault.gear ?? []) as Gear[], false));
   const RANK = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
   const RARS = ['all', ...RANK];
@@ -91,6 +100,31 @@
   });
   let mineVis = $derived(shown(mineTiles, bagFilter));
   let mineGear = $derived(mineVis.filter((t) => t.kind === 'gear'));
+  let mineGearUids = $derived(mineGear.flatMap((t) => t.uids ?? []));
+
+  // Select mode (Mine > gear): tap a row to pick it; a stack cycles 1 / 10 / all / none. Salvage still goes through the sheet.
+  let selecting = $state(false);
+  let sel = $state<Record<string, number>>({});
+  let selTotal = $derived(Object.values(sel).reduce((a, b) => a + b, 0));
+  let commonStacks = $derived(mineGear.filter((t) => t.rarity === 'common'));
+  function exitSelect() { selecting = false; sel = {}; }
+  function tapTile(t: Tile, readOnly: boolean) {
+    if (selecting && t.kind === 'gear' && !readOnly) {
+      const n = t.uids?.length ?? 1; const cur = sel[t.key] ?? 0;
+      const next = n === 1 ? (cur ? 0 : 1) : nextSelCount(cur, n);
+      const { [t.key]: _, ...rest } = sel;
+      sel = next ? { ...rest, [t.key]: next } : rest;
+      return;
+    }
+    openItem({ itemId: t.id, uid: t.gear?.uid, readOnly });
+  }
+  function selectCommon() { const m: Record<string, number> = {}; for (const t of commonStacks) m[t.key] = t.uids?.length ?? 1; sel = m; }
+  const selUids = () => mineGear.flatMap((t) => (t.uids ?? []).slice(0, sel[t.key] ?? 0));
+  // Drop picks that no longer exist (salvaged, equipped, filtered out is kept).
+  $effect(() => { const live = new Set(mineTiles.map((t) => t.key)); const k = Object.keys(sel).filter((x) => !live.has(x)); if (k.length) { const m = { ...sel }; for (const x of k) delete m[x]; sel = m; } });
+  let lastDone = salvageReq.done;
+  $effect(() => { if (salvageReq.done !== lastDone) { lastDone = salvageReq.done; exitSelect(); } });
+  $effect(() => { if (sub !== 'mine' && selecting) exitSelect(); });
   let vaultVis = $derived(shown(vaultTiles, vaultFilter));
 
 </script>
@@ -118,9 +152,10 @@
     <ul class="grid">
       {#each list as t (t.key)}
         <li>
-          <button type="button" class="tile" data-gear={t.kind === "gear" ? "1" : undefined} style:--ink-r={`var(--r-${t.rarity})`} onclick={() => openItem({ itemId: t.id, uid: t.gear?.uid, readOnly })} aria-label="{t.name}{t.qty ? `, quantity ${t.qty}` : ''}">
+          <button type="button" class="tile" data-gear={t.kind === "gear" ? "1" : undefined} style:--ink-r={`var(--r-${t.rarity})`} onclick={() => tapTile(t, readOnly)} class:picked={!!sel[t.key]} aria-pressed={selecting && t.kind === 'gear' && !readOnly ? !!sel[t.key] : undefined} aria-label="{t.name}{t.qty ? `, quantity ${t.qty}` : ''}{sel[t.key] ? `, ${sel[t.key]} selected` : ''}">
             <ItemIcon id={t.id} rarity={t.rarity} />
-            {#if t.qty}<span class="qty num">{t.qty > 999 ? '999+' : t.qty}</span>{/if}
+            {#if t.qty}<span class="qty num">{#if sel[t.key]}{sel[t.key]}/{/if}{t.qty > 999 ? '999+' : t.qty}</span>{/if}
+            {#if sel[t.key]}<span class="chk num" aria-hidden="true">✓</span>{/if}
           </button>
         </li>
       {/each}
@@ -141,11 +176,23 @@
     {@render grid(mineVis, false, bagFilter, mineTiles.length)}
     {#if mineGear.length}
       <div class="foot">
-        <button type="button" class="btn ghost" onclick={() => openSalvage(mineGear.map((t) => t.gear!.uid), `${mineGear.length} shown`)}>Salvage gear…</button>
-        <p class="meta">Breaks the <span class="num">{mineGear.length}</span> gear {mineGear.length === 1 ? 'piece' : 'pieces'} shown into materials. You confirm first.</p>
+        {#if selecting}
+          <button type="button" class="btn ghost" onclick={exitSelect}>Done selecting</button>
+          {#if commonStacks.length}<button type="button" class="btn ghost" onclick={selectCommon}>Select all common</button>{/if}
+        {:else}
+          <button type="button" class="btn ghost" onclick={() => (selecting = true)}>Select</button>
+          <button type="button" class="btn ghost" onclick={() => openSalvage(mineGearUids, `${mineGearUids.length} shown`)}>Salvage gear…</button>
+        {/if}
       </div>
+      <p class="meta">{#if selecting}Tap gear to pick it. A stack cycles 1, 10, all, none. Protected pieces are skipped when you confirm.{:else}Salvage breaks the <span class="num">{mineGearUids.length}</span> gear {mineGearUids.length === 1 ? 'piece' : 'pieces'} shown into materials. You confirm first.{/if}</p>
     {/if}
   </section>
+  {#if selecting}
+    <div class="selbar" role="region" aria-label="Selected gear">
+      <span class="sc"><b class="num">{selTotal}</b> selected</span>
+      <button type="button" class="btn danger solid" disabled={selTotal === 0} onclick={() => openSalvage(selUids(), `${selTotal} selected`)}>Salvage <span class="num">{selTotal}</span></button>
+    </div>
+  {/if}
 {:else if sub === 'codex'}
   <section class="group">
     <h3>Codex</h3>
@@ -182,8 +229,13 @@
   .chips { padding-right: 32px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
   .chip { flex: none; padding: 0 12px; white-space: nowrap; }
   .chip.rar.on { border-color: var(--ink-r); color: var(--ink-r); }
-  .foot { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
-  .foot .meta { margin: 0; color: var(--ink-3); font-size: var(--t-xs); }
+  .foot { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .meta { margin: 8px 0 0; color: var(--ink-3); font-size: var(--t-xs); }
+  .tile.picked { background: var(--woad-soft); outline: 3px solid var(--woad); outline-offset: -3px; }
+  .chk { position: absolute; left: 1px; top: 1px; width: 18px; height: 18px; display: grid; place-items: center; background: var(--woad); color: var(--on-woad); font: 700 12px/1 var(--f-num); }
+  .selbar { position: sticky; bottom: calc(var(--tabbar-h) + 8px); z-index: 5; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 60px; padding: 8px 10px; background: var(--paper); border: 1px solid var(--woad); box-shadow: 0 -4px 12px var(--shadow); }
+  .selbar .sc { color: var(--ink); font-size: var(--t-md); }
+  .selbar .btn { min-height: 44px; flex: none; }
   .cyc { flex: none; padding: 0 12px; white-space: nowrap; }
 
   .tile { position: relative; width: 100%; aspect-ratio: 1; min-height: 44px; display: grid; place-items: center; padding: 0; background: var(--paper); border: 2px solid var(--ink-r, var(--rule)); color: var(--ink-r, var(--ink)); }

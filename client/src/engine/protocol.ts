@@ -74,10 +74,14 @@ export interface Derived {
     /** action ids unlocked by levelling and not dismissed (never level-1 starters), highest level first */
     recentUnlocks: string[];
     /** per unequipped bag gear uid */
-    equipDeltas: Record<string, EquipDelta> } | null;
+    equipDeltas: Record<string, EquipDelta>;
+    /** gear pass: per bag gear uid { grade, equipped, inLoadout, stackKey }; group rows by non-null stackKey */
+    gearInfo: Record<string, GearInfo> } | null;
 }
 
-import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons } from '@guildwright/engine';
+import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons, GearDetail, StatLine, GearInfo } from '@guildwright/engine';
+/** Gear pass 2026-11-12: engineClient.gearDetail(uid). Labels are plain English; stats non-zero only, stable order. */
+export type { GearDetail, StatLine, GearInfo };
 /** Engine summary (items, xp, gold, skills, bestFind, loot, goldBySource, ...) plus the real seconds away added by the worker. */
 export type OfflineSummary = EngineOfflineSummary & { awaySec?: number };
 
@@ -100,6 +104,7 @@ export type Req =
   | { id: string; type: 'storeSellAll'; itemId: string }
   | { id: string; type: 'salvagePreview'; uids: string[]; allowProtected: boolean }
   | { id: string; type: 'salvage'; uids: string[]; allowProtected: boolean }
+  | { id: string; type: 'gearDetail'; uid: string }
   | { id: string; type: 'lockIn' }
   | { id: string; type: 'unlock' }
   | { id: string; type: 'buyListing'; listingId: string; qty: number }

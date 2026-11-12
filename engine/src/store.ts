@@ -255,5 +255,7 @@ E.derivedExtras = function (state) {
     lastRecapView: E.recapView(state), crewActivity: E.crewActivity(state), sellList: E.storeSellList(state),
     disabledReasons: E.disabledReasons(state),
     // juice pass 2026-11-12
-    maxMake: E.maxMake(state), readiness: E.raidReadiness(state), recentUnlocks: E.recentUnlocks(state), equipDeltas: E.equipDeltas(state) };
+    maxMake: E.maxMake(state), readiness: E.raidReadiness(state), recentUnlocks: E.recentUnlocks(state), equipDeltas: E.equipDeltas(state),
+    // gear pass 2026-11-12
+    gearInfo: E.gearInfo(state) };
 };

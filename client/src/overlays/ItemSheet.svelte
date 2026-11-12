@@ -83,6 +83,22 @@
     const parts = Object.keys(STAT_NAME).map((k) => ({ k, d: (a[k] ?? 0) - (b[k] ?? 0) })).filter((x) => x.d !== 0).map((x) => `${x.d > 0 ? '+' : '−'}${Math.abs(x.d)} ${STAT_NAME[x.k]}`);
     return parts.length ? `Against your worn piece: ${parts.join(', ')}.` : 'Same base stats as your worn piece.';
   }
+  // Full gear card from the engine (stats, affixes, compare). Falls back to base stats until it loads.
+  type StatLine = { key: string; label: string; value: number };
+  type GearDetail = { uid: string; name: string; rarity: string; grade: number; gradeName: string; dur: number; maxDur: number; value: number; stats: StatLine[];
+    affixes: Array<{ id: string; label: string; value: number; stat: string }>; equipped: boolean;
+    compare: null | { uid: string; name: string; rarity: string; grade: number; stats: StatLine[]; diff: Array<{ key: string; label: string; mine: number; theirs: number; delta: number }> } };
+  let detail = $state<GearDetail | null>(null);
+  $effect(() => {
+    const uid = ref?.uid; void snap?.equipped; void snap?.gear;
+    if (!uid) { detail = null; return; }
+    let live = true;
+    Promise.resolve(engineClient.gearDetail(uid)).then((d: GearDetail | null) => { if (live) detail = d ?? null; }).catch(() => { if (live) detail = null; });
+    return () => { live = false; };
+  });
+  const sign = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '') + fmtN(Math.abs(n));
+  const isPct = (k: string) => k === 'durPct';
+  const fmtStat = (l: StatLine) => (isPct(l.key) ? `${l.value > 0 ? '+' : l.value < 0 ? '−' : ''}${Math.abs(l.value)}%` : sign(l.value));
   const gname = () => (g ? (view?.gearNames?.[g.uid] ?? itemName(g.itemId)) : ref ? itemName(ref.itemId) : '');
   let note = $state('');
   $effect(() => { void ref; note = ''; });
@@ -216,9 +232,40 @@
       {:else}
 
       {#if it.kind === 'gear'}
-        {#if statLine(ref.itemId)}<p class="body num">{statLine(ref.itemId)}</p>{/if}
-        {#if g}<p class="meta">Durability <span class="num">{Math.round(g.dur)}/{g.maxDur}</span> · Quality <span class="num">{Math.round(g.quality)}</span></p>{/if}
-        {#if it.slot && !isEq}<p class="body">{diffText()}</p>{/if}
+        {#if detail && g}
+          <section class="gear" aria-label="Gear stats">
+            <p class="meta">
+              <span style:color={`var(--r-${detail.rarity})`}>{cap(detail.rarity)}</span> · {detail.gradeName}
+              {#if ref.count && ref.count > 1} · <span class="num">×{fmtN(ref.count)}</span>{/if}
+              {#if detail.equipped} · <b>Equipped</b>{/if}
+            </p>
+            <dl class="facts">
+              {#each detail.stats as s (s.key)}<div><dt>{s.label}</dt><dd class="num">{fmtStat(s)}</dd></div>{/each}
+            </dl>
+            {#if detail.affixes.length}
+              <ul class="aff" style:color={`var(--r-${detail.rarity})`}>
+                {#each detail.affixes as a (a.id)}<li><span>{a.label}</span></li>{/each}
+              </ul>
+            {/if}
+            <p class="meta">Durability <span class="num">{Math.round(detail.dur)}/{detail.maxDur}</span> · Worth <span class="num brass">{fmtG(detail.value)}</span></p>
+          </section>
+          {#if detail.compare && !detail.equipped}
+            <section class="cmp" aria-label="Compared with equipped">
+              <h3>Versus worn · {detail.compare.name}</h3>
+              {#if detail.compare.diff.some((d) => d.delta !== 0)}
+                <ul class="dl">
+                  {#each detail.compare.diff.filter((d) => d.delta !== 0) as d (d.key)}
+                    <li class={d.delta > 0 ? 'up' : 'down'}><span>{d.label}</span><b class="num"><span aria-hidden="true">{d.delta > 0 ? '▲' : '▼'}</span> {isPct(d.key) ? `${d.delta > 0 ? '+' : '−'}${Math.abs(d.delta)}%` : sign(d.delta)}<span class="sr"> {d.delta > 0 ? 'better' : 'worse'}</span></b></li>
+                  {/each}
+                </ul>
+              {:else}<p class="meta">Same stats as your worn piece.</p>{/if}
+            </section>
+          {:else if !detail.equipped && it.slot}<p class="meta">Slot is empty: all stats are new.</p>{/if}
+        {:else}
+          {#if statLine(ref.itemId)}<p class="body num">{statLine(ref.itemId)}</p>{/if}
+          {#if g}<p class="meta">Durability <span class="num">{Math.round(g.dur)}/{g.maxDur}</span> · Quality <span class="num">{Math.round(g.quality)}</span></p>{/if}
+          {#if it.slot && !isEq}<p class="body">{diffText()}</p>{/if}
+        {/if}
       {/if}
 
       {#if grades}
@@ -299,6 +346,11 @@
   .facts { margin: 0; display: grid; gap: 2px; width: 100%; }
   .facts div { display: flex; justify-content: space-between; gap: 8px; font-size: var(--t-sm); }
   .facts dt { color: var(--ink-3); } .facts dd { margin: 0; text-align: right; }
+  .gear, .cmp { width: 100%; box-sizing: border-box; }
+  .aff, .dl { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; width: 100%; }
+  .aff li, .dl li { display: flex; justify-content: space-between; gap: 8px; font-size: var(--t-sm); }
+  .dl .up b { color: var(--ok); } .dl .down b { color: var(--bad); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .apart { padding-top: 8px; border-top: 1px solid var(--rule); display: flex; justify-content: flex-start; }
   .salv { color: var(--bad); }
   .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }

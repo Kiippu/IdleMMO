@@ -8,6 +8,7 @@
   import { fmtN } from '../../format';
   import { ui } from '../../ui.svelte';
   import HeroPreview from './HeroPreview.svelte';
+  import { groupGear, protectedUids } from './gearStack';
   const STAT_LABEL: Record<string, string> = { hp: 'HP', atk: 'Attack', def: 'Defence', heal: 'Heal', power: 'Power' };
   const DKEYS = ['hp', 'atk', 'def', 'heal', 'power'] as const;
 
@@ -52,6 +53,8 @@
       : sort === 'new' ? (idx.get(b.uid) ?? 0) - (idx.get(a.uid) ?? 0)
       : power(b) - power(a));
   });
+  // Identical plain common pieces collapse into one row with a count; equipping a stack wears one piece.
+  let rowsG = $derived(groupGear(list, protectedUids(equipped, snap?.loadouts ?? []), (DATA as any).grades, (g: any) => (view?.extras as any)?.gearInfo?.[g.uid]?.stackKey));
   let totalGear = $derived(bag.filter((g) => items[g.itemId]?.slot && !Object.values(equipped).includes(g.uid)).length);
 
   async function equip(g: any) {
@@ -118,14 +121,16 @@
       <button type="button" class="btn next" onclick={() => { slotF = 'all'; q = ''; }}>Clear filters</button>
     {:else}
       <ul class="gear">
-        {#each list as g, i (g.uid)}
+        {#each rowsG as row, i (row.key ? `s:${row.key}` : row.items[0].uid)}
+          {@const g = row.items[0]}
+          {@const n = row.items.length}
           {@const it = items[g.itemId]}
           {@const dl = dlOf(g)}
           <li style:--ink-r={`var(--r-${g.rarity})`}>
-            <button type="button" class="eqbtn" data-guide={i === 0 ? 'equip' : undefined} aria-label="Equip {nameOf(g)}" onclick={() => equip(g)}>
+            <button type="button" class="eqbtn" data-guide={i === 0 ? 'equip' : undefined} aria-label="Equip {nameOf(g)}{n > 1 ? `, you have ${n}` : ''}" onclick={() => equip(g)}>
               <ItemIcon id={g.itemId} rarity={g.rarity} />
               <span class="info">
-                <span class="name">{nameOf(g)}</span>
+                <span class="name">{nameOf(g)}{#if n > 1} <span class="cnt num">×{n}</span>{/if}</span>
                 <span class="meta">{SLOT_LABEL[it.slot]} · {cap(g.rarity)}</span>
                 <span class="deltas">
                   {#if dl.length === 0}<span class="d same">Same as worn</span>
@@ -176,6 +181,7 @@
   .eqbtn:hover { background: var(--woad-soft); }
   .info { display: grid; gap: 2px; min-width: 0; }
   .name { font: 700 var(--t-sm)/1.15 var(--f-body); color: var(--ink-r); }
+  .cnt { margin-left: 6px; color: var(--ink-2); font: 700 var(--t-sm)/1 var(--f-num); }
   .deltas { display: flex; flex-wrap: wrap; gap: 4px 8px; }
   .d { font: 700 var(--t-xs)/1.2 var(--f-num); }
   .d.up { color: var(--ok); } .d.down { color: var(--bad); } .d.same { color: var(--ink-3); font-weight: 400; font-family: var(--f-body); }

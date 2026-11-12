@@ -21,6 +21,7 @@
   import ConfirmSheet from './overlays/ConfirmSheet.svelte';
   import ItemSheet from './overlays/ItemSheet.svelte';
   import SalvageSheet from './overlays/SalvageSheet.svelte';
+  import CraftReward from './overlays/CraftReward.svelte';
 
   import icoWorkshop from './ui-art/tab-workshop.png';
   import icoStores from './ui-art/tab-stores.png';
@@ -151,6 +152,7 @@
 <SalvageSheet />
 <ConfirmSheet />
 <Fountain />
+<CraftReward />
 
 {#if menuOpen}
   <MenuSheet onClose={() => (menuOpen = false)} onLog={() => (logOpen = true)} onSave={() => (saveMenuOpen = true)} />

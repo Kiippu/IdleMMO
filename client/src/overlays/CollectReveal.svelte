@@ -84,14 +84,22 @@
 
   // Nothing to show: don't open at all.
   $effect(() => { if (summary && rows.length === 0 && !summary.stoppedReason && !summary.weeks) engine.offline = null; });
-  // ---- Return fountain: Collect hands the WHOLE haul to the shared Fountain (one pop per unit, stacked past the cap, plus coins).
+  // ---- Return fountain: the WHOLE haul is handed (on open) to the shared Fountain (one pop per unit, stacked past the cap, plus coins).
   function haul() {
     const sm = summary; if (!sm) return;
     const gains = (sm.loot ?? []).filter((l) => l.qty > 0).map((l) => ({ itemId: l.itemId, qty: l.qty, rarity: (l.rarity ?? itemRarity[l.itemId] ?? 'common') as Rarity }));
     celebrate({ gains, coins: sm.gold > 0 ? sm.gold : 0, big: true });
   }
   function skip() { skipped = true; }
-  function collect() { haul(); engine.offline = null; }
+  function collect() { engine.offline = null; }
+  // The haul bursts the moment the reveal opens (once per summary), not on Collect.
+  let hauled: unknown = null;
+  $effect(() => {
+    const sm = summary;
+    if (!sm || sm === hauled || !(rows.length || sm.stoppedReason || sm.weeks)) return;
+    hauled = sm;
+    untrack(haul);
+  });
   function onKey(ev: KeyboardEvent) {
     if (!summary) return;
     if (ev.key === 'Escape' && finished) collect();

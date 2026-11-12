@@ -269,6 +269,8 @@ export interface DerivedExtras {
   sellList: SellListRow[];
   /** E.disabledReasons(state) (layout pass 2026-11-11) */
   disabledReasons: DisabledReasons;
+  /** E.gearInfo(state) per bag gear uid (gear pass 2026-11-12) */
+  gearInfo?: Record<string, GearInfo>;
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
@@ -437,6 +439,38 @@ export const Engine: any;
 //   while work is left; E.crewMembers()[i].npc. Treasury log kinds: escrow / release (was contract-escrow /
 //   contract-release); a new crew's opening payout is logged (opening: true).
 // Max HP: equip/unequip/loadout/repair raise current HP by any max-HP gain; a drop clamps.
+
+// ---- Gear pass 2026-11-12 (gear-pass-contract.md). Additive.
+// E.gearDetail(state, uid) → GearDetail | null (bag, else crew vault). Stats are nominal (shown even when broken).
+// E.gearInfo(state) → Record<uid, GearInfo> (also DerivedExtras.gearInfo).
+// E.salvage(state, uids[], opts): any number of uids in one call; deduped; one gain event; one log line.
+// Craft gains: { type: 'gain', source: 'craft', items: [{ itemId, qty: 1, grade, rarity, uid }] } per rep
+//   (offline catch-up: aggregated, offline: true).
+export interface StatLine { key: string; label: string; value: number }
+export interface GearDetail {
+  uid: string; itemId: string; name: string;
+  slot: string; rarity: string; grade: number; gradeName: string;
+  dur: number; maxDur: number; value: number;
+  stats: StatLine[];
+  affixes: Array<{ id: string; label: string; value: number; stat: string }>;
+  equipped: boolean;
+  compare: null | {
+    uid: string; name: string; rarity: string; grade: number;
+    stats: StatLine[];
+    diff: Array<{ key: string; label: string; mine: number; theirs: number; delta: number }>;
+    /** the equipped piece is at 0 durability (counts for nothing until repaired) */
+    broken?: boolean;
+  };
+  /** at 0 durability: stats are what it gives once repaired */
+  broken?: boolean;
+  /** part of a saved loadout */
+  inLoadout?: boolean;
+}
+export interface GearInfo {
+  grade: number; equipped: boolean; inLoadout: boolean;
+  /** `${itemId}|${grade}` when common, unequipped, in no loadout, never repaired and at full durability; else null */
+  stackKey: string | null;
+}
 
 // Progress sync (2026-11-12): E.repTiming(state) → { repSec, elapsedSec, secLeft } | null;
 //   E.stampRep(state, wallMs) writes state.active.repStartedAt / repMs (wall-clock ms; bar = (now - repStartedAt) / repMs).

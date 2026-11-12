@@ -1,6 +1,6 @@
 // Main-thread RPC client. Holds the worker handle, correlates requests by id,
 // and pipes every incoming snapshot into the reactive engine store.
-import type { Req, FromWorker, OfflineSummary } from './protocol';
+import type { Req, FromWorker, OfflineSummary, GearDetail } from './protocol';
 import { engine } from './store.svelte';
 
 export type StoreAllResult = { ok: boolean; reason: string; qty: number; gold: number; grades: { grade: number; qty: number; gold: number }[] };
@@ -93,6 +93,8 @@ export const engineClient = {
     rpc<SalvagePreview>({ id: nextId(), type: 'salvagePreview', uids, allowProtected }),
   salvage: (uids: string[], allowProtected: boolean) =>
     rpc<SalvageResult>({ id: nextId(), type: 'salvage', uids, allowProtected }),
+  /** stats, affixes and a compare against the piece worn in the same slot; null when the uid is gone */
+  gearDetail: (uid: string) => rpc<GearDetail | null>({ id: nextId(), type: 'gearDetail', uid }),
   lockIn: () => rpc<{ ok: boolean; reason?: string; warnings?: string[] }>({ id: nextId(), type: 'lockIn' }),
   unlock: () => rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'unlock' }),
   buyListing: (listingId: string, qty: number) =>

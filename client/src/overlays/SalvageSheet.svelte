@@ -40,6 +40,7 @@
       const sum = res.items.reduce((a, i) => a + i.qty, 0);
       done = `Salvaged ${res.salvaged} ${res.salvaged === 1 ? 'piece' : 'pieces'} into ${fmtN(sum)} materials.`;
       closeItem();
+      salvageReq.done++;
     } catch (e) { console.error(e); } finally { busy = false; }
   }
   let dlg = $state<HTMLElement | null>(null);

@@ -2,7 +2,7 @@
 // Ported from legacy/engine.js lines 242-405. Behaviour must stay identical to the
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
-import { E, SLOTS, arr, num, rarities, elements, item, allActions, affixDefs, rand, clamp, randInt, shuffle, lcFirst, article, itemName, nextId, gradeOf, gradeMult, rarityDef, fmtGold, qtyName } from './core';
+import { E, SLOTS, arr, num, rarities, grades, elements, item, allActions, affixDefs, rand, clamp, randInt, shuffle, lcFirst, article, itemName, nextId, gradeOf, gradeMult, rarityDef, fmtGold, qtyName } from './core';
 import { addItem, consume, lowestGrade, markSeen } from './inventory';
 import { ECON } from './data';
 import { pushEvent } from './events';
@@ -47,6 +47,74 @@ E.gearStats = function (g) {
   return out;
 };
 E.playerStats = function (state) { return statsFor(state, state.equipped); };
+
+// ---------------------------------------------------------------- gear detail (gear pass 2026-11-12)
+// E.gearDetail(state, uid) → GearDetail | null: what the item card and the craft reward card show.
+// Stats are the piece's nominal stats (as if not broken, so a broken piece still shows what repairing it
+// gives back); `broken` says when it currently counts for nothing.
+const STAT_LABEL = { atk: 'Attack', def: 'Defence', heal: 'Healing', hp: 'Max HP', speed: 'Speed', durPct: 'Durability' };
+const titleCase = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
+export const statLabel = (key) => STAT_LABEL[key] || titleCase(key);
+const statOrder = () => ['atk', 'def', 'heal', 'hp'].concat(elements(), ['speed', 'durPct']);
+/** E.gearStats flattened to non-zero lines in a stable order: atk, def, heal, hp, elements, speed, durPct */
+export function statLines(g) {
+  if (!g) return [];
+  const s = E.gearStats(num(g.dur, 0) > 0 ? g : Object.assign({}, g, { dur: 1 }));
+  const flat = { atk: s.atk, def: s.def, heal: s.heal, hp: s.hp, speed: s.speed, durPct: s.durPct };
+  elements().forEach((e) => { flat[e] = num(s.elements[e], 0); });
+  return statOrder().filter((k) => num(flat[k], 0) !== 0).map((k) => ({ key: k, label: statLabel(k), value: flat[k] }));
+}
+export function inAnyLoadout(state, uid) { return arr(state && state.loadouts).some((l) => l && l.slots && SLOTS.some((s) => l.slots[s] === uid)); }
+const findAnyGear = (state, uid) => findGear(state, uid) || arr(state && state.crew && state.crew.vault && state.crew.vault.gear).find((g) => g && g.uid === uid) || null;
+E.gearDetail = function (state, uid) {
+  const g = findAnyGear(state, uid); if (!g) return null;
+  const it = item(g.itemId); const grade = gradeOf(g.quality);
+  const slot = it && it.slot ? it.slot : '';
+  const stats = statLines(g);
+  const affixes = arr(g.affixes).map((af) => {
+    const d = affixDefs().find((x) => x.id === af.id); if (!d) return null;
+    const key = d.stat === 'dur' ? 'durPct' : d.stat; const v = num(af.value, 0);
+    const pct = key === 'durPct' || key === 'speed' ? '%' : '';
+    return { id: d.id, label: `${d.name}: ${v >= 0 ? '+' : ''}${v}${pct} ${statLabel(key)}`, value: v, stat: key };
+  }).filter(Boolean);
+  const equipped = isEquipped(state, g.uid);
+  const curUid = SLOTS.includes(slot) ? state.equipped[slot] : null;
+  const cur = curUid && curUid !== g.uid ? findGear(state, curUid) : null;
+  let compare = null;
+  if (cur) {
+    const theirs = statLines(cur);
+    const mineBy = {}; stats.forEach((l) => { mineBy[l.key] = l.value; });
+    const theirBy = {}; theirs.forEach((l) => { theirBy[l.key] = l.value; });
+    const diff = statOrder().filter((k) => k in mineBy || k in theirBy).map((k) => {
+      const mine = num(mineBy[k], 0), other = num(theirBy[k], 0);
+      return { key: k, label: statLabel(k), mine, theirs: other, delta: mine - other };
+    });
+    compare = { uid: cur.uid, name: E.gearName(cur), rarity: cur.rarity, grade: gradeOf(cur.quality), stats: theirs, diff, broken: !(num(cur.dur, 0) > 0) };
+  }
+  return {
+    uid: g.uid, itemId: g.itemId, name: E.gearName(g), slot, rarity: g.rarity, grade, gradeName: (grades()[grade] || {}).name || '',
+    dur: num(g.dur, 0), maxDur: num(g.maxDur, 0), value: E.gearValue(g), stats, affixes, equipped, compare,
+    broken: !(num(g.dur, 0) > 0), inLoadout: inAnyLoadout(state, g.uid)
+  };
+};
+/**
+ * E.gearInfo(state) → Record<uid, { grade, equipped, inLoadout, stackKey }> for every bag gear piece.
+ * stackKey = `${itemId}|${grade}` when the piece is common, unequipped, in no saved loadout and at full
+ * durability (the UI groups pieces with the same stackKey into one row); otherwise null.
+ */
+E.gearInfo = function (state) {
+  const out = {}; if (!state) return out;
+  const worn = new Set(SLOTS.map((s) => state.equipped && state.equipped[s]).filter(Boolean));
+  const inLo = new Set(); arr(state.loadouts).forEach((l) => { if (l && l.slots) SLOTS.forEach((s) => { if (l.slots[s]) inLo.add(l.slots[s]); }); });
+  const common = rarities()[0].id;
+  arr(state.gear).forEach((g) => {
+    const grade = gradeOf(g.quality); const equipped = worn.has(g.uid); const inLoadout = inLo.has(g.uid);
+    const fresh = num(g.dur, 0) >= num(g.maxDur, 0) && num(g.maxDur, 0) >= Math.round(num(rarityDef(g.rarity).durability, 100)); // never repaired
+    const stack = g.rarity === common && !equipped && !inLoadout && fresh && !arr(g.affixes).length;
+    out[g.uid] = { grade, equipped, inLoadout, stackKey: stack ? `${g.itemId}|${grade}` : null };
+  });
+  return out;
+};
 E.equip = function (state, uid) {
   const g = findGear(state, uid); if (!g) return { ok: false, reason: 'That item is no longer in your bag.' };
   const it = item(g.itemId); if (!it || !SLOTS.includes(it.slot)) return { ok: false, reason: 'That item cannot be equipped.' };
@@ -133,7 +201,7 @@ export function salvageYield(g) {
   const outQty = Math.max(1, num(rec.outputs[g.itemId], 1)); const pct = salvagePctOf(g.rarity); const grade = gradeOf(g.quality);
   return Object.keys(rec.inputs).filter((id) => item(id)).map((id) => ({ itemId: id, grade, exact: num(rec.inputs[id], 0) / outQty * pct })).filter((x) => x.exact > 0);
 }
-const uidList = (uids) => (Array.isArray(uids) ? uids : uids != null ? [uids] : []).map(String);
+const uidList = (uids) => Array.from(new Set((Array.isArray(uids) ? uids : uids != null ? [uids] : []).map(String))); // deduped
 E.salvagePreview = function (state, uids, opts) {
   const allow = !!(opts && opts.allowProtected); const agg = {}; const blocked = []; let gearCount = 0;
   uidList(uids).forEach((uid) => {
@@ -149,7 +217,8 @@ E.salvagePreview = function (state, uids, opts) {
   return { items, gearCount, blocked };
 };
 E.salvage = function (state, uids, opts) {
-  const allow = !!(opts && opts.allowProtected); const blocked = []; const got = {}; let n = 0;
+  // Any number of uids in one call: one pass, one gain event, one log line (mass salvage of stacked commons).
+  const allow = !!(opts && opts.allowProtected); const blocked = []; const got = {}; let n = 0; const gone = new Set();
   uidList(uids).forEach((uid) => {
     const g = findGear(state, uid); const why = salvageBlock(state, g, allow);
     if (why) { blocked.push({ uid, reason: why }); return; }
@@ -157,8 +226,9 @@ E.salvage = function (state, uids, opts) {
       const q = Math.floor(y.exact) + (rand() < y.exact % 1 ? 1 : 0);
       if (q > 0) { addItem(state, y.itemId, y.grade, q); const k = y.itemId + '|' + y.grade; got[k] = (got[k] || 0) + q; }
     });
-    state.gear = state.gear.filter((x) => x.uid !== uid); n++;
+    gone.add(uid); n++;
   });
+  if (gone.size) state.gear = state.gear.filter((x) => !gone.has(x.uid));
   const items = Object.keys(got).map((k) => { const [itemId, grade] = k.split('|'); return { itemId, grade: Number(grade), qty: got[k] }; });
   if (!n) return { ok: false, reason: blocked.length ? blocked[0].reason : 'Pick something to salvage.', salvaged: 0, items, blocked };
   emitGain('salvage', items);
