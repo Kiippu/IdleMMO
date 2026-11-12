@@ -9,6 +9,7 @@ import { createEngine, mulberry32, DATA } from '@guildwright/engine';
 import { createIdbStorage } from '../save/idbStorage';
 const SAVE_KEY = 'guildwright-proto-v1';
 import { exportSave, importSave } from '../save/exportImport';
+import { runTick, nextTickDelay } from './tickPlan';
 import type { Req, FromWorker, OfflineSummary, EngineEvent, Derived } from './protocol';
 
 const TICK_SEC = 1;
@@ -60,27 +61,49 @@ function deriveNow(): Derived {
   };
 }
 
-function startTicking() {
-  if (tickTimer != null) return;
-  paused = false;
-  tickTimer = setInterval(() => {
-    // A throw inside one tick must not freeze the game: the UI would keep showing the last snapshot
-    // (e.g. a crew job stuck at 17/18, "ETA 0s"). Log it and keep posting.
-    let events: EngineEvent[] = [];
-    try { events = E.tick(state, TICK_SEC, { visible: true }) as EngineEvent[]; } catch (err) { console.error('engine tick failed', err); }
-    try { E.save(state); } catch (err) { console.error('engine save failed', err); }
-    let derived = lastDerived;
-    try { derived = derive(); } catch (err) { console.error('engine derive failed', err); }
-    if (derived) post({ type: 'tick', snapshot: state, derived, events });
-  }, TICK_SEC * 1000);
+// Ticks run at the exact moment the active rep completes (tickPlan.ts), at most 1s apart, so `complete` /
+// `gain` events and the snapshot reach the UI within a frame of the bar reaching 100%. Each tick advances by
+// the real wall time since the last one. Paused (no timer at all) while the page is hidden.
+function tickOnce() {
+  tickTimer = null;
+  const now = Date.now();
+  let events: EngineEvent[] = []; let delay = TICK_SEC * 1000;
+  // A throw inside one tick must not freeze the game: log it and keep posting.
+  try { const r = runTick(E, state, now, lastTickAt); events = r.events as EngineEvent[]; delay = r.delayMs; } catch (err) { console.error('engine tick failed', err); }
+  lastTickAt = now;
+  if (now - lastSaveAt >= 1000) { try { E.save(state); } catch (err) { console.error('engine save failed', err); } lastSaveAt = now; }
+  let derived = lastDerived;
+  try { derived = derive(); } catch (err) { console.error('engine derive failed', err); }
+  if (derived) post({ type: 'tick', snapshot: state, derived, events });
+  if (ticking) tickTimer = setTimeout(tickOnce, delay);
 }
+/** re-plan the next tick now (after a verb changed the active job) */
+function reschedule() {
+  if (!ticking) return;
+  if (tickTimer != null) clearTimeout(tickTimer);
+  const r = E.stampRep(state, Date.now());
+  tickTimer = setTimeout(tickOnce, nextTickDelay(r ? r.secLeft : null));
+}
+function startTicking() {
+  if (ticking) return;
+  paused = false; ticking = true;
+  lastTickAt = Date.now();
+  reschedule();
+}
+let ticking = false;
+let lastTickAt = 0;
+let lastSaveAt = 0;
 let paused = false;
 let lastDerived: Derived | null = null;
 
 function stopTicking() {
-  if (tickTimer == null) return;
-  clearInterval(tickTimer);
+  if (!ticking) return;
+  ticking = false;
+  if (tickTimer != null) clearTimeout(tickTimer);
   tickTimer = null;
+  // bring the state up to now so a pause never drops the time since the last tick
+  try { E.tick(state, Math.max(0, (Date.now() - lastTickAt) / 1000), { visible: true }); } catch (err) { console.error('engine tick failed', err); }
+  lastTickAt = Date.now();
 }
 /** catch up and tick again; always restarts the ticker, even if the catch-up throws */
 function resumeNow(): OfflineSummary | null {
@@ -276,10 +299,19 @@ self.addEventListener('message', async (ev: MessageEvent<Req>) => {
   const req = ev.data;
   try {
     if (paused && E && state && !PASSIVE.has(req.type)) resumeNow();
+    // bring the game up to this instant first, so the verb acts on current progress and the rep timing
+    // stamped below is exact (any completions that were due ride this response)
+    let pre: EngineEvent[] = [];
+    if (ticking && E && state && req.type !== 'pause') {
+      const now = Date.now();
+      try { pre = E.tick(state, Math.max(0, (now - lastTickAt) / 1000), { visible: true }) as EngineEvent[]; } catch (err) { console.error('engine tick failed', err); }
+      lastTickAt = now;
+    }
     const result = await handle(req);
     // gain events made by this request (store buys, salvage, an offline catch-up on init/resume) ride its
     // response, so they reach engine.lastEvents the same way tick events do
-    const events = (E && typeof E.takeEvents === 'function' ? E.takeEvents() : []) as EngineEvent[];
+    const events = pre.concat((E && typeof E.takeEvents === 'function' ? E.takeEvents() : []) as EngineEvent[]);
+    if (ticking && E && state) { lastTickAt = Date.now(); reschedule(); } // also stamps active.repStartedAt / repMs
     post({ id: req.id, ok: true, snapshot: state, derived: derive(), events, result });
   } catch (err: any) {
     post({ id: req.id, ok: false, error: String(err?.message ?? err) });
