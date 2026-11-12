@@ -192,25 +192,30 @@ describe('work effects in actions', () => {
 });
 
 describe('shop tools', () => {
-  it('all 15 Uncommon T1 tools are always on sale at 600g; buying puts one in the bag, not in the slot', async () => {
+  it('all 15 Common T1 tools (Rough) are always on sale at 1,000g; buying puts one in the bag, not in the slot', async () => {
     const { E, mod } = await freshEngine();
-    const s = E.newState(); s.gold = 700;
+    const s = E.newState(); s.gold = 1100;
     const shelf = E.derivedExtras(s).store.tools;
     expect(shelf).toHaveLength(15);
     expect(new Set(shelf.map((t: any) => t.skill)).size).toBe(15);
-    shelf.forEach((t: any) => { expect(t).toMatchObject({ price: 600, rarity: 'uncommon' }); expect(mod.DATA.items[t.itemId]).toMatchObject({ section: 'tool', tier: 1 }); });
+    shelf.forEach((t: any) => { expect(t).toMatchObject({ price: 1000, rarity: 'common' }); expect(mod.DATA.items[t.itemId]).toMatchObject({ section: 'tool', tier: 1 }); });
     const before = s.tools.fishing;
     const r = E.storeBuyTool(s, 'pine_fishing_rod');
-    expect(r).toMatchObject({ ok: true, qty: 1, gold: 600 });
+    expect(r).toMatchObject({ ok: true, qty: 1, gold: 1000 });
     expect(s.gold).toBe(100);
     const g = s.gear.find((x: any) => x.uid === r.uids[0]);
-    expect(g).toMatchObject({ itemId: 'pine_fishing_rod', rarity: 'uncommon', quality: 50, cond: 100 });
-    expect(g.affixes).toEqual([{ id: 'primary', roll: 1 }]);
+    expect(g).toMatchObject({ itemId: 'pine_fishing_rod', rarity: 'common', quality: 30, cond: 100 });
+    expect(E.gradeOf(g.quality)).toBe(0); // Rough
+    expect(g.affixes).toEqual([]);
+    expect(g.starter).toBeUndefined(); // a bought tool can be sold and salvaged
     expect(s.tools.fishing).toBe(before);
     expect(E.storeBuyTool(s, 'pine_fishing_rod')).toMatchObject({ ok: false });
     expect(E.storeBuyTool(s, 'iron_pickaxe').reason).toBe('That tool is not on sale.');
-    // the hourly gear rotation sells T1 fight gear only
+    // the hourly gear rotation sells T1 fight gear only, Common and Rough
     for (let hr = 0; hr < 50; hr++) { const { stockFor } = await import('../src/store'); stockFor(s, hr).filter((x: any) => x.kind === 'gear').forEach((x: any) => {
       expect(mod.DATA.items[x.itemId]).toMatchObject({ section: 'fight', tier: 1 }); }); }
+    s.gold = 1e6; const slot = E.storeView(s).slots.find((x: any) => x.kind === 'gear');
+    const b = E.storeBuy(s, slot.slot, 1); expect(b.ok).toBe(true);
+    expect(s.gear.find((x: any) => x.uid === b.uids[0])).toMatchObject({ rarity: 'common', quality: 30, affixes: [] });
   });
 });

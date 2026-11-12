@@ -244,7 +244,7 @@ describe('gear balance', () => {
     const t5 = gain(5, 5, 97, ['brisk', 'bountiful'], 1.2); expect(t5).toBeLessThanOrEqual(11); expect(t5).toBeGreaterThan(9);
   });
 
-  it('expected gains: T1 Common kit +2% income; the shop Uncommon T1 tool pays back in 14–50 h vs no tool', async () => {
+  it('expected gains: T1 Common kit +2% income; the shop Common Rough T1 tool pays back in 20–50 h vs no tool', async () => {
     const { E, mod } = await freshEngine();
     const s = E.newState(); s.skills.mining.xp = E.xpForLevel(40);
     ['hessian_field_gloves', 'hessian_field_boots', 'anglers_hat', 'foragers_satchel'].forEach((id, i) => {
@@ -259,12 +259,19 @@ describe('gear balance', () => {
       const best = mod.DATA.actions.filter((x: any) => x.skill === skill && x.level <= 7).sort((x: any, y: any) => E.incomePerHour(b, y.id) - E.incomePerHour(b, x.id))[0];
       const g0 = E.incomePerHour(b, best.id, { withGear: true });
       const row = E.storeTools().find((t: any) => t.skill === skill);
-      expect(row.price).toBe(600);
+      expect(row.price).toBe(1000);
       const r = E.storeBuyTool(Object.assign(b, { gold: 1000 }), row.itemId); expect(r.ok).toBe(true);
       E.equip(b, r.uids[0]);
       const hours = row.price / (E.incomePerHour(b, best.id, { withGear: true }) - g0);
-      // herbalism is the outlier (mint pays best at level 7): 14.6 h since the Uncommon tool shows a full +0.1 step (1.2%)
-      expect(hours, skill).toBeGreaterThan(14); expect(hours, skill).toBeLessThan(50);
+      expect(hours, skill).toBeGreaterThanOrEqual(20); expect(hours, skill).toBeLessThanOrEqual(50);
     }
+  });
+
+  it('the starter hessian robe (Common, Rough) shows its cloth profile only: no bonus or affix line', async () => {
+    const { E } = await freshEngine();
+    const s = E.newState(); const d = E.gearDetail(s, s.equipped.chest);
+    expect(d).toMatchObject({ itemId: 'hessian_robe', rarity: 'common', gradeName: 'Rough', affixes: [] });
+    expect(d.stats.map((l: any) => l.key)).toEqual(['def', 'heal', 'hp']); // cloth: defence + healing; a chest adds HP = 2.5 x defence
+    expect(E.playerStats(s).maxHp).toBe(600 + d.stats.find((l: any) => l.key === 'hp').value); // base 600 (x10 scale) + the robe
   });
 });

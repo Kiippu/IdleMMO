@@ -20,7 +20,7 @@ import { pushEvent } from './events';
 import { emitGain } from './gains';
 
 export const HOUR_MS = 3600000;
-const GEAR_QUALITY = 50; // Standard grade
+const GEAR_QUALITY = 30; // every shop piece (tools and the rotating fight gear) is Rough grade (owner playtest 2026-11-13)
 
 export const storeHour = (state) => Math.floor(nowOf(state) / HOUR_MS);
 
@@ -84,11 +84,11 @@ export function stockFor(state, hour) {
       const id = pool[i]; pool.splice(i, 1); w.splice(i, 1);
       const tier = clamp(num(item(id).tier, 1), 1, 5);
       if (kind === 'resource') {
-        const x = rng(); const grade = x < 0.25 ? 0 : x < 0.85 ? 1 : 2;
+        const grade = 0; rng(); // every shop item is Rough (owner playtest 2026-11-13); rng() kept so the stock rolls stay the same
         const base = [40, 25, 15, 8, 4][tier - 1];
         slots.push({ itemId: id, kind, grade, stock: Math.max(1, Math.round(base * (0.6 + 0.4 * rng()))), sold: 0 });
       } else {
-        slots.push({ itemId: id, kind, grade: 1, stock: rng() < 0.3 ? 2 : 1, sold: 0 });
+        slots.push({ itemId: id, kind, grade: 0, stock: rng() < 0.3 ? 2 : 1, sold: 0 });
       }
     }
   };
@@ -179,7 +179,7 @@ export function storeTools() {
   if (toolShelf.items === items && toolShelf.list) return toolShelf.list;
   const tier = num(ECON.storeToolTier, 1);
   const list = TOOL_SKILLS.map((skill) => Object.keys(items).find((id) => { const it = item(id); return it && sectionOf(it) === 'tool' && it.toolSkill === skill && num(it.tier, 1) === tier; }))
-    .filter(Boolean).map((id) => ({ itemId: id, name: item(id).name, skill: item(id).toolSkill, price: num(ECON.storeToolPrice, 600), rarity: ECON.storeToolRarity || 'uncommon' }));
+    .filter(Boolean).map((id) => ({ itemId: id, name: item(id).name, skill: item(id).toolSkill, price: num(ECON.storeToolPrice, 1000), rarity: ECON.storeToolRarity || 'common' }));
   toolShelf = { items, list };
   return list;
 }

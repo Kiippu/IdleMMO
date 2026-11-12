@@ -197,7 +197,7 @@ export interface StoreSlot {
   /** pass to storeBuy */
   slot: number;
   itemId: string; name: string; kind: 'resource' | 'gear';
-  /** grade index for resources (0 Rough .. 4 Pristine); null for gear (sold Common, Standard quality) */
+  /** grade index for resources (0 Rough .. 4 Pristine); null for gear (sold Common, Rough quality) */
   grade: number | null;
   rarity: RarityId;
   /** left to buy this hour */
@@ -213,7 +213,7 @@ export interface StoreView {
   /** game-clock ms when the stock rotates */
   refreshesAt: number;
   slots: StoreSlot[];
-  /** Uncommon T1 tools, always on sale (gear overhaul); buy with E.storeBuyTool(state, itemId) */
+  /** Common T1 tools (Rough), always on sale (owner playtest 2026-11-13); buy with E.storeBuyTool(state, itemId) */
   tools: StoreToolRow[];
   buyMult: { resource: number; gear: number };
   sellMult: number;

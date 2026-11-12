@@ -369,9 +369,11 @@ export const ECON = {
   storeResourceSlots: 6,       // resource slots per hourly rotation
   storeGearSlots: 3,           // gear slots per hourly rotation
   storeGearMaxTier: 1,         // fight gear tiers in the hourly rotation (gear spec: T1 only)
-  storeToolPrice: 600,         // Uncommon T1 tools, always on sale (gear overhaul 2026-11-12)
+  // Common T1 tools, Rough grade, always on sale (owner playtest 2026-11-13; was Uncommon 600g). 1,000g: pays back in
+  // 30–45 h of gathering at level 7 vs no tool, and stays dearer than repairing a fully worn T1 tool (990g).
+  storeToolPrice: 1000,
   storeToolTier: 1,
-  storeToolRarity: 'uncommon',
+  storeToolRarity: 'common',
 };
 
 // Display rarity per item id (the collect reveal orders rarer items last and flashes their ink).

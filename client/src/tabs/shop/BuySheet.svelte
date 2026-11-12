@@ -41,9 +41,8 @@
     <h2 id="by-title">Buy {s.name}</h2>
     <p class="meta">{detail} <span class="num">{fmtG(s.price)}</span> each.</p>
     <div class="quick" role="group" aria-label="Quantity">
-      <button type="button" class="btn" aria-pressed={n === 1} onclick={() => set(1)}>1</button>
-      <button type="button" class="btn" aria-pressed={n === 10} disabled={max < 10} onclick={() => set(10)}>10</button>
-      <button type="button" class="btn" aria-pressed={n === max && max > 1 && max !== 10} disabled={max < 2} onclick={() => set(max)}>Max <span class="num">{max}</span></button>
+      {#if max >= 11}<button type="button" class="btn" aria-label="Add 10" disabled={n >= max} onclick={() => set(n + 10)}>+10</button>{/if}
+      <button type="button" class="btn" aria-pressed={n === max && max > 1} disabled={max < 2} onclick={() => set(max)}>Max <span class="num">{max}</span></button>
     </div>
     <div class="step">
       <button type="button" class="btn" aria-label="Fewer" disabled={n <= 1} onclick={() => set(n - 1)}>−</button>
@@ -64,7 +63,7 @@
   .sheet { width: 100%; max-width: var(--col); display: grid; gap: 10px; padding: 16px var(--gut-r) calc(16px + env(safe-area-inset-bottom, 0px)) var(--gut-l); background: var(--paper); border: 1px solid var(--rule); border-bottom: 0; box-shadow: 0 -8px 24px var(--shadow); }
   h2 { margin: 0; font: 600 var(--t-lg)/1.2 var(--f-display); }
   .meta { margin: 0; color: var(--ink-3); font-size: var(--t-sm); }
-  .quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .quick { display: flex; gap: 6px; } .quick .btn { flex: 1; }
   .step { display: grid; grid-template-columns: 52px 1fr 52px; gap: 6px; }
   .step input { text-align: center; }
   .sum { list-style: none; margin: 0; padding: 8px; display: grid; gap: 2px; background: var(--sunk); border: 1px solid var(--rule); color: var(--ink-2); font-size: var(--t-sm); }

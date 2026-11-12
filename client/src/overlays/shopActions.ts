@@ -5,7 +5,7 @@ import { engineClient } from '../engine/client';
 import { GRADE_NAMES } from '../engine/grades';
 import { fmtG } from '../format';
 import { fmtEffect } from '../tabs/war/gearUi';
-import { askNumber, noticeSheet } from './confirm.svelte';
+import { askNumber, confirmSheet, noticeSheet } from './confirm.svelte';
 
 const GRADE_LABEL = GRADE_NAMES;
 const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring', amulet: 'Amulet', body: 'Body', hands: 'Hands', feet: 'Feet', tool: 'Tool' };
@@ -74,4 +74,18 @@ export async function buyFromShop(s: any): Promise<boolean> {
     lastBuy.qty = qty; lastBuy.gold = res.gold;
     return true;
   } catch (err) { console.error('storeBuy failed', err); return false; }
+}
+
+/** Buy one tool from the always-on Tools shelf (extras.store.tools). Used by the item sheet. */
+export async function buyToolFromShop(t: { itemId: string; name: string; price: number; rarity?: string }): Promise<boolean> {
+  const gold = Math.floor(engine.snapshot?.gold ?? 0);
+  if (t.price > gold) { await noticeSheet('Not enough gold', `${t.name} costs ${fmtG(t.price)} and you have ${fmtG(gold)}.`); return false; }
+  const ok = await confirmSheet({ title: `Buy ${t.name}?`, body: `${statDiff(t.itemId)}. It goes to your bag; swap it in under War Room › Loadout › Tools. ${fmtG(t.price)}.`, confirmLabel: `Buy ${fmtG(t.price)}` });
+  if (!ok) return false;
+  try {
+    const res: any = await engineClient.storeBuyTool(t.itemId);
+    if (res.ok === false) { await noticeSheet('Could not complete', res.reason); return false; }
+    lastBuy.qty = 1; lastBuy.gold = res.gold ?? t.price;
+    return true;
+  } catch (err) { console.error('storeBuyTool failed', err); return false; }
 }

@@ -13,7 +13,7 @@
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
   import { openSalvage } from './salvage.svelte';
-  import { buyFromShop, lastBuy } from './shopActions';
+  import { buyFromShop, buyToolFromShop, lastBuy, buyDetail } from './shopActions';
   import { gradeName } from '../engine/grades';
   import { fmtEffectValue } from '../tabs/war/gearUi';
 
@@ -36,7 +36,9 @@
   let cat = $derived<any>(ref ? catalog[ref.itemId] ?? null : null);
   let cstat = $derived<string>(ref ? (engine.derived?.extras?.codex?.items?.[ref.itemId]?.status ?? 'known') : 'known');
   // A hint: not yet discovered. Only inputs you have already seen are named.
-  let hint = $derived(!!ref && cstat === 'hint' && !engine.snapshot?.seen?.[ref.itemId] && !ref.uid && !ref.actionId);
+  // Anything on sale in the Shop right now counts as known (real name, stats, price, Buy).
+  let onSale = $derived.by(() => { const st = engine.derived?.extras?.store as any; return !!ref && (ref.shopSlot != null || !!st?.slots?.some((s: any) => s.itemId === ref!.itemId && s.qty > 0) || !!st?.tools?.some((t: any) => t.itemId === ref!.itemId)); });
+  let hint = $derived(!!ref && cstat === 'hint' && !engine.snapshot?.seen?.[ref.itemId] && !ref.uid && !ref.actionId && !onSale);
   const seenId = (id: string) => !!engine.snapshot?.seen?.[id];
   let salvageYield = $derived.by(() => {
     if (!cat?.salvage || !g || isEq) return '';
@@ -64,7 +66,6 @@
   let vaultGear = $derived<any[]>(snap?.crew?.vault?.gear ?? []);
   let g = $derived(ref?.uid ? [...bag, ...vaultGear].find((x) => x.uid === ref!.uid) ?? null : null);
   let inBag = $derived(!!g && bag.some((x) => x.uid === g.uid));
-  let rarity = $derived<string>(hint ? 'common' : g?.rarity ?? (ref ? itemRarity[ref.itemId] : null) ?? 'common');
   let grades = $derived<number[] | null>(ref && it && it.kind !== 'gear' ? (snap?.inv?.[ref.itemId] ?? null) : null);
   let status = $derived(view?.raidStatus ?? null);
   const have = (id: string) => (snap?.inv?.[id] ?? []).reduce((a: number, b: number) => a + (b || 0), 0);
@@ -76,7 +77,15 @@
   let dropsFrom = $derived(ref ? actions.filter((a) => a.kind === 'combat' && a.drops?.some((d) => d.item === ref!.itemId)) : []);
   let usedIn = $derived(ref ? actions.filter((a) => a.inputs && ref!.itemId in a.inputs) : []);
   let contracts = $derived<any[]>(ref ? (view?.contracts ?? []).filter((c: any) => c.itemId === ref!.itemId && c.status === 'open') : []);
-  let shopSlot = $derived<any>(ref ? (store?.slots ?? []).find((s: any) => s.itemId === ref!.itemId && s.qty > 0) ?? null : null);
+  let shopSlot = $derived<any>(ref ? (ref.shopSlot != null ? (store?.slots ?? []).find((s: any) => s.slot === ref!.shopSlot) : (store?.slots ?? []).find((s: any) => s.itemId === ref!.itemId && s.qty > 0)) ?? null : null);
+  // A tool on the always-open shelf (Uncommon, fixed price).
+  let shopTool = $derived<any>(ref && !ref.uid && !shopSlot ? (store?.tools ?? []).find((t: any) => t.itemId === ref!.itemId) ?? null : null);
+  // A gear offer you do not own yet: base stats from the data (shop gear is Common, Rough grade).
+  let offer = $derived(!!ref && !ref.uid && !ref.actionId && it?.kind === 'gear' && (!!shopSlot || !!shopTool));
+  let offerRarity = $derived<string>(shopTool?.rarity ?? shopSlot?.rarity ?? 'common');
+  let offerCmp = $derived.by(() => (offer ? buyDetail({ kind: 'gear', itemId: ref!.itemId, rarity: offerRarity }).replace(/^[^.]*\.\s*/, '') : ''));
+  let rarity = $derived<string>(hint ? 'common' : g?.rarity ?? (offer ? offerRarity : null) ?? (ref ? itemRarity[ref.itemId] : null) ?? 'common');
+  async function buyTool() { if (shopTool && (await buyToolFromShop(shopTool))) note = `Bought for ${fmtG(lastBuy.gold)}.`; }
 
   const statLine = (id: string) => Object.entries(itemsMap[id]?.stats ?? {}).filter(([, v]) => v).map(([k, v]) => `+${v} ${STAT_NAME[k] ?? k}`).join(', ');
   // Full gear card from the engine (stats, affixes, compare). Falls back to base stats until it loads.
@@ -184,7 +193,7 @@
   let runningId = $derived<string | null>(snap?.active?.actionId ?? null);
   let runningName = $derived(runningId ? actions.find((a) => a.id === runningId)?.name ?? null : null);
   // An owned piece shows its own card, not the recipe that makes it.
-  let panelActs = $derived<Action[]>(act && act.kind !== 'combat' ? [act] : ref?.uid ? [] : recipes);
+  let panelActs = $derived<Action[]>(act && act.kind !== 'combat' ? [act] : ref?.uid || offer ? [] : recipes);
   const KIND_LABEL: Record<string, string> = { gather: 'Gather', refine: 'Refine', craft: 'Craft', combat: 'Fight' };
   // Rough damage per kill from the engine's own formula: dmg x ~1.2, less 30% of defence.
   const hitDmg = (a: Action) => Math.max(1, Math.round(((a.enemy as any)?.dmg ?? 1) * 1.2 - (view?.playerStats?.def ?? 0) * 0.3));
@@ -356,8 +365,24 @@
         {:else if loadedKey !== detailKey}
           <p class="meta" role="status">Loading stats…</p>
         {:else}
-          {#if statLine(ref.itemId)}<p class="body num">{statLine(ref.itemId)}</p>{/if}
+          {#if !offer && statLine(ref.itemId)}<p class="body num">{statLine(ref.itemId)}</p>{/if}
         {/if}
+      {/if}
+
+      {#if offer && it}
+        <section class="gear" aria-label="Shop offer">
+          <p class="meta"><span style:color={`var(--r-${offerRarity})`}>{cap(offerRarity)}</span> · Rough · for sale</p>
+          {#if statLine(ref.itemId)}
+            <dl class="facts">{#each Object.entries(it.stats ?? {}).filter(([, v]) => v) as [k, v] (k)}<div><dt>{cap(STAT_NAME[k] ?? k)}</dt><dd class="num">+{v}</dd></div>{/each}</dl>
+          {/if}
+          {#if it.effects?.length}
+            <h3>Effects</h3>
+            <ul class="aff">{#each it.effects as e (e.id + (e.group ?? ''))}<li><span>{effectNames[e.id] ?? e.id} {fmtEffectValue(e.id, e.value)}</span></li>{/each}</ul>
+          {/if}
+          {#if offerRarity !== 'common'}<p class="meta">{cap(offerRarity)}: bonus affixes on top of these base values.</p>{/if}
+          <p class="meta">Price <span class="num brass">{fmtG((shopSlot ?? shopTool).price)}</span></p>
+        </section>
+        <p class="meta">{offerCmp}</p>
       {/if}
 
       {#if grades}
@@ -397,7 +422,7 @@
       {#if dropsFrom.length}<p class="meta">Drops from: {dropsFrom.map((a) => a.name).join(', ')}</p>{/if}
       {#if usedIn.length}<p class="meta">Used in: {usedIn.slice(0, 5).map((a) => a.name).join(', ')}{usedIn.length > 5 ? ` and ${usedIn.length - 5} more` : ''}</p>{/if}
       {#each contracts as c}<p class="meta">Contract: {c.source === 'town' ? 'Town' : 'Crew'} wants <span class="num">{fmtN(c.remaining)}</span> at <span class="num brass">{fmtG(c.rewardPer)}</span> each.</p>{/each}
-      {#if shopSlot}<p class="meta">Shop: <span class="num brass">{fmtG(shopSlot.price)}</span> each, <span class="num">{shopSlot.qty}</span> left this hour.</p>{/if}
+      {#if shopSlot && !offer}<p class="meta">Shop: {shopSlot.grade != null ? `${gradeName(shopSlot.grade)} · ` : ''}<span class="num brass">{fmtG(shopSlot.price)}</span> each, <span class="num">{shopSlot.qty}</span> left this hour.</p>{:else if shopSlot}<p class="meta"><span class="num">{shopSlot.qty}</span> left this hour.</p>{/if}
       {#if grades && store?.sellPrices?.[ref.itemId]}<p class="meta">Store pays <span class="num">{fmtG(store.sellPrices[ref.itemId][Math.max(0, grades.findIndex((q) => q > 0))] ?? 0)}</span> each.</p>{/if}
 
       {#if salvageYield}<p class="meta">Salvage yields {salvageYield}.</p>{:else if g && isEq}<p class="meta">In use. Take it off first.</p>{/if}
@@ -408,6 +433,7 @@
       {#if detail?.repair && !detail.repair.can && detail.repair.reason && !hint && g && !ref.readOnly}<p class="meta">{detail.repair.reason}</p>{/if}
       <div class="actions">
         <button type="button" class="btn ghost" onclick={closeItem}>Close</button>
+        {#if !hint && shopTool && !ref.readOnly}<button type="button" class="btn primary" onclick={buyTool}>Buy <span class="num">{fmtG(shopTool.price)}</span></button>{/if}
         {#if !hint && shopSlot && !ref.readOnly}<button type="button" class="btn primary" onclick={async () => { if (await buyFromShop(shopSlot)) note = `Bought ${lastBuy.qty} for ${fmtG(lastBuy.gold)}.`; }}>Buy <span class="num">{fmtG(shopSlot.price)}</span></button>{/if}
         {#if !hint && g && inBag && !ref.readOnly}
           {#if detail?.repair && (detail.section === 'fight' ? (detail.dur ?? 0) < (detail.maxDur ?? 0) : (detail.cond ?? 100) < 100)}

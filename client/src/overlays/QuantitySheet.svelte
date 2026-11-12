@@ -47,16 +47,15 @@
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="q-title" tabindex="-1" onclick={(e) => e.stopPropagation()}>
       <h2 id="q-title">How many?</h2>
       <p class="meta">{a.name}{max < 1 ? ' · you are out of materials' : ''}</p>
-      <div class="quick" role="group" aria-label="Quantity">
-        <button type="button" class="btn" aria-pressed={!untilOut && count === 1} disabled={max < 1} onclick={() => set(1)}>1</button>
-        <button type="button" class="btn" aria-pressed={!untilOut && count === 10 && n === 10} disabled={max < 1} onclick={() => set(10)}>10</button>
-        <button type="button" class="btn" aria-pressed={!untilOut && n >= max && max > 0 && n !== 1 && n !== 10} disabled={max < 1} onclick={() => set(max)}>Max <span class="num">{fmtN(Math.max(max, 0))}</span></button>
-        <button type="button" class="btn" aria-pressed={untilOut} disabled={max < 1} onclick={() => (untilOut = true)}>Until out</button>
-      </div>
       <div class="step">
         <button type="button" class="btn" aria-label="Fewer" disabled={max < 1 || (!untilOut && count <= 1)} onclick={() => set((untilOut ? max : n) - 1)}>−</button>
         <input class="num" type="number" inputmode="numeric" min="1" max={Math.max(1, max)} value={count} aria-label="Quantity" onchange={(e) => set(Number((e.currentTarget as HTMLInputElement).value))} />
         <button type="button" class="btn" aria-label="More" disabled={max < 1 || (!untilOut && count >= max)} onclick={() => set((untilOut ? max : n) + 1)}>+</button>
+      </div>
+      <div class="quick" role="group" aria-label="Quick amounts">
+        <button type="button" class="btn" aria-label="Add 10" disabled={max < 1 || (!untilOut && count >= max)} onclick={() => set((untilOut ? max : n) + 10)}>+10</button>
+        <button type="button" class="btn" aria-pressed={!untilOut && n >= max && max > 0} disabled={max < 1} onclick={() => set(max)}>Max <span class="num">{fmtN(Math.max(max, 0))}</span></button>
+        <button type="button" class="btn" aria-pressed={untilOut} disabled={max < 1} onclick={() => (untilOut = true)}>Until out</button>
       </div>
       <p class="sum">Total time <b class="num">{fmtSecs(count * per)}</b>{untilOut ? ' (until materials run out)' : ''}</p>
       <ul class="use">
@@ -79,7 +78,7 @@
   .sheet { width: 100%; max-width: var(--col); display: grid; gap: 10px; padding: 16px var(--gut-r) calc(16px + env(safe-area-inset-bottom, 0px)) var(--gut-l); background: var(--paper); border: 1px solid var(--rule); border-bottom: 0; box-shadow: 0 -8px 24px var(--shadow); }
   h2 { margin: 0; font: 600 var(--t-lg)/1.2 var(--f-display); }
   .meta { margin: 0; color: var(--ink-3); font-size: var(--t-sm); }
-  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .quick .btn { padding: 0 4px; }
   .quick .btn[aria-pressed="true"] { background: var(--woad-soft); border-color: var(--woad); }
   .step { display: flex; gap: 8px; justify-content: center; align-items: center; }
