@@ -1,7 +1,8 @@
 <script lang="ts">
   import { gradeName } from '../engine/grades';
   import ItemIcon from '../art/ItemIcon.svelte';
-  import { iconEl } from '../art/iconDom';
+  import { celebrate } from '../fx/bus';
+  import type { Rarity } from '../fx/gains';
   import { reducedMotion } from '../settings.svelte';
   import { untrack } from 'svelte';
   // Full-screen "While you were away" sheet. The engine already applied the gains;
@@ -12,7 +13,6 @@
   import { engine } from '../engine/store.svelte';
   import { fmtG, fmtN, fmtDuration, rarityRank } from '../format';
   import { openItem } from './itemRef.svelte';
-  import { play } from '../sound';
 
   const items: Record<string, { name?: string }> = (DATA as any).items;
   const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
@@ -84,50 +84,14 @@
 
   // Nothing to show: don't open at all.
   $effect(() => { if (summary && rows.length === 0 && !summary.stoppedReason && !summary.weeks) engine.offline = null; });
-  // ---- Return fountain: tiles burst from the middle of the tab bar in an arc. Transform/opacity only.
-  let layer = $state<HTMLElement | null>(null);
-  let fountainAnims: Animation[] = [];
-  const MAX_P = 40;
-  function launchFountain() {
-    if (!layer || reduced() || typeof layer.animate !== 'function') return;
-    const list = rows.filter((r) => r.group === 'item' || r.group === 'craft');
-    const parts: Array<{ id?: string; named?: string; more?: string; rank: number; color: string }> = list.slice(0, MAX_P - 1).map((r) => ({ id: r.itemId, named: r.itemId ? undefined : 'craft', rank: rarityRank(r.rarity), color: `var(--r-${r.rarity ?? 'common'})` }));
-    if (list.length > MAX_P - 1) parts.push({ more: `+${list.length - (MAX_P - 1)}`, rank: 0, color: 'var(--ink)' });
-    if (parts.length === 0) return;
-    const W = layer.clientWidth, H = layer.clientHeight;
-    const ox = W / 2, oy = H;
-    parts.forEach((pt, i) => {
-      const size = 38 + pt.rank * 3;
-      const el = document.createElement('span');
-      el.className = 'fp';
-      if (pt.more) el.textContent = pt.more; else el.appendChild(iconEl({ id: pt.id, named: pt.named }, pt.id ? (DATA as any).items?.[pt.id] : undefined));
-      el.style.cssText = `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px;border-color:${pt.color};color:${pt.color};` + (pt.rank >= 2 ? `box-shadow:0 0 ${6 + pt.rank * 4}px ${pt.color};` : '');
-      layer!.appendChild(el);
-      const vx = (Math.random() - 0.5) * W * 0.9;              // sideways spread
-      const peak = H * (0.72 + Math.random() * 0.2);            // arc height above the bottom edge
-      const end = H * (0.42 + Math.random() * 0.14);            // settles into the list zone
-      const kf: Keyframe[] = [];
-      const N = 14;
-      for (let k = 0; k <= N; k++) {
-        const t = k / N;
-        // up to the peak at t=.4 (decelerating), then falls under gravity to `end`
-        const y = t < 0.4 ? -peak * (1 - Math.pow(1 - t / 0.4, 2)) : -peak + (peak - end) * Math.pow((t - 0.4) / 0.6, 2);
-        kf.push({ transform: `translate(${ox + vx * t}px, ${oy + y}px) scale(${t < 0.1 ? 0.4 + t * 6 : 1})`, opacity: t < 0.05 ? 0 : t > 0.88 ? (1 - t) / 0.12 : 1, offset: t });
-      }
-      const a = el.animate(kf, { duration: 1500, delay: i * 28, easing: 'linear', fill: 'both' });
-      a.onfinish = () => el.remove();
-      fountainAnims.push(a);
-    });
-    try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(parts.some((p) => p.rank >= 2) ? [25, 40, 25, 40, 70] : [25, 40, 25]); } catch { /* unsupported */ }
+  // ---- Return fountain: Collect hands the WHOLE haul to the shared Fountain (one pop per unit, stacked past the cap, plus coins).
+  function haul() {
+    const sm = summary; if (!sm) return;
+    const gains = (sm.loot ?? []).filter((l) => l.qty > 0).map((l) => ({ itemId: l.itemId, qty: l.qty, rarity: (l.rarity ?? itemRarity[l.itemId] ?? 'common') as Rarity }));
+    celebrate({ gains, coins: sm.gold > 0 ? sm.gold : 0, big: true });
   }
-  function stopFountain() { fountainAnims.forEach((a) => a.cancel()); fountainAnims = []; layer?.querySelectorAll('.fp').forEach((n) => n.remove()); try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(0); } catch { /* */ } }
-  let launched = false;
-  $effect(() => {
-    if (summary && layer && rows.length && !launched) { launched = true; play('fountain'); requestAnimationFrame(launchFountain); }
-    if (!summary) { launched = false; stopFountain(); }
-  });
-  function skip() { skipped = true; stopFountain(); }
-  function collect() { play('collect'); engine.offline = null; }
+  function skip() { skipped = true; }
+  function collect() { haul(); engine.offline = null; }
   function onKey(ev: KeyboardEvent) {
     if (!summary) return;
     if (ev.key === 'Escape' && finished) collect();
@@ -139,7 +103,6 @@
 
 {#if summary && (rows.length || summary.stoppedReason || summary.weeks)}
   <div class="full" role="dialog" aria-modal="true" aria-labelledby="away-title" onclick={skip} onkeydown={onKey} tabindex="-1">
-    <div class="fl" bind:this={layer} aria-hidden="true"></div>
     <div class="col">
       <div class="mid">
       <header>
@@ -193,8 +156,6 @@
     padding: max(16px, env(safe-area-inset-top)) var(--gut-r) 0 var(--gut-l);
   }
   .col { width: 100%; max-width: var(--col); min-height: 100%; display: flex; flex-direction: column; gap: 12px; }
-  .fl { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
-  .fl :global(.fp) { position: absolute; left: 0; top: 0; display: grid; place-items: center; box-sizing: border-box; border: 2px solid; background: var(--paper); font: 700 var(--t-sm)/1 var(--f-display); will-change: transform, opacity; }
   .full { animation: fin 220ms ease-out; }
   @keyframes fin { from { opacity: 0; } }
   .mid { flex: 1; display: grid; gap: 12px; align-content: center; }

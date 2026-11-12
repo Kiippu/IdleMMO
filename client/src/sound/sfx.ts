@@ -1,6 +1,6 @@
 // Generated sound effects: Web Audio synthesis only, no audio files.
 // Nothing plays until the first user gesture, while muted, or while the page is hidden.
-export type SfxName = 'tap' | 'collect' | 'levelUp' | 'fountain' | 'coin';
+export type SfxName = 'tap' | 'collect' | 'levelUp' | 'fountain' | 'coin' | 'start';
 
 /** Pure gate: sound may play only after a gesture, when not muted, and when the page is visible. */
 export const canPlay = (g: { unlocked: boolean; muted: boolean; hidden: boolean }): boolean => g.unlocked && !g.muted && !g.hidden;
@@ -19,7 +19,7 @@ export interface SfxDeps { makeContext: () => AudioLike | null; isMuted: () => b
 
 const MASTER = 0.5;     // overall ceiling; every voice below is also gentle
 /** Minimum gap per sound so a burst of events (a 50-item fountain) is one sound, not fifty. */
-const MIN_GAP_MS: Record<SfxName, number> = { tap: 45, collect: 260, levelUp: 0, fountain: 600, coin: 220 };
+const MIN_GAP_MS: Record<SfxName, number> = { tap: 45, collect: 260, levelUp: 0, fountain: 600, coin: 220, start: 120 };
 
 export function createSfx(deps: SfxDeps) {
   let unlocked = false;
@@ -45,6 +45,7 @@ export function createSfx(deps: SfxDeps) {
     tap: (c, t) => voice(c, 'triangle', 520, 440, t, 0.05, 0.05),
     collect: (c, t) => { voice(c, 'sine', 660, 660, t, 0.12, 0.16); voice(c, 'sine', 880, 880, t + 0.09, 0.2, 0.16); },
     coin: (c, t) => [1568, 2093, 2637, 3136].forEach((f, i) => voice(c, 'triangle', f, f * 1.01, t + i * 0.05, 0.14, 0.09)),
+    start: (c, t) => { voice(c, 'triangle', 440, 440, t, 0.08, 0.1); voice(c, 'triangle', 660, 660, t + 0.07, 0.12, 0.1); },
     levelUp: (c, t) => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => voice(c, 'triangle', f, f, t + i * 0.09, i === 3 ? 0.4 : 0.14, 0.18)),
     fountain: (c, t) => {
       voice(c, 'sine', 330, 990, t, 0.5, 0.08);

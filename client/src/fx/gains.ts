@@ -21,16 +21,30 @@ export function gainsFromEvents(evs: Ev[] | null | undefined, itemRarity: Record
   return out;
 }
 
-export type Pop = { itemId: string; rarity: Rarity; more?: number };
+export type Pop = { itemId: string; rarity: Rarity; /** units this pop stands for when a haul is bigger than the cap (shown as "x3") */ stack?: number };
 
-/** One pop per unit. Past `cap` pops the surplus folds into the last pop as a "+N" badge, so it never stalls. */
+/** One pop per unit. When the haul is bigger than `cap`, each item gets a share of the pops
+ *  (at least one) and every pop stands for several units, so a huge haul still reads as everything popping. */
 export function toPops(gains: Gain[], cap: number): Pop[] {
   if (cap <= 0) return [];
+  const total = gains.reduce((n, g) => n + g.qty, 0);
   const pops: Pop[] = [];
-  let surplus = 0;
-  for (const g of gains) for (let i = 0; i < g.qty; i++) {
-    if (pops.length < cap) pops.push({ itemId: g.itemId, rarity: g.rarity }); else surplus++;
+  if (total <= cap) {
+    for (const g of gains) for (let i = 0; i < g.qty; i++) pops.push({ itemId: g.itemId, rarity: g.rarity });
+    return pops;
   }
-  if (surplus && pops.length) pops[pops.length - 1].more = surplus;
+  // rarest first so the cap never drops the best find; every item gets at least one pop while there is room
+  const order = [...gains].sort((a, b) => RARITY_RANK[b.rarity] - RARITY_RANK[a.rarity]);
+  let room = cap;
+  for (let k = 0; k < order.length && room > 0; k++) {
+    const g = order[k];
+    const left = order.length - k - 1;
+    const n = Math.max(1, Math.min(g.qty, Math.floor((g.qty * cap) / total), room - left));
+    const per = Math.ceil(g.qty / n);
+    let rest = g.qty;
+    let used = 0;
+    for (let i = 0; i < n && rest > 0; i++) { used++; const st = Math.min(per, rest); rest -= st; pops.push({ itemId: g.itemId, rarity: g.rarity, stack: st > 1 ? st : undefined }); }
+    room -= used;
+  }
   return pops;
 }

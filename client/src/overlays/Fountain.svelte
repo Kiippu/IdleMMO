@@ -8,6 +8,7 @@
   import { reducedMotion } from '../settings.svelte';
   import { play } from '../sound';
   import { iconEl } from '../art/iconDom';
+  import { fxBus } from '../fx/bus';
   import { gainsFromEvents, toPops, RARITY_RANK, type Gain } from '../fx/gains';
 
   const MAX_LIVE = 150;       // simultaneous sprites (coins and items together)
@@ -59,7 +60,7 @@
     el.animate([{ opacity: 0 }, { opacity: strong ? 0.85 : 0.6, offset: 0.2 }, { opacity: 0 }], { duration: strong ? 900 : 650, easing: 'ease-out' }).onfinish = () => el.remove();
   }
 
-  function spawn(gains: Gain[], coins: number) {
+  function spawn(gains: Gain[], coins: number, forceBig = false) {
     const l = layer;
     if (!l) return;
     const { W, H, ox, oy } = origin(l);
@@ -70,12 +71,12 @@
     const total = pops.length + coinN;
     const top = pops.reduce((m, p) => Math.max(m, RARITY_RANK[p.rarity]), 0);
     if (!total && coins <= 0) return;
-    const big = top >= 3 || total >= 25 || coins >= 100;
+    const big = forceBig || top >= 3 || total >= 25 || coins >= 100;
 
-    const gap = Math.min(110, SPAN_MS / Math.max(1, pops.length));
+    const gap = Math.min(110, (forceBig ? 2200 : SPAN_MS) / Math.max(1, pops.length));
     pops.forEach((pt, i) => {
       const rank = RARITY_RANK[pt.rarity];
-      const size = 32 + rank * 3;
+      const size = 32 + rank * 3 + (pt.stack ? 8 : 0);
       const el = document.createElement('span');
       el.className = 'pop';
       el.style.cssText = `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px;--c:var(--r-${pt.rarity});--g:${size + 14 + rank * 12}px;`;
@@ -84,7 +85,7 @@
       if (rank >= 4) el.classList.add('spark2');
       const glow = document.createElement('i'); glow.className = 'glow'; el.appendChild(glow);
       el.appendChild(iconEl({ id: pt.itemId }, items[pt.itemId]));
-      if (pt.more) { const b = document.createElement('b'); b.textContent = `+${pt.more}`; el.appendChild(b); }
+      if (pt.stack) { const b = document.createElement('b'); b.textContent = `×${pt.stack}`; el.appendChild(b); }
       l.appendChild(el);
       const peak = Math.min(peakMax, rand(170, 340) + rank * 18);
       const a = el.animate(path(ox, oy, W, peak, rand(-1, 1) * spreadMax / 2, rand(-25, 25)), { duration: 1700 + rank * 90, delay: i * gap, easing: 'linear', fill: 'both' });
@@ -93,7 +94,7 @@
 
     if (coinN) {
       const size = coins >= 1000 ? 26 : coins >= 300 ? 22 : coins >= 100 ? 18 : coins > 30 ? 16 : 14;
-      const cgap = Math.min(60, 900 / coinN);
+      const cgap = Math.min(60, (forceBig ? 1800 : 900) / coinN);
       for (let i = 0; i < coinN; i++) {
         const el = document.createElement('span');
         el.className = 'coin';
@@ -118,7 +119,7 @@
       }
       flashGold(160 + Math.min(600, coinN * 20));
     }
-    if (big) edge(l, top >= 3 ? `var(--r-${(['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const)[top]})` : 'var(--brass-fill)', top >= 4 || coins >= 1000 || total >= 60);
+    if (big) edge(l, top >= 3 ? `var(--r-${(['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const)[top]})` : 'var(--brass-fill)', forceBig || top >= 4 || coins >= 1000 || total >= 60);
   }
 
   /** Brass flash and a small pulse on the top-bar gold number when coins land. */
@@ -141,14 +142,14 @@
     }
   }
 
-  function celebrate(gains: Gain[], coins: number) {
+  function celebrate(gains: Gain[], coins: number, forceBig = false) {
     const top = gains.reduce((m, g) => Math.max(m, RARITY_RANK[g.rarity]), -1);
     const tot = gains.reduce((n, g) => n + g.qty, 0);
     if (gains.length) play(top >= 3 ? 'fountain' : 'collect');
     if (coins > 0) play('coin');
-    if (top >= 3 || tot >= 25 || coins >= 100) play('fountain');
+    if (forceBig || top >= 3 || tot >= 25 || coins >= 100) play('fountain');
     said = [gains.length ? (gains.length === 1 ? `Got ${gains[0].qty} ${itemName(gains[0].itemId)}` : `Got ${tot} items`) : '', coins > 0 ? `Got ${coins}g` : ''].filter(Boolean).join('. ');
-    if (reducedMotion() || typeof document.body.animate !== 'function') showPips(gains, coins); else spawn(gains, coins);
+    if (reducedMotion() || typeof document.body.animate !== 'function') showPips(gains, coins); else spawn(gains, coins, forceBig);
   }
 
   // Items arrive as `gain` events; gold is seen as a rise in the snapshot's gold between updates.
@@ -178,6 +179,30 @@
       if (prev == null || !engine.ready || engine.offline || document.hidden) return;
       const d = Math.floor(gold - prev);
       if (d >= 1) { pendingCoins += d; queue(); }
+    });
+  });
+
+  // The return reveal asks for the whole offline haul, one pop per unit (stacked past the cap) plus coins.
+  $effect(() => {
+    fxBus.handler = (c) => { if (c.gains.length || c.coins > 0) celebrate(c.gains, Math.floor(c.coins), !!c.big); };
+    return () => { fxBus.handler = null; };
+  });
+
+  // Starting a job gives a small immediate answer: a soft sound and a short pulse ring over the tab bar,
+  // so it never feels like nothing happened. The first value is only a baseline (a reload with a job running is silent).
+  let lastJob: string | null | undefined;
+  $effect(() => {
+    const id = engine.snapshot?.active?.actionId ?? null;
+    untrack(() => {
+      const prev = lastJob; lastJob = id;
+      if (prev === undefined || !id || id === prev || !engine.ready || engine.offline) return;
+      play('start');
+      const l = layer; if (!l || reducedMotion() || typeof l.animate !== 'function') return;
+      const { ox, oy } = origin(l);
+      const ring = document.createElement('div'); ring.className = 'startring';
+      ring.style.cssText = `left:${ox}px;top:${oy}px;`;
+      l.appendChild(ring);
+      ring.animate([{ transform: 'translate(-50%,-50%) scale(.3)', opacity: .9 }, { transform: 'translate(-50%,-50%) scale(2.6)', opacity: 0 }], { duration: 520, easing: 'ease-out' }).onfinish = () => ring.remove();
     });
   });
 </script>
@@ -211,6 +236,7 @@
   .fx :global(.coin) { position: absolute; left: 0; top: 0; opacity: 0; border-radius: 50%; will-change: transform, opacity;
     background: radial-gradient(circle at 35% 30%, #fff4c2 0 14%, var(--brass-fill) 15% 62%, #a8741a 64% 100%); border: 2px solid #8a5e0a; box-shadow: 0 0 8px rgba(255, 200, 80, .75); }
   .fx :global(.glabel) { position: absolute; opacity: 0; white-space: nowrap; font: 700 20px/1 var(--f-num); color: var(--brass-fill); text-shadow: 0 0 8px rgba(0,0,0,.9), 0 2px 0 #5b3d05, 0 0 14px rgba(255, 190, 60, .8); }
+  .fx :global(.startring) { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--brass-fill); opacity: 0; }
   .fx :global(.edge) { position: absolute; inset: 0; opacity: 0; }
   .pip.goldp .n { color: var(--brass); }
   /* sparkle rings on rare and above */

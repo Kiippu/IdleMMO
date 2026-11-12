@@ -23,6 +23,9 @@ export function initSound(): () => void {
   const onVis = () => sfx.visibilityChanged();
   addEventListener('pointerdown', onDown, true);
   addEventListener('keydown', unlock, true);
+  // iOS Safari only counts touchend / click as a gesture that may start audio, so unlock on those too.
+  addEventListener('touchend', unlock, true);
+  addEventListener('click', unlock, true);
   document.addEventListener('visibilitychange', onVis);
-  return () => { removeEventListener('pointerdown', onDown, true); removeEventListener('keydown', unlock, true); document.removeEventListener('visibilitychange', onVis); };
+  return () => { removeEventListener('pointerdown', onDown, true); removeEventListener('keydown', unlock, true); removeEventListener('touchend', unlock, true); removeEventListener('click', unlock, true); document.removeEventListener('visibilitychange', onVis); };
 }
