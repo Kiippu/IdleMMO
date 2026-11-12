@@ -280,3 +280,7 @@ Save schema stays v7 (new fields additive).
   `GW_BACKUP_DIR`). Scripts in `scripts/server/` (dev applies migrations first; backup keeps 14; restore-check loads a
   backup into a temp DB). `/api/health` reports `db` + table count; `LOG_HEADERS=1` in `server/.dev.vars` logs what the
   tunnel forwards. Runbook: `docs/pc-server.md`. Run on port 4173 so the current tunnel URL keeps working.
+- Start it with `npm run serve` (port 4173). Verified on the owner's Windows PC 2026-11-12: `/api/health` through the
+  tunnel returns `db:true, tables:5`.
+- SHELVED after M0 (owner 2026-11-12): the gear and tool overhaul comes first. When M1 resumes, first capture one
+  `[headers]` line from the server window (request made through the tunnel) for the Origin check.
