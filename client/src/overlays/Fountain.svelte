@@ -10,65 +10,155 @@
   import { iconEl } from '../art/iconDom';
   import { gainsFromEvents, toPops, RARITY_RANK, type Gain } from '../fx/gains';
 
-  const MAX_LIVE = 120;       // simultaneous sprites
-  const SPAN_MS = 1250;       // a burst staggers over about this long
+  const MAX_LIVE = 150;       // simultaneous sprites (coins and items together)
+  const SPAN_MS = 1250;       // an item burst staggers over about this long
   const items: Record<string, { name?: string; sprite?: string; kind?: string; tint?: string }> = (DATA as any).items ?? {};
   const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
   const itemName = (id: string) => items[id]?.name ?? id;
 
   let layer = $state<HTMLElement | null>(null);
   let live = 0;
-  let pips = $state<Array<{ id: number; itemId: string; qty: number; rarity: string }>>([]);
+  let pips = $state<Array<{ id: number; itemId?: string; text: string; rarity: string }>>([]);
   let pipId = 0;
   let said = $state('');
 
-  function spawn(gains: Gain[]) {
+  const rand = (a: number, b: number) => a + Math.random() * (b - a);
+  /** Fountain path: rise, fall to the tab bar's top edge, bounce twice, settle, fade. Transform and opacity only. */
+  function path(ox: number, oy: number, W: number, peak: number, spread: number, rot: number): Keyframe[] {
+    const G = 30; // tab bar top is about this far above its centre line
+    const kf: Keyframe[] = [];
+    const N = 22;
+    for (let k = 0; k <= N; k++) {
+      const t = k / N;
+      let y: number;
+      if (t < 0.38) y = -peak * (1 - Math.pow(1 - t / 0.38, 2));
+      else if (t < 0.62) y = -peak + (peak - G) * Math.pow((t - 0.38) / 0.24, 2);
+      else if (t < 0.74) { const v = (t - 0.62) / 0.12; y = -G - peak * 0.14 * 4 * v * (1 - v); }
+      else if (t < 0.84) { const v = (t - 0.74) / 0.1; y = -G - peak * 0.05 * 4 * v * (1 - v); }
+      else y = -G;
+      const x = spread * (t < 0.62 ? t : 0.62 + (t - 0.62) * 0.25);
+      kf.push({ transform: `translate(${ox + x}px, ${oy + y}px) rotate(${rot * Math.min(t, 0.62)}deg) scale(${t < 0.1 ? 0.3 + t * 7 : 1})`, opacity: t < 0.05 ? 0 : t > 0.86 ? (1 - t) / 0.14 : 1, offset: t });
+    }
+    return kf;
+  }
+  function track(el: HTMLElement, a: Animation) {
+    live++;
+    a.onfinish = a.oncancel = () => { if (el.isConnected) { el.remove(); live = Math.max(0, live - 1); } };
+  }
+  function origin(l: HTMLElement) {
+    const bar = document.querySelector('.tabbar .row')?.getBoundingClientRect();
+    return { W: l.clientWidth, H: l.clientHeight, ox: l.clientWidth / 2, oy: bar ? bar.top + bar.height / 2 : l.clientHeight - 30 };
+  }
+
+  /** Short glow around the screen edge for a big moment. */
+  function edge(l: HTMLElement, color: string, strong: boolean) {
+    const el = document.createElement('div');
+    el.className = 'edge';
+    el.style.cssText = `box-shadow: inset 0 0 ${strong ? 70 : 46}px ${strong ? 14 : 6}px ${color};`;
+    l.appendChild(el);
+    el.animate([{ opacity: 0 }, { opacity: strong ? 0.85 : 0.6, offset: 0.2 }, { opacity: 0 }], { duration: strong ? 900 : 650, easing: 'ease-out' }).onfinish = () => el.remove();
+  }
+
+  function spawn(gains: Gain[], coins: number) {
     const l = layer;
     if (!l) return;
-    const pops = toPops(gains, MAX_LIVE - live);
-    if (!pops.length) return;
-    const bar = document.querySelector('.tabbar .row')?.getBoundingClientRect();
-    const W = l.clientWidth, H = l.clientHeight;
-    const ox = W / 2, oy = bar ? bar.top + bar.height / 2 : H - 30;
-    const gap = Math.min(110, SPAN_MS / pops.length);
+    const { W, H, ox, oy } = origin(l);
+    const spreadMax = Math.min(W * 0.8, 320);
+    const peakMax = Math.min(H * 0.6, 340);
+    const coinN = coins > 0 ? Math.min(coins <= 30 ? coins : 30 + Math.floor(Math.sqrt(coins - 30) * 1.5), 60) : 0;
+    const pops = toPops(gains, Math.max(0, MAX_LIVE - live - coinN));
+    const total = pops.length + coinN;
+    const top = pops.reduce((m, p) => Math.max(m, RARITY_RANK[p.rarity]), 0);
+    if (!total && coins <= 0) return;
+    const big = top >= 3 || total >= 25 || coins >= 100;
+
+    const gap = Math.min(110, SPAN_MS / Math.max(1, pops.length));
     pops.forEach((pt, i) => {
       const rank = RARITY_RANK[pt.rarity];
       const size = 32 + rank * 3;
       const el = document.createElement('span');
       el.className = 'pop';
-      el.style.cssText = `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px;--c:var(--r-${pt.rarity});--g:${size + 14 + rank * 10}px;`;
+      el.style.cssText = `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px;--c:var(--r-${pt.rarity});--g:${size + 14 + rank * 12}px;`;
       if (rank >= 2) el.classList.add('rare');
-      if (rank >= 3) el.classList.add('spark');
+      if (rank >= 2) el.classList.add('spark');
+      if (rank >= 4) el.classList.add('spark2');
       const glow = document.createElement('i'); glow.className = 'glow'; el.appendChild(glow);
       el.appendChild(iconEl({ id: pt.itemId }, items[pt.itemId]));
       if (pt.more) { const b = document.createElement('b'); b.textContent = `+${pt.more}`; el.appendChild(b); }
       l.appendChild(el);
-      live++;
-      const vx = (Math.random() - 0.5) * Math.min(W * 0.8, 300);
-      const peak = Math.min(H * 0.55, 150 + Math.random() * 190 + rank * 14);
-      const kf: Keyframe[] = [];
-      const N = 12;
-      for (let k = 0; k <= N; k++) {
-        const t = k / N;
-        // rises to the peak at t=.42 (decelerating), then falls back under gravity past the start line
-        const y = t < 0.42 ? -peak * (1 - Math.pow(1 - t / 0.42, 2)) : -peak + peak * 1.15 * Math.pow((t - 0.42) / 0.58, 2);
-        kf.push({ transform: `translate(${ox + vx * t}px, ${oy + y}px) scale(${t < 0.12 ? 0.3 + t * 5.8 : 1})`, opacity: t < 0.06 ? 0 : t > 0.8 ? (1 - t) / 0.2 : 1, offset: t });
-      }
-      const a = el.animate(kf, { duration: 1100 + rank * 60, delay: i * gap, easing: 'linear', fill: 'both' });
-      a.onfinish = a.oncancel = () => { if (el.isConnected) { el.remove(); live = Math.max(0, live - 1); } };
+      const peak = Math.min(peakMax, rand(170, 340) + rank * 18);
+      const a = el.animate(path(ox, oy, W, peak, rand(-1, 1) * spreadMax / 2, rand(-25, 25)), { duration: 1700 + rank * 90, delay: i * gap, easing: 'linear', fill: 'both' });
+      track(el, a);
     });
+
+    if (coinN) {
+      const size = coins >= 1000 ? 26 : coins >= 300 ? 22 : coins >= 100 ? 18 : coins > 30 ? 16 : 14;
+      const cgap = Math.min(60, 900 / coinN);
+      for (let i = 0; i < coinN; i++) {
+        const el = document.createElement('span');
+        el.className = 'coin';
+        el.style.cssText = `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px;`;
+        l.appendChild(el);
+        const a = el.animate(path(ox, oy, W, Math.min(peakMax, rand(150, 300)), rand(-1, 1) * spreadMax / 2, rand(-60, 60)), { duration: 1500, delay: 80 + i * cgap, easing: 'linear', fill: 'both' });
+        track(el, a);
+      }
+      if (coins >= 10) {
+        const el = document.createElement('b');
+        el.className = 'glabel';
+        el.textContent = `+${coins.toLocaleString('en-US')}g`;
+        l.appendChild(el);
+        el.style.cssText = `left:${ox}px;top:${oy - 70}px;font-size:${coins >= 1000 ? 26 : coins >= 100 ? 22 : 18}px;`;
+        const a = el.animate([
+          { transform: 'translate(-50%, 10px) scale(.5)', opacity: 0 },
+          { transform: 'translate(-50%, -14px) scale(1.25)', opacity: 1, offset: 0.18 },
+          { transform: 'translate(-50%, -22px) scale(1)', opacity: 1, offset: 0.7 },
+          { transform: 'translate(-50%, -50px) scale(1)', opacity: 0 },
+        ], { duration: 1500, delay: 120, easing: 'ease-out', fill: 'both' });
+        a.onfinish = a.oncancel = () => el.remove();
+      }
+      flashGold(160 + Math.min(600, coinN * 20));
+    }
+    if (big) edge(l, top >= 3 ? `var(--r-${(['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const)[top]})` : 'var(--brass-fill)', top >= 4 || coins >= 1000 || total >= 60);
   }
 
-  function showPips(gains: Gain[]) {
+  /** Brass flash and a small pulse on the top-bar gold number when coins land. */
+  function flashGold(delay: number) {
+    const g = document.querySelector<HTMLElement>('.shell .gold');
+    if (!g || typeof g.animate !== 'function') return;
+    g.animate([{ transform: 'scale(1)', filter: 'brightness(1)' }, { transform: 'scale(1.22)', filter: 'brightness(1.9) saturate(1.4)', offset: 0.3 }, { transform: 'scale(1)', filter: 'brightness(1)' }],
+      { duration: 520, delay, easing: 'ease-out' });
+  }
+
+  function showPips(gains: Gain[], coins: number) {
     const byId = new Map<string, { qty: number; rarity: string }>();
     for (const g of gains) { const c = byId.get(g.itemId); if (c) c.qty += g.qty; else byId.set(g.itemId, { qty: g.qty, rarity: g.rarity }); }
-    for (const [itemId, v] of [...byId].slice(0, 3)) {
+    const list: Array<{ itemId?: string; text: string; rarity: string }> = [...byId].slice(0, 3).map(([itemId, v]) => ({ itemId, text: `+${v.qty}`, rarity: v.rarity }));
+    if (coins > 0) list.push({ text: `+${coins.toLocaleString('en-US')}g`, rarity: 'gold' });
+    for (const p of list) {
       const id = ++pipId;
-      pips = [...pips.slice(-2), { id, itemId, ...v }];
-      setTimeout(() => { pips = pips.filter((p) => p.id !== id); }, 1600);
+      pips = [...pips.slice(-3), { id, ...p }];
+      setTimeout(() => { pips = pips.filter((x) => x.id !== id); }, 1600);
     }
   }
 
+  function celebrate(gains: Gain[], coins: number) {
+    const top = gains.reduce((m, g) => Math.max(m, RARITY_RANK[g.rarity]), -1);
+    const tot = gains.reduce((n, g) => n + g.qty, 0);
+    if (gains.length) play(top >= 3 ? 'fountain' : 'collect');
+    if (coins > 0) play('coin');
+    if (top >= 3 || tot >= 25 || coins >= 100) play('fountain');
+    said = [gains.length ? (gains.length === 1 ? `Got ${gains[0].qty} ${itemName(gains[0].itemId)}` : `Got ${tot} items`) : '', coins > 0 ? `Got ${coins}g` : ''].filter(Boolean).join('. ');
+    if (reducedMotion() || typeof document.body.animate !== 'function') showPips(gains, coins); else spawn(gains, coins);
+  }
+
+  // Items arrive as `gain` events; gold is seen as a rise in the snapshot's gold between updates.
+  let pendingItems: Gain[] = [];
+  let pendingCoins = 0;
+  let queued = false;
+  function queue() {
+    if (queued) return; queued = true;
+    queueMicrotask(() => { queued = false; const g = pendingItems, c = pendingCoins; pendingItems = []; pendingCoins = 0; if (g.length || c > 0) celebrate(g, c); });
+  }
   $effect(() => {
     const evs = engine.lastEvents;
     if (!evs?.length) return;
@@ -76,11 +166,18 @@
       if (!engine.ready || engine.offline || document.hidden) return;
       const gains = gainsFromEvents(evs, itemRarity);
       if (!gains.length) return;
-      const top = Math.max(...gains.map((g) => RARITY_RANK[g.rarity]));
-      play(top >= 3 ? 'fountain' : 'collect');
-      const tot = gains.reduce((n, g) => n + g.qty, 0);
-      said = gains.length === 1 ? `Got ${gains[0].qty} ${itemName(gains[0].itemId)}` : `Got ${tot} items`;
-      if (reducedMotion() || typeof document.body.animate !== 'function') showPips(gains); else spawn(gains);
+      pendingItems = pendingItems.concat(gains); queue();
+    });
+  });
+  let lastGold: number | null = null;
+  $effect(() => {
+    const gold = engine.snapshot?.gold;
+    if (typeof gold !== 'number') return;
+    untrack(() => {
+      const prev = lastGold; lastGold = gold;
+      if (prev == null || !engine.ready || engine.offline || document.hidden) return;
+      const d = Math.floor(gold - prev);
+      if (d >= 1) { pendingCoins += d; queue(); }
     });
   });
 </script>
@@ -89,7 +186,7 @@
   {#if pips.length}
     <div class="pips">
       {#each pips as p (p.id)}
-        <span class="pip" style:--c={`var(--r-${p.rarity})`}><span class="n num">+{p.qty}</span><span class="ic" use:icon={p.itemId}></span></span>
+        <span class="pip" class:goldp={!p.itemId} style:--c={p.itemId ? `var(--r-${p.rarity})` : 'var(--brass-fill)'}><span class="n num">{p.text}</span>{#if p.itemId}<span class="ic" use:icon={p.itemId}></span>{/if}</span>
       {/each}
     </div>
   {/if}
@@ -111,8 +208,14 @@
   .fx :global(.pop.rare > i.glow) { background: radial-gradient(circle, color-mix(in srgb, var(--c) 75%, transparent) 0%, color-mix(in srgb, var(--c) 30%, transparent) 50%, transparent 72%); }
   .fx :global(.pop > span) { position: relative; }
   .fx :global(.pop > b) { position: absolute; right: -6px; bottom: -6px; padding: 1px 4px; background: var(--paper); color: var(--ink); border: 1px solid var(--c); font: 700 11px/1.2 var(--f-num); }
-  /* short sparkle ring on epic and above */
+  .fx :global(.coin) { position: absolute; left: 0; top: 0; opacity: 0; border-radius: 50%; will-change: transform, opacity;
+    background: radial-gradient(circle at 35% 30%, #fff4c2 0 14%, var(--brass-fill) 15% 62%, #a8741a 64% 100%); border: 2px solid #8a5e0a; box-shadow: 0 0 8px rgba(255, 200, 80, .75); }
+  .fx :global(.glabel) { position: absolute; opacity: 0; white-space: nowrap; font: 700 20px/1 var(--f-num); color: var(--brass-fill); text-shadow: 0 0 8px rgba(0,0,0,.9), 0 2px 0 #5b3d05, 0 0 14px rgba(255, 190, 60, .8); }
+  .fx :global(.edge) { position: absolute; inset: 0; opacity: 0; }
+  .pip.goldp .n { color: var(--brass); }
+  /* sparkle rings on rare and above */
   .fx :global(.pop.spark::after) { content: ''; position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border: 2px solid var(--c); border-radius: 50%; animation: ping 600ms ease-out 1; }
+  .fx :global(.pop.spark2::before) { content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border: 2px solid var(--c); border-radius: 50%; animation: ping 700ms ease-out 180ms 1 both; }
   @keyframes ping { from { transform: scale(.4); opacity: .9; } to { transform: scale(2.4); opacity: 0; } }
   .pips { position: absolute; left: 0; right: 0; bottom: calc(var(--tabbar-h) + 14px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: center; gap: 8px; }
   .pip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; background: var(--paper); border: 1px solid var(--c); box-shadow: 0 0 10px color-mix(in srgb, var(--c) 55%, transparent); color: var(--ink); font: 700 var(--t-sm)/1 var(--f-num); }
