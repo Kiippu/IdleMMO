@@ -1,0 +1,7 @@
+# Local settings for `npm run dev -w @guildwright/server`.
+# Copy this file to server/.dev.vars (which git ignores) and edit it there. Never commit .dev.vars.
+#
+# LOG_HEADERS=1 prints host, origin, x-forwarded-host, x-forwarded-proto and cf-connecting-ip for every
+# /api request, so we can see what the tunnel sends before writing the sign-in Origin check (M1).
+# Set it to 0 (or delete the line) once that's recorded.
+LOG_HEADERS=1

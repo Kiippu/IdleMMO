@@ -5,7 +5,7 @@ export { Guild } from './guild';
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    return route(request) ?? env.ASSETS.fetch(request);
+    return (await route(request, env)) ?? env.ASSETS.fetch(request);
   },
 
   // Weekly cron stub (see wrangler.jsonc triggers; cron is UTC).

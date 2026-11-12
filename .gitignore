@@ -7,3 +7,9 @@ dist
 .claude/
 .playwright-mcp/
 __pycache__/
+# PC server data and backups (kept outside the repo by scripts/server; ignored here too, belt and braces)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+guildwright-data/
+guildwright-backups/

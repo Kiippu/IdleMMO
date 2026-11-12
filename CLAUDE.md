@@ -128,7 +128,8 @@ Plan: `docs/phase-2.5-plan.md`, plus owner decisions the same day (see Settled d
 - Economy constants in `H`/`ECON` (engine data.ts), H = median level-40 income (~14,820g/h); `speedFactor: 1`;
   `E.actionTime` used by Workshop list + active card; early game matches the prototype.
 - Removed: dev raid start, reputation, farm raids, view-as-member, NPC-posted requisitions, old requisition verbs.
-- Save schema v6; fixtures v4 (prototype), v5 (phase 2), v6 (pre-decision phase 2.5) all load.
+- Save schema v6 at the time; fixtures v4 (prototype), v5 (phase 2), v6 (pre-decision phase 2.5) all load.
+  (Superseded: saves are now schema v7 and older saves are not loaded, see Saves above.)
 - Tests: engine 87, client 18, server 3. Live tunnel checked at 400px light + dark.
 Open for the UI/UX pass: pixel-font digits (5 reads as 9), sparse raid recap card, plus the list in the plan's "Next".
 
@@ -159,7 +160,7 @@ Phase 2 architectural decisions confirmed in session 2026-11-07 (all captured be
 - **Hidden-tab behaviour:** worker stops ticking on `visibilitychange:hidden`, runs `E.applyOffline(state,
   now)` on resume so catch-up never blocks the UI.
 - **SW update UX:** install does NOT call `self.skipWaiting()`; the client shows a "Restart" toast and only
-  activates on user click.
+  activates on user click. (Toasts are superseded 2026-11-12; the restart prompt must not be a toast.)
 - **Engine package type boundary:** `engine/src/public.d.ts` + conditional `exports` map so the client's
   strict tsconfig sees a strict-safe surface. The implementation source stays `noImplicitAny` per
   PORTING.md; without this, client svelte-check walks into the loose source and rejects legal engine code.
@@ -237,7 +238,7 @@ Open: crew activity feed (agreed in the UI review, not built yet); credits scree
 Phase 3 plan (owner-approved 2026-11-11): https://claude.ai/artifact/R52AF1BRcyedWQ8J9AQQhs — order: layout pass
 (no art) → style frame on a real phone → pipeline (+credits log) → icons (32px grid) → UI frames (5 component
 types) → hero/crew/scenes → bosses → sound (mute) → credits screen. LIGHT MODE ONLY from now: no dark mode, no
-themes (test at 360 and 390px, light). Whole-number pixel scaling only.
+themes (test at 360 and 390px, light). [Superseded 2026-11-12: dark is the default, light is a Settings choice.] Whole-number pixel scaling only.
 
 ## Phase 3 step 1: layout pass (2026-11-11/12) — merged to `main` with phase 3
 No art. Engine: return summary (per-skill headline, best find, grouped loot, gold by source), one Log line per skill per
@@ -246,7 +247,8 @@ level-up batch, `E.recapView` (turnout vs contribution pay, `pointShare` not `yo
 Client: one Menu (Log, Save, Settings: mute stub + reduced motion, Credits placeholder), one-line guide + "Do this first",
 ~156px pixelated scene on Workshop only (52px native, 3x) + slim strip elsewhere, numbered tab badges, disabled-button
 reasons, empty states with a next step, compact numbers everywhere ("12.6k g" from 10,000; owner OK'd), grouped sell list +
-atomic "Sell all grades", rebuilt return reveal and raid recap, crew feed on Crew > Roster + toasts.
+atomic "Sell all grades", rebuilt return reveal and raid recap, crew feed on Crew > Roster + toasts
+(toasts superseded 2026-11-12 by the tab-bar fountain and inline results: no toasts).
 Build/test: a Linux clone on the owner's PC VM (`$HOME/work/IdleMMO`, own node_modules); the PC has no GitHub credentials,
 so commits are bundled and pushed from the cloud; QA screenshots via cloud Playwright (no browser on the PC VM).
 
@@ -267,3 +269,14 @@ Owner asked to finish the whole phase in one go, so the step 2 style-frame phone
   dark ground and one big swing covers the foe; reveal floating pieces briefly overlap the headline; at 360px the gear item
   sheet scrolls so Salvage/Equip sit below the fold; Shikashi credit name is long with a raw URL; salvage "Skipped" list
   repeats one piece per reason; the service worker caches at runtime (no install-time precache, ~0.9 MB).
+
+## Phase 4-lite (owner-approved trimmed plan, 2026-11-12)
+Accounts are made by the owner with a script (no invite codes, no public sign-up), username + password. Cloud save with
+a revision number and 409 on a stale write; backups = last 5 hourly snapshots plus the losing copy of every conflict.
+The server refuses future-dated saves. Raids run on Sydney time (engine task, later). Share-alike art allowed pre-launch.
+Save schema stays v7 (new fields additive).
+- M0 PC setup (branch `phase4/m0-pc-setup`): server data lives OUTSIDE the repo (`wrangler dev --persist-to`, default
+  `<repo parent>/guildwright-data`, backups in `<repo parent>/guildwright-backups`; override with `GW_DATA_DIR` /
+  `GW_BACKUP_DIR`). Scripts in `scripts/server/` (dev applies migrations first; backup keeps 14; restore-check loads a
+  backup into a temp DB). `/api/health` reports `db` + table count; `LOG_HEADERS=1` in `server/.dev.vars` logs what the
+  tunnel forwards. Runbook: `docs/pc-server.md`. Run on port 4173 so the current tunnel URL keeps working.
