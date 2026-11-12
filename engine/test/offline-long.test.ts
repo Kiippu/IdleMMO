@@ -39,7 +39,9 @@ describe('long offline catch-up', () => {
   });
 
   it('30 days: fast, deterministic, four or five raids, XP matches offlineRate x the time exactly in bulk', async () => {
-    const a = await away(30, 7); const b = await away(30, 7);
+    // gearless, so the time per rep is constant (a worn tool slows reps; covered by the next test)
+    const noTools = (E: any, s: any) => { for (const k of Object.keys(s.tools)) s.tools[k] = null; E.start(s, 'mine_copper'); };
+    const a = await away(30, 7, noTools); const b = await away(30, 7, noTools);
     expect(a.ms).toBeLessThan(2000);
     expect(a.r.summary).toEqual(b.r.summary);
     expect(a.s.skills).toEqual(b.s.skills);
@@ -85,5 +87,15 @@ describe('long offline catch-up', () => {
     expect(r.summary.raids.length).toBe(0);
     expect(E.lastRecap(s)).toBeNull();
     expect(E.raidStatus(s).secToStart).toBeGreaterThan(0);
+  });
+
+  it('tools wear in bulk while away: 30 days of mining leaves the pickaxe at 1% and reports it once', async () => {
+    const { s, r } = await away(30, 7);
+    const pick = s.gear.find((g: any) => g.uid === s.tools.mining);
+    expect(pick.cond).toBe(1);
+    expect(r.summary.wornTools.map((w: any) => w.uid)).toEqual([pick.uid]);
+    expect(r.summary.wornTools[0].cond).toBe(1);
+    // other tools untouched
+    expect(s.gear.find((g: any) => g.uid === s.tools.fishing).cond).toBe(100);
   });
 });

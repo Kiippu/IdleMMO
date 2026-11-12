@@ -17,7 +17,7 @@ import { feedPush, econ, logTreasury, closeContracts } from './crew-economy';
 
 // ================================================================ v4: payouts + resolution
 export function pickLootItem(state, b, kind) {
-  const tier = clamp(1 + Math.floor(num(b.reqPower, 30) / 30), 1, 5);
+  const tier = clamp(1 + Math.floor(num(b.reqPower, 300) / 300), 1, 5); // x10 scale
   if (kind === 'buff') { const l = Object.keys(itemsMap()).filter((id) => item(id).kind === 'potion' && item(id).buff && num(item(id).tier, 1) <= tier + 1); return l.length ? l[Math.floor(rand() * l.length)] : null; }
   if (kind === 'catalyst') { const l = Object.keys(itemsMap()).filter((id) => item(id).kind === 'catalyst' && num(item(id).tier, 1) <= Math.max(2, tier)); return l.length ? l.sort((a, c) => item(c).tier - item(a).tier)[0] : null; }
   return null;

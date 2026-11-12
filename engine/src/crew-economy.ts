@@ -140,6 +140,8 @@ E.vaultDepositGear = function (state, uid) {
   const g = findGear(state, uid); if (!g) return { ok: false, reason: 'That item is no longer in your bag.', loadoutsAffected: [] };
   const max0 = E.playerStats(state).maxHp;
   SLOTS.forEach((s) => { if (state.equipped[s] === uid) state.equipped[s] = null; });
+  if (state.tools) Object.keys(state.tools).forEach((k) => { if (state.tools[k] === uid) state.tools[k] = null; });
+  if (state.workOutfit) Object.keys(state.workOutfit).forEach((set) => Object.keys(state.workOutfit[set] || {}).forEach((p) => { if (state.workOutfit[set][p] === uid) state.workOutfit[set][p] = null; }));
   state.gear = state.gear.filter((x) => x !== g); state.crew.vault.gear.push(g); gearHp(state, max0);
   logTreasury(state, 'deposit', 0, 'You', `Deposited ${E.gearName(g)}`, { itemId: g.itemId, qty: 1, uid: g.uid });
   const affected = arr(state.loadouts).filter((l) => SLOTS.some((s) => l.slots[s] === uid)).map((l) => l.id);

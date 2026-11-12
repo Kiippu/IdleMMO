@@ -8,6 +8,13 @@
   import { reducedMotion } from '../settings.svelte';
   import { heroLook } from './hero';
   import { hitsBetween, cycleMs } from './sprites';
+  import { DATA } from '@guildwright/engine';
+  import { openItem } from '../overlays/itemRef.svelte';
+
+  // The tool in use for this job (extras.activeWork). A condition chip shows when it is below 50%.
+  let work = $derived<any>(engine.derived?.extras?.activeWork ?? null);
+  let toolName = $derived<string | null>(work?.toolItemId ? (engine.derived?.gearNames?.[work.toolUid] ?? (DATA as any).items?.[work.toolItemId]?.name ?? work.toolItemId) : null);
+  let toolCond = $derived<number | null>(typeof work?.bonus?.toolCond === 'number' ? work.bonus.toolCond : null);
 
   let snap = $derived(engine.snapshot);
   let active = $derived(snap?.active ?? null);
@@ -79,6 +86,12 @@
       <span class="name">{jobName ?? 'Working'}{#if left != null}<small class="num"> · {left} left</small>{/if}</span>
       <button type="button" class="btn stop" onclick={stop}>Stop</button>
     </div>
+    {#if work && toolName}
+      <button type="button" class="tool" onclick={() => openItem({ itemId: work.toolItemId, uid: work.toolUid })}>
+        <span class="tl">Tool: {toolName}</span>
+        {#if toolCond != null && toolCond < 50}<span class="chip num" class:crit={toolCond < 25}>{toolCond}%</span>{/if}
+      </button>
+    {/if}
     <div class="bar" role="progressbar" aria-label="Job progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}>
       <div class="fill" bind:this={fillEl}></div>
     </div>
@@ -93,6 +106,10 @@
   .name { flex: 1; min-width: 0; font: 700 var(--t-md)/1.15 var(--f-body); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .name small { font-weight: 400; color: var(--ink-3); }
   .stop { flex: none; min-width: 72px; padding: 0 12px; }
+  .tool { min-height: 44px; margin: -8px 0 -4px; padding: 0; border: 0; background: none; display: flex; align-items: center; gap: 8px; color: var(--ink-3); font: 400 var(--t-sm)/1.2 var(--f-body); text-align: left; }
+  .tl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: underline; text-decoration-color: var(--rule); }
+  .chip { flex: none; padding: 1px 6px; border: 1px solid var(--bad); color: var(--bad); font-size: var(--t-xs); font-weight: 700; }
+  .chip.crit { background: var(--bad); color: var(--paper); }
   .bar { height: 10px; background: var(--sunk); border: 1px solid var(--rule); overflow: hidden; }
   .fill { height: 100%; width: 100%; background: var(--woad); transform: scaleX(0); transform-origin: left center; will-change: transform; }
   .none { margin: 0; min-height: 44px; display: flex; align-items: center; color: var(--ink-3); font-size: var(--t-sm); }

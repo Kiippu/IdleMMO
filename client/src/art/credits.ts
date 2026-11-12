@@ -1,7 +1,7 @@
 // Parses art/CREDITS.md (the single source for credits) into rows for the in-game Credits sheet.
 import md from '../../../art/CREDITS.md?raw';
 
-export type CreditRow = { asset: string; author: string; licence: string; url: string; shareAlike: boolean; note: string; checked: string };
+export type CreditRow = { asset: string; author: string; licence: string; url: string; urls: string[]; shareAlike: boolean; note: string; checked: string };
 
 const cells = (line: string) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
 
@@ -17,9 +17,10 @@ export function parseCredits(text: string): CreditRow[] {
     const get = (i: number) => (i >= 0 ? c[i] ?? '' : '');
     const asset = get(ix.asset);
     if (!asset) continue;
-    const url = (get(ix.link).match(/https?:\/\/[^\s)]+/) ?? [''])[0];
+    const urls = [...new Set(get(ix.link).match(/https?:\/\/[^\s)|]+/g) ?? [])];
+    const url = urls[0] ?? '';
     const sa = get(ix.sa).toLowerCase();
-    rows.push({ asset, author: get(ix.author), licence: get(ix.licence), url, shareAlike: !!sa && !sa.startsWith('no'), note: get(ix.note), checked: get(ix.checked) });
+    rows.push({ asset, author: get(ix.author), licence: get(ix.licence), url, urls, shareAlike: !!sa && !sa.startsWith('no'), note: get(ix.note), checked: get(ix.checked) });
   }
   return rows;
 }

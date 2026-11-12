@@ -17,6 +17,7 @@ async function freshEngine(seed = 1, now = START) {
 function seedLevel1Job(E: any, s: any) {
   const job = E.postCrewJob(s, 'smelt_copper');
   expect(job).toBeTruthy();
+  job.qty = 50; // long enough that no test tick finishes it (qty is random 5-20)
   return job;
 }
 

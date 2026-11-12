@@ -12,7 +12,8 @@ import { mulberry32 } from './context';
 import { E, SLOTS, arr, num, item, itemsMap, allActions, bosses, clamp, itemName, isStackable, zeros5, fmtGold, lcFirst, grades, gradeOf, qtyName, plural } from './core';
 import { ECON } from './data';
 import { addItem, cleanInv } from './inventory';
-import { findGear, makeGear, isEquipped } from './gear';
+import { findGear, makeGear, isEquipped, sectionOf, IN_USE_REASON, STARTER_REASON, outfitTotals, workBonus } from './gear';
+import { TOOL_SKILLS } from './data/gear/model';
 import { nowOf } from './clock';
 import { lockedNow } from './raid-rules';
 import { pushEvent } from './events';
@@ -58,7 +59,7 @@ function resourceCandidates() {
 }
 function gearCandidates() {
   const src = itemSources(); const max = num(ECON.storeGearMaxTier, 2);
-  return Object.keys(itemsMap()).filter((id) => { const it = item(id); return it && it.kind === 'gear' && num(it.tier, 1) <= max && src[id]; }).sort();
+  return Object.keys(itemsMap()).filter((id) => { const it = item(id); return it && it.kind === 'gear' && sectionOf(it) === 'fight' && num(it.tier, 1) <= max && src[id]; }).sort();
 }
 /** weight of an item for this player: highest near the player's level in the skill that makes it */
 export function nearWeight(state, id) {
@@ -132,7 +133,7 @@ export function storeSellPrice(itemId, grade) {
   if (!item(itemId)) return 0;
   return storeSellLadder(itemId)[gIdx(grade)];
 }
-export function storeGearSellPrice(g) { return g ? Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))) : 0; }
+export function storeGearSellPrice(g) { return g && !g.starter ? Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))) : 0; }
 E.storeBuyPrice = storeBuyPrice;
 E.storeSellPrice = storeSellPrice;
 
@@ -142,7 +143,8 @@ let gsCache = { key: '', map: null };
 function gsKey(state) {
   const lv = Object.keys(state.skills || {}).sort().map((k) => E.skillLevel(state, k)).join(',');
   const eq = SLOTS.map((s) => { const g = findGear(state, state.equipped[s]); return g ? g.uid + (g.dur > 0 ? '+' : '-') : '_'; }).join();
-  return lv + '|' + eq;
+  const wk = TOOL_SKILLS.map((k) => { const w = workBonus(state, k); return w ? w.totals.speed + ':' + w.wear : '_'; }).join();
+  return lv + '|' + eq + '|' + wk;
 }
 E.gatherSecs = function (state) {
   const key = gsKey(state);
@@ -166,8 +168,32 @@ E.storeView = function (state) {
   Object.keys(state.inv || {}).forEach((id) => { if (item(id)) sellPrices[id] = storeSellLadder(id); });
   const gearSellPrices = {};
   arr(state.gear).forEach((g) => { gearSellPrices[g.uid] = storeGearSellPrice(g); });
-  return { hour: st.hour, refreshesAt: (st.hour + 1) * HOUR_MS, slots,
+  return { hour: st.hour, refreshesAt: (st.hour + 1) * HOUR_MS, slots, tools: storeTools(),
     buyMult: { resource: ECON.storeResourceMult, gear: ECON.storeGearMult }, sellMult: ECON.storeSellMult, sellPrices, gearSellPrices };
+};
+
+// ---- tool shelf (gear overhaul 2026-11-12): every Uncommon T1 tool, always on sale, fixed price, no stock limit
+let toolShelf = { items: undefined, list: null };
+export function storeTools() {
+  const items = itemsMap();
+  if (toolShelf.items === items && toolShelf.list) return toolShelf.list;
+  const tier = num(ECON.storeToolTier, 1);
+  const list = TOOL_SKILLS.map((skill) => Object.keys(items).find((id) => { const it = item(id); return it && sectionOf(it) === 'tool' && it.toolSkill === skill && num(it.tier, 1) === tier; }))
+    .filter(Boolean).map((id) => ({ itemId: id, name: item(id).name, skill: item(id).toolSkill, price: num(ECON.storeToolPrice, 600), rarity: ECON.storeToolRarity || 'uncommon' }));
+  toolShelf = { items, list };
+  return list;
+}
+E.storeTools = storeTools;
+E.storeBuyTool = function (state, itemId) {
+  const fail = (reason) => ({ ok: false, reason, qty: 0, gold: 0 });
+  const row = storeTools().find((t) => t.itemId === itemId); if (!row) return fail('That tool is not on sale.');
+  if (num(state.gold, 0) < row.price) return fail(`That costs ${fmtGold(row.price)} and you have ${fmtGold(Math.floor(num(state.gold, 0)))}.`);
+  state.gold -= row.price;
+  const rIdx = Math.max(0, ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'].indexOf(row.rarity));
+  const g = makeGear(state, itemId, rIdx, GEAR_QUALITY);
+  emitGain('buy', [{ itemId, qty: 1, grade: gradeOf(g.quality), rarity: g.rarity, uid: g.uid }]);
+  pushEvent(state, 'gold', `Bought ${E.gearName(g)} at the general store for ${fmtGold(row.price)}.`, { itemId, qty: 1, gold: -row.price, rarity: g.rarity });
+  return { ok: true, reason: '', qty: 1, gold: row.price, itemId, uids: [g.uid] };
 };
 
 // ---- verbs
@@ -209,7 +235,8 @@ E.storeSell = function (state, itemId, grade, qty) {
 E.storeSellGear = function (state, uid) {
   const g = findGear(state, uid); const fail = (reason) => ({ ok: false, reason, qty: 0, gold: 0 });
   if (!g) return fail('That item is no longer in your bag.');
-  if (isEquipped(state, uid)) return fail('Unequip it first.');
+  if (isEquipped(state, uid)) return fail(IN_USE_REASON);
+  if (g.starter) return fail(STARTER_REASON);
   if (lockedNow(state) && state.raid.lock && SLOTS.some((s) => state.raid.lock.slots[s] === uid)) return fail('It is locked in for this week\'s raid.');
   const gold = storeGearSellPrice(g); const name = E.gearName(g);
   state.gear = state.gear.filter((x) => x !== g); state.gold = num(state.gold, 0) + gold;
@@ -257,5 +284,20 @@ E.derivedExtras = function (state) {
     // juice pass 2026-11-12
     maxMake: E.maxMake(state), readiness: E.raidReadiness(state), recentUnlocks: E.recentUnlocks(state), equipDeltas: E.equipDeltas(state),
     // gear pass 2026-11-12
-    gearInfo: E.gearInfo(state) };
+    gearInfo: E.gearInfo(state),
+    // gear overhaul 2026-11-12
+    workBonus: workBonusAll(state), activeWork: E.activeWork(state), toolRepair: E.toolRepairAll(state),
+    workDeltas: E.workDeltas(state), outfitTotals: outfitTotals(state) };
+};
+
+/** work bonus for all 15 work skills */
+export function workBonusAll(state) { const out = {}; TOOL_SKILLS.forEach((k) => { out[k] = workBonus(state, k); }); return out; }
+/** the current solo or assist job's work gear, or null (idle / combat) */
+E.activeWork = function (state) {
+  const a = state && state.active; if (!a) return null;
+  const act = (allActions() as any[]).find((x) => x && x.id === a.actionId);
+  if (!act || !['gather', 'refine', 'craft'].includes(act.kind)) return null;
+  const wb = workBonus(state, act.skill); if (!wb) return null;
+  const outfitUids = ['head', 'body', 'hands', 'feet'].map((p) => state.workOutfit && state.workOutfit[wb.set] && state.workOutfit[wb.set][p]).filter(Boolean);
+  return { actionId: act.id, skill: act.skill, kind: act.kind, set: wb.set, toolUid: wb.toolUid, toolItemId: wb.toolItemId, outfitUids, bonus: wb };
 };

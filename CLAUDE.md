@@ -21,9 +21,11 @@ The legacy single-file prototype is `index.html` at the repo root. It is the beh
   area to own and send follow-ups back to that agent. Use a fresh agent for independent review/testing.
   Parallel agents must not edit the same files. At the end of a session, list the agents used and what each owned.
 - Commit and push to GitHub. Work on branches; don't push to `main` without asking.
-- Saves: schema v7 in IndexedDB (phase 3, 2026-11-11). The owner wiped all older saves: v1–v6 saves and old backup codes are
-  NOT migrated; the game starts fresh silently (`E.loadSave()` / `E.checkSave()`; old fixtures in `engine/test/fixtures/` are
-  only used to prove they are refused). From now on, builds must keep v7 saves loading unless the owner says otherwise.
+- Saves: schema v8 in IndexedDB (gear overhaul, 2026-11-12; v7 was phase 3). The owner (the only player) agreed that v7 and
+  older saves and old backup codes are NOT migrated; the game starts fresh silently (`E.loadSave()` / `E.checkSave()`; old
+  fixtures in `engine/test/fixtures/` are only used to prove they are refused). Settings (localStorage) are kept. The old
+  "keep v7 loading" rule is replaced: from v8 on, builds must keep v8 saves loading, and later changes are additive
+  (unless the owner says otherwise).
 - Test at phone width (360 and 390px) in dark and light. Dark is the default theme; light is a choice in Menu › Settings
   (owner 2026-11-12, replaces the 2026-11-11 light-only rule).
 
@@ -62,13 +64,33 @@ Game design
   preview + slots + filterable gear list), not Stores. No toasts: item gains burst from the tab bar as a fountain
   (one pop per item, rarity glow). Grade ladder is the engine's: Rough, Standard, Fine, Superior, Pristine.
 - Player market PARKED until the shared world (phase 5). The Shop is an NPC general store: 6 resources + 3 gear
-  (tier ≤2) each game hour, weighted to the player's levels; sells at 1.5x (resources) / 2x (gear) value, buys
+  (Tier 1 fight gear only since the gear overhaul) each game hour, weighted to the player's levels, and also sells Uncommon
+  Tier 1 tools (~600g each); sells at 1.5x (resources) / 2x (gear) value, buys
   anything at 0.4x. Old open listings return to the bag on load. Bond-token-for-gold exchange needs a home by launch.
 - Weekly market-tax buff removed (old saves get the repairs buff).
 - Fun-testing tuning (2026-11-11, revisit before launch): XP per level x5 (`config.xpCurveMult`; old saves have stored
   XP rescaled once via `state.xpScale`, levels kept); level 70 ≈ 27 h active per skill. Offline catch-up runs at 1x
   active speed (was 1.5x; lowered 2026-11-11) with NO time cap (`offlineRate`); long gaps step hour by hour, gathering past 20k reps bulk-steps,
   combat/crafting past 20k reps rests, crewmates' own jobs simulated for the last 12 h only.
+- Gear and tool overhaul (owner-approved 2026-11-12; master: Claude Doc "Guildwright — Gear, tools and items spec",
+  https://claude.ai/artifact/JecuCFLLwR9FvMWAi9mSBt, plain copy may be in the session as `gear-spec.md`; the doc wins).
+  This release is T1–T3 (~170 items); T4–T5 later, the data model must allow them. Branch `feat/gear-overhaul`.
+  - Three equipment sections, each used automatically (no swapping, no binding a loadout to an activity): 15 tool slots
+    (one per work skill), three work-outfit sets (Gather, Refine, Craft) x head/body/hands/feet, and the fight loadout
+    (weapon, offhand, head, chest, legs, ring1, ring2, amulet; two rings and an amulet). Raid lock, readiness and saved
+    loadouts use only fight slots; tools and outfits add nothing to raid power.
+  - Tier ladder T1–T5 (levels 1–14 / 15–29 / 30–44 / 45–59 / 60–70+), material per tier in the spec.
+  - Stat formula: base = tier budget (60, x1.5 a tier) x slot share x stat weight x grade (0.97–1.06). Rarity adds one affix
+    per step; the first is always the primary stat (+12% of base per step), so higher rarity always beats one rarity lower.
+    Fight durability 100/130/160/200/300/400. Stats AND boss requirements are shown x10 (boss 1 needs 300 power).
+  - Swift is removed. Tags foraging/hunting/speed/quality are replaced by effect ids speed, double, save, quality, find, rarity.
+    The `boundTo` auto-equip-on-start and the flat 14-affix list are gone.
+  - Tools wear but never break: condition 100 to 1, -3% / -5% / -8% action speed below 50 / 25 / 10%. Repair is gold only,
+    100g per 10% condition x tier factor (x1/2/4/7/12). Work outfits don't wear. Fight gear wear/repair/salvage unchanged.
+  - Shop sells Uncommon T1 tools and T1 fight gear. Other tools: crafting, or raid boss drops (T3+, Rare+).
+  - Crafted quality uses crafter level and tier: 0.5 x avg input quality + 25 + clamp(crafter level - recipe level, -10, +30)
+    - 3 x (tier - 1) + mastery + tool/outfit quality points +-4. A new save gets a free Common T1 starter tool in all 15 slots.
+  - H (14,820g/h) and the raid payout cap are measured with NO tools or outfits.
 - Name stays Guildwright.
 Tech
 - Stack: Svelte 5 UI, plain Canvas 2D scenes, Vite, rules engine in TypeScript running in a Web Worker.
@@ -79,10 +101,11 @@ Tech
 - Accounts: username + password in D1 (PBKDF2-SHA256 via Web Crypto, per-user salt, iteration count stored;
   Workers appears to cap PBKDF2 at 100,000). Session = random token in an HttpOnly Secure SameSite=Lax cookie,
   only its hash stored, 30-day rolling expiry. No email: the owner resets passwords by hand pre-launch.
-- Repo stays public, so no "no redistribution" art packs.
+- Repo stays public: never commit raw art packs whose licence forbids redistribution (see Art and UI for the one allowed pattern).
 Art and UI
 - Cozy pixel art at 32px. Hero built from LPC layers so worn gear shows everywhere. Remap packs to DawnBringer 32.
-- Free assets only (CC0 / CC-BY / OGA-BY). Record every pack, author, licence and link in `art/CREDITS.md`
+- Free assets only. CC0 / CC-BY / OGA-BY preferred. A non-CC free pack is allowed when its licence permits commercial use and
+  modification and we commit only our built atlas, never the raw files (owner 2026-11-12). Record every pack, author, licence and link in `art/CREDITS.md`
   and the in-game credits screen. Share-alike (CC-BY-SA) LPC Revised tiles are allowed pre-launch, tagged in
   CREDITS so they can be swapped; decide at launch whether to replace them.
 - Keep the existing design tokens: plaster background, flat paper panels, woad blue accent, brass for gold,
@@ -91,7 +114,12 @@ Art and UI
   short letter labels only. Fonts are bundled (OFL 1.1), not loaded from Google. Buttons ≥44px; no browser dialogs.
 - Art is FREE packs only (owner 2026-11-11; no paid packs). Full list with licences in `art/CREDITS.md` (the single
   credits file; Menu → Credits is generated from it and a test fails if a shipped pack or LPC layer is uncredited).
-- Item icons (one 32px atlas, `npm run art` → `scripts/art/build.py`, mapping in `art/icon-map.json`): Idylwild packs
+- Item icons from 2026-11-12: the Seveneves "1,000+ RPG Icons" pack (32px) for all items, remapped to DB32 with
+  `scripts/art/remap.py`; 7 tool icons (sickle, bellows, chisel, needle, gem file, mortar and pestle, rolling pin) are drawn by
+  us. The raw pack lives in a gitignored private folder and is never committed; only the built atlas is. Credits say "item
+  icons by Seveneves AI" until the owner hears back from the author on how the pack was made. The line below describes the
+  older icon sources and is superseded for item icons.
+- Item icons, older sources (one 32px atlas, `npm run art` → `scripts/art/build.py`, mapping in `art/icon-map.json`): Idylwild packs
   (CC0), Shikashi (CC BY 4.0 + game-icons.net CC BY 3.0), Kyrise (CC BY 4.0), Ninja Adventure (CC0). Everything is
   remapped to DawnBringer 32 by one shared tool, `scripts/art/remap.py`. Not Kenney.
 - UI frames (card, button, slot, bar, sheet only), the app texture: own art drawn by `scripts/art/ui-frames.py` (ETA's
@@ -274,7 +302,7 @@ Owner asked to finish the whole phase in one go, so the step 2 style-frame phone
 Accounts are made by the owner with a script (no invite codes, no public sign-up), username + password. Cloud save with
 a revision number and 409 on a stale write; backups = last 5 hourly snapshots plus the losing copy of every conflict.
 The server refuses future-dated saves. Raids run on Sydney time (engine task, later). Share-alike art allowed pre-launch.
-Save schema stays v7 (new fields additive).
+Save schema was v7 here; the gear overhaul bumps it to v8 (see Saves). Later fields are additive.
 - M0 PC setup (branch `phase4/m0-pc-setup`): server data lives OUTSIDE the repo (`wrangler dev --persist-to`, default
   `<repo parent>/guildwright-data`, backups in `<repo parent>/guildwright-backups`; override with `GW_DATA_DIR` /
   `GW_BACKUP_DIR`). Scripts in `scripts/server/` (dev applies migrations first; backup keeps 14; restore-check loads a
@@ -286,3 +314,10 @@ Save schema stays v7 (new fields additive).
   `state.active.held`) while a card is on screen. Settings › Craft celebration picks which rarities show the card (default all).
 - SHELVED after M0 (owner 2026-11-12): the gear and tool overhaul comes first. When M1 resumes, first capture one
   `[headers]` line from the server window (request made through the tunnel) for the Origin check.
+
+## Gear and tool overhaul (2026-11-12) — in progress on branch `feat/gear-overhaul`, not merged
+Spec: https://claude.ai/artifact/JecuCFLLwR9FvMWAi9mSBt (see Settled decisions). Scope: T1–T3 first, T4–T5 later; save schema v8
+(v7 saves start fresh). Contract and file ownership for the agents: the session's `gear-overhaul-contract.md`. Phase 4-lite M1 stays
+shelved until this lands. Roadmap: this overhaul comes before M1.
+Superseded by the overhaul (don't rely on these older notes): equipping gear "in War Room › Loadout" now covers the fight loadout only
+(tools and work outfits are automatic); the single ring slot; Shop gear "tier <=2"; the foraging/hunting/speed/quality tags and Swift.

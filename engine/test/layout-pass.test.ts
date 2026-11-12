@@ -236,7 +236,7 @@ describe('crew activity feed', () => {
     {
       const h = await freshEngine(3, START + 3600000);
       const s = h.E.migrate(JSON.parse(JSON.stringify(h.E.newState())));
-      expect(s.v).toBe(7);
+      expect(s.v).toBe(8);
       expect(s.crew.jobsDone).toEqual([]);
       expect(Array.isArray(h.E.crewActivity(s))).toBe(true);
       const x = h.E.derivedExtras(s);

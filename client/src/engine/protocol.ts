@@ -27,8 +27,6 @@ export interface Readiness {
   /** 1-3 short lines on what raises the best role's power */
   tips: string[];
 }
-/** what wearing a bag gear piece instead of the one in its slot changes (engine statsFor maths) */
-export interface EquipDelta { hp: number; atk: number; def: number; heal: number; power: number; speed: number; elements: Record<string, number> }
 
 // Lightweight precomputed view that rides every snapshot. Keeps the main
 // thread off engine methods (E.skillLevel, E.actionTime, etc.) without
@@ -38,8 +36,8 @@ export interface Derived {
   activeTime: number | null;
   /** uid -> human-readable gear name (player bag + crew vault). */
   gearNames: Record<string, string>;
-  /** E.playerStats(state) — {atk, def, heal, maxHp, speed, elements, ...}. */
-  playerStats: any;
+  /** E.playerStats(state): x10 scale; elements = share % of weapon damage, wards = % less damage taken. */
+  playerStats: PlayerStats | null;
   /** E.bossIntel(state) — current-week boss + hpLeft/maxHp, or null. */
   bossIntel: any;
   /** E.raidStatus(state) — phase, window, secToStart, secLeft, etc. */
@@ -75,13 +73,26 @@ export interface Derived {
     recentUnlocks: string[];
     /** per unequipped bag gear uid */
     equipDeltas: Record<string, EquipDelta>;
-    /** gear pass: per bag gear uid { grade, equipped, inLoadout, stackKey }; group rows by non-null stackKey */
-    gearInfo: Record<string, GearInfo> } | null;
+    /** gear pass: per bag gear uid { section, worn, grade, equipped, inLoadout, stackKey, ... }; group rows by non-null stackKey */
+    gearInfo: Record<string, GearInfo>;
+    /** gear overhaul: tools + matching outfit set per work skill (15) */
+    workBonus: Record<string, WorkBonus>;
+    /** the current job's tool / outfit, or null (idle, combat) */
+    activeWork: ActiveWork | null;
+    /** what repairAllTools would do now */
+    toolRepair: { count: number; gold: number };
+    /** raw (pre-cap) effect change per bag tool / outfit piece vs what is in its slot */
+    workDeltas: Record<string, Partial<Record<EffectId, number>>>;
+    /** worn outfit pieces of each set alone (no tool), soft-capped */
+    outfitTotals: Record<OutfitSet, OutfitSetTotals> } | null;
 }
 
-import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons, GearDetail, StatLine, EffectLine, GearInfo } from '@guildwright/engine';
-/** Gear pass 2026-11-12: engineClient.gearDetail(uid). Labels are plain English; stats non-zero only, stable order. */
-export type { GearDetail, StatLine, EffectLine, GearInfo };
+import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons, GearDetail, StatLine, EffectLine, GearInfo,
+  GearSection, FightSlot, OutfitSet, OutfitPiece, EffectId, SkillGroup, WornAt, GearItem, GearPiece, EquipResult, RepairResult, RepairAllResult,
+  AffixLine, GearCompare, WorkBonus, ActiveWork, OutfitSetTotals, StoreToolRow, WornToolLine, PlayerStats, EquipDelta, CraftQuality } from '@guildwright/engine';
+/** Gear overhaul 2026-11-12: see gear-overhaul-contract.md "Engine interface". */
+export type { GearDetail, StatLine, EffectLine, GearInfo, GearSection, FightSlot, OutfitSet, OutfitPiece, EffectId, SkillGroup, WornAt, GearItem, GearPiece,
+  EquipResult, RepairResult, RepairAllResult, AffixLine, GearCompare, WorkBonus, ActiveWork, OutfitSetTotals, StoreToolRow, WornToolLine, PlayerStats, EquipDelta, CraftQuality };
 /** Engine summary (items, xp, gold, skills, bestFind, loot, goldBySource, ...) plus the real seconds away added by the worker. */
 export type OfflineSummary = EngineOfflineSummary & { awaySec?: number };
 
@@ -94,8 +105,12 @@ export type Req =
   | { id: string; type: 'holdJob'; on: boolean }
   | { id: string; type: 'pause' }
   | { id: string; type: 'resume' }
-  | { id: string; type: 'equip'; uid: string }
+  | { id: string; type: 'equip'; uid: string; slot?: 'ring1' | 'ring2' }
   | { id: string; type: 'unequip'; slot: string }
+  | { id: string; type: 'unequipGear'; uid: string }
+  | { id: string; type: 'repair'; uid: string }
+  | { id: string; type: 'repairAllTools' }
+  | { id: string; type: 'storeBuyTool'; itemId: string }
   | { id: string; type: 'saveLoadout'; name?: string; fromEquipped?: boolean }
   | { id: string; type: 'deleteLoadout'; loadoutId: string }
   | { id: string; type: 'equipLoadout'; loadoutId: string }

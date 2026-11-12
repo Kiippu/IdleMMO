@@ -119,7 +119,7 @@ describe('job hold', () => {
     E.save(s);
     const loaded = E.load();
     expect(loaded).toBeTruthy();
-    expect(loaded.v).toBe(7);
+    expect(loaded.v).toBe(8);
     expect(loaded.active.actionId).toBe('mine_copper');
     expect(loaded.active.held).toBeUndefined();
     expect(loaded.active.heldAt).toBeUndefined();

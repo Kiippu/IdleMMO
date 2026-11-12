@@ -14,11 +14,20 @@ describe('credits', () => {
   });
   it('lists every pack used by the atlas, with author, licence and a link', () => {
     for (const key of new Set(Object.values(ICONS.pack))) {
+      if (key === 'own') continue; // our own drawn icons have their own row (checked below)
       const slug = key === 'shikashi' ? 'shikashis-fantasy-icons' : key === 'kyrise' ? 'kyrises-free-16x16' : key === 'ninja' ? 'ninja-adventure' : key.replace('idylwild-', 'idylwilds-');
       const row = CREDITS.find((r) => r.url.includes(slug));
       expect(row, key).toBeDefined();
       expect(row!.author && row!.licence && row!.url).toBeTruthy();
     }
+  });
+  it('credits Seveneves AI with both links, the licence wording and the how-made note', () => {
+    const r = CREDITS.find((x) => x.asset.includes('Seveneves AI'));
+    expect(r).toBeDefined();
+    expect(r!.url).toContain('sevenevesai.itch.io/1000-modern-rpg-icon-pack');
+    expect(r!.licence).toMatch(/no attribution required/);
+    expect(r!.licence).toMatch(/no reselling or redistributing/);
+    expect(r!.note).toMatch(/hand-crafted/);
   });
   it('lists the bundled fonts and the palette', () => {
     const names = CREDITS.map((r) => r.asset).join(' ');

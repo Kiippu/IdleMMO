@@ -13,32 +13,38 @@ function run(h: any, s: any, n = 300) {
 }
 
 describe('E.gearDetail', () => {
-  it('lists stats, affixes with plain labels, and compares against the worn piece', async () => {
-    const { E } = await freshEngine();
+  it('lists final x10 stats, affixes with plain labels, and compares against the worn piece', async () => {
+    const { E, mod } = await freshEngine();
     const s = E.newState();
-    // epic Rough bronze sword with Keen +3, Hale +10, Swift +5
-    piece(s, 'gE', 'bronze_sword', 'epic', 20, [{ id: 'keen', value: 3 }, { id: 'hale', value: 10 }, { id: 'swift', value: 5 }], 200, 200);
+    // epic Rough bronze sword: primary + Soothing + Hale (rolls 1)
+    piece(s, 'gE', 'bronze_sword', 'epic', 20, [{ id: 'primary', roll: 1 }, { id: 'soothing', roll: 1 }, { id: 'hale', roll: 1 }], 200, 200);
     const d = E.gearDetail(s, 'gE');
-    expect(d).toMatchObject({ uid: 'gE', itemId: 'bronze_sword', slot: 'weapon', rarity: 'epic', grade: 0, gradeName: 'Rough', dur: 200, maxDur: 200, equipped: false });
-    expect(d.name).toBe('Keen Bronze sword');
-    // 7 atk x 1.5 x 0.85 = 8.925 → 9, + Keen 3 = 12
+    expect(d).toMatchObject({ uid: 'gE', itemId: 'bronze_sword', section: 'fight', slot: 'weapon', type: 'sword', material: 'bronze', tier: 1,
+      rarity: 'epic', grade: 0, gradeName: 'Rough', dur: 200, maxDur: 200, equipped: false, worn: null, role: 'striker', hands: 1 });
+    expect(d.name).toBe('Soothing Bronze sword');
+    // base = 60 x 0.66 = 39.6 budget; atk 0.9 → 35.64 x (0.97 + 3 x 0.12) = 47.4 → 47; def 3.96 x 0.97 → 4;
+    // Soothing = 39.6 x 5% = 2; Hale = 39.6 x 5% x 2.5 = 5
     expect(d.stats).toEqual([
-      { key: 'atk', label: 'Attack', value: 12 },
-      { key: 'hp', label: 'Max HP', value: 10 },
-      { key: 'speed', label: 'Speed', value: 5 },
+      { key: 'atk', label: 'Attack', value: 47, unit: 'pts' },
+      { key: 'def', label: 'Defence', value: 4, unit: 'pts' },
+      { key: 'heal', label: 'Healing', value: 2, unit: 'pts' },
+      { key: 'hp', label: 'Max HP', value: 5, unit: 'pts' },
     ]);
-    expect(d.affixes.map((a: any) => a.label)).toEqual(['Keen: +3 Attack', 'Hale: +10 Max HP', 'Swift: +5% Speed']);
-    expect(d.affixes[0]).toMatchObject({ id: 'keen', value: 3, stat: 'atk' });
+    expect(d.affixes.map((a: any) => a.label)).toEqual(['Epic bonus: Attack +12', 'Soothing: Healing +2', 'Hale: Max HP +5']);
+    expect(d.effects).toEqual([]);
     expect(d.value).toBe(E.gearValue(s.gear.find((g: any) => g.uid === 'gE')));
-    // worn: the starter training sword (atk 3, Standard common)
+    // worn: the starter bronze sword (Common, Rough): atk 35, def 4
     const worn = s.equipped.weapon;
     expect(d.compare.uid).toBe(worn);
-    expect(d.compare.stats).toEqual([{ key: 'atk', label: 'Attack', value: 3 }]);
+    expect(d.compare.at).toEqual({ section: 'fight', slot: 'weapon' });
     expect(d.compare.diff).toEqual([
-      { key: 'atk', label: 'Attack', mine: 12, theirs: 3, delta: 9 },
-      { key: 'hp', label: 'Max HP', mine: 10, theirs: 0, delta: 10 },
-      { key: 'speed', label: 'Speed', mine: 5, theirs: 0, delta: 5 },
+      { key: 'atk', label: 'Attack', unit: 'pts', mine: 47, theirs: 35, delta: 12 },
+      { key: 'def', label: 'Defence', unit: 'pts', mine: 4, theirs: 4, delta: 0 },
+      { key: 'heal', label: 'Healing', unit: 'pts', mine: 2, theirs: 0, delta: 2 },
+      { key: 'hp', label: 'Max HP', unit: 'pts', mine: 5, theirs: 0, delta: 5 },
     ]);
+    expect(d.compare.power.striker.delta).toBe(Math.round(47 * 2.16) - Math.round(35 * 2.16)); // ROLE_POWER.striker.atk
+    void mod;
   });
 
   it('no compare for the worn piece itself or an empty slot; null for an unknown uid; broken shows nominal stats', async () => {
@@ -46,25 +52,32 @@ describe('E.gearDetail', () => {
     const s = E.newState();
     const d = E.gearDetail(s, s.equipped.weapon);
     expect(d.equipped).toBe(true);
+    expect(d.worn).toEqual({ section: 'fight', slot: 'weapon' });
     expect(d.compare).toBeNull();
     expect(E.gearDetail(s, 'nope')).toBeNull();
-    piece(s, 'gB', 'bronze_sword', 'uncommon', 70, [{ id: 'of_embers', value: 4 }, { id: 'enduring', value: 20 }], 0, 156);
+    piece(s, 'gH', 'bronze_helm');
+    expect(E.gearDetail(s, 'gH').compare).toBeNull(); // head slot empty
+    piece(s, 'gB', 'bronze_sword', 'rare', 70, [{ id: 'primary', roll: 1 }, { id: 'of_embers', roll: 1 }, { id: 'enduring', roll: 1 }], 0, 192);
     const b = E.gearDetail(s, 'gB');
     expect(b.broken).toBe(true);
-    expect(b.stats.map((x: any) => x.key)).toEqual(['atk', 'fire', 'durPct']);
-    expect(b.stats.find((x: any) => x.key === 'fire').label).toBe('Fire');
-    expect(b.affixes.map((a: any) => a.label)).toEqual(['of Embers: +4 Fire', 'Enduring: +20% Durability']);
+    expect(b.stats.map((x: any) => x.key)).toEqual(['atk', 'def', 'fire']);
+    expect(b.stats.find((x: any) => x.key === 'fire')).toEqual({ key: 'fire', label: 'Fire damage', value: 5, unit: 'pct' });
+    expect(b.affixes.map((a: any) => a.label)).toEqual([expect.stringMatching(/^Rare bonus: Attack \+\d+$/), 'of Embers: Fire damage +5%', 'Enduring: +20% max durability']);
+    expect(b.name).toBe('Enduring Bronze sword of Embers');
+    expect(b.repair).toMatchObject({ can: true });
   });
 
-  it('a ring compares against the worn ring only when one is worn', async () => {
-    const { E, mod } = await freshEngine();
+  it('a ring compares against the ring it would replace: none while a ring slot is empty, else the weaker one', async () => {
+    const { E } = await freshEngine();
     const s = E.newState();
-    const ringId = Object.keys(mod.DATA.items).find((id) => mod.DATA.items[id].slot === 'ring')!;
-    piece(s, 'r1', ringId); piece(s, 'r2', ringId, 'rare', 85, [{ id: 'sturdy', value: 2 }, { id: 'keen', value: 1 }], 160, 160);
-    expect(E.gearDetail(s, 'r2').compare).toBeNull();
-    E.equip(s, 'r1');
-    const c = E.gearDetail(s, 'r2').compare;
-    expect(c.uid).toBe('r1');
+    piece(s, 'r1', 'copper_band'); piece(s, 'r2', 'copper_signet', 'rare', 85, [{ id: 'primary', roll: 1 }, { id: 'sturdy', roll: 1 }], 160, 160);
+    piece(s, 'r3', 'copper_loop');
+    expect(E.equip(s, 'r1')).toMatchObject({ ok: true, at: { section: 'fight', slot: 'ring1' }, replaced: null });
+    expect(E.gearDetail(s, 'r2').compare).toBeNull(); // ring2 is empty
+    expect(E.equip(s, 'r2')).toMatchObject({ ok: true, at: { section: 'fight', slot: 'ring2' } });
+    const c = E.gearDetail(s, 'r3').compare;
+    expect(c.uid).toBe('r1'); // the common band is weaker than the rare signet
+    expect(c.at).toEqual({ section: 'fight', slot: 'ring1' });
     expect(c.diff.every((x: any) => x.delta === x.mine - x.theirs)).toBe(true);
   });
 });
@@ -77,11 +90,11 @@ describe('E.gearInfo (common stacking)', () => {
     piece(s, 'c', 'bronze_sword', 'common', 65); // Fine
     piece(s, 'd', 'bronze_sword', 'common', 50, [], 60, 100); // worn down
     piece(s, 'e', 'bronze_sword', 'common', 50, [], 80, 80); // repaired
-    piece(s, 'f', 'bronze_sword', 'uncommon', 50, [{ id: 'keen', value: 2 }], 130, 130);
+    piece(s, 'f', 'bronze_sword', 'uncommon', 50, [{ id: 'primary', roll: 1 }], 130, 130);
     piece(s, 'g', 'bronze_sword');
     s.loadouts.push({ id: 'L1', name: 'x', slots: { weapon: 'g' } });
     const info = E.gearInfo(s);
-    expect(info.a).toEqual({ grade: 1, equipped: false, inLoadout: false, stackKey: 'bronze_sword|1' });
+    expect(info.a).toEqual({ section: 'fight', worn: null, grade: 1, equipped: false, inLoadout: false, stackKey: 'bronze_sword|1', low: false });
     expect(info.b.stackKey).toBe('bronze_sword|1');
     expect(info.c.stackKey).toBe('bronze_sword|2');
     expect(info.d.stackKey).toBeNull();
@@ -145,35 +158,41 @@ describe('craft gain events', () => {
   });
 });
 
-describe('E.gearDetail effects (gear tags)', () => {
-  it('a copper pickaxe shows Mining speed, scaled by rarity, nominal when broken', async () => {
+describe('E.gearDetail effects (tools and work outfit)', () => {
+  const tool = (s: any, uid: string, itemId: string, rarity = 'common', quality = 50, affixes: any[] = [], cond = 100) => {
+    const g = { uid, itemId, rarity, quality, affixes, cond }; s.gear.push(g); return g;
+  };
+  it('a pickaxe shows Speed scaled by grade and rarity, one decimal; worn condition shows the penalty', async () => {
     const { E } = await freshEngine();
     const s = E.newState();
-    piece(s, 'pC', 'copper_pickaxe');                         // common Standard: 0.15
-    piece(s, 'pU', 'copper_pickaxe', 'uncommon');             // x1.15 = 0.1725 → 17.3%
-    piece(s, 'pB', 'copper_pickaxe', 'common', 50, [], 0);    // broken: still shows what repair gives back
-    expect(E.gearDetail(s, 'pC').effects).toEqual([{ key: 'mining', label: 'Mining speed', value: 15, unit: 'pct', text: 'Mining speed +15%' }]);
-    expect(E.gearDetail(s, 'pU').effects).toEqual([{ key: 'mining', label: 'Mining speed', value: 17.3, unit: 'pct', text: 'Mining speed +17.3%' }]);
-    expect(E.gearDetail(s, 'pB').effects.map((e: any) => e.text)).toEqual(['Mining speed +15%']);
+    tool(s, 'pC', 'bronze_pickaxe');                                            // 1.0
+    tool(s, 'pU', 'bronze_pickaxe', 'uncommon', 50, [{ id: 'primary', roll: 1 }]); // 1.0 x (1 + 0.12) = 1.12
+    tool(s, 'pW', 'bronze_pickaxe', 'common', 20, [], 24.4);                     // Rough 0.97; cond 24 → -5%
+    expect(E.gearDetail(s, 'pC').effects).toEqual([{ key: 'speed', label: 'Speed', value: 1, unit: 'pct', text: 'Speed +1.0%' }]);
+    expect(E.gearDetail(s, 'pU').effects).toEqual([{ key: 'speed', label: 'Speed', value: 1.12, unit: 'pct', text: 'Speed +1.1%' }]);
+    const w = E.gearDetail(s, 'pW');
+    expect(w).toMatchObject({ section: 'tool', toolSkill: 'mining', cond: 24, wear: 5, stats: [] });
+    expect(w.effects[0].value).toBe(0.97);
+    expect(w.repair).toMatchObject({ gold: 756, can: false }); // 75.6% missing: ceil(7.56 x 100g x tier factor 1); 150g on hand
   });
-  it('words yield, drops and quality, skips combat tags and the Swift speed affix', async () => {
+  it('the craft outfit lists quality for gear crafts and double output for food and potions', async () => {
     const { E } = await freshEngine();
     const s = E.newState();
-    piece(s, 'f', 'foragers_satchel');
-    piece(s, 'h', 'leather_cap');
-    piece(s, 'q', 'gemstone_ring', 'common', 50, [{ id: 'swift', value: 5 }]);
-    expect(E.gearDetail(s, 'f').effects.map((e: any) => e.text)).toEqual(['Foraging yield +15%']);
-    expect(E.gearDetail(s, 'h').effects.map((e: any) => e.text)).toEqual(['Hunting drops +5%']);
-    expect(E.gearDetail(s, 'q').effects).toEqual([{ key: 'quality', label: 'Crafting quality', value: 3, unit: 'pts', text: 'Crafting quality +3' }]);
+    tool(s, 'ap', 'artisans_apron');
+    delete s.gear.find((g: any) => g.uid === 'ap').cond;
+    expect(E.gearDetail(s, 'ap').effects.map((e: any) => e.text)).toEqual(['Double output (food, potions) +0.3%', 'Quality (gear crafts) +0.5']);
+    expect(E.gearDetail(s, 'ap').repair).toBeNull();
   });
-  it('compare carries the worn piece effects', async () => {
+  it('a tool compares with the one in its slot; final shows the skill totals now and if worn', async () => {
     const { E } = await freshEngine();
     const s = E.newState();
-    piece(s, 'old', 'copper_pickaxe');
-    piece(s, 'new', 'iron_pickaxe');
-    expect(E.equip(s, 'old').ok).toBe(true);
+    tool(s, 'new', 'iron_pickaxe');
     const d = E.gearDetail(s, 'new');
-    expect(d.effects.map((e: any) => e.text)).toEqual(['Mining speed +25%']);
-    expect(d.compare.effects.map((e: any) => e.text)).toEqual(['Mining speed +15%']);
+    expect(d.effects.map((e: any) => e.text)).toEqual(['Speed +1.5%']);
+    expect(d.compare.uid).toBe(s.tools.mining);
+    expect(d.compare.at).toEqual({ section: 'tool', skill: 'mining' });
+    expect(d.compare.effects.map((e: any) => e.text)).toEqual(['Speed +1.0%']);
+    expect(d.compare.diff).toEqual([{ key: 'speed', label: 'Speed', unit: 'pct', mine: 1.5, theirs: 1, delta: 0.5 }]);
+    expect(d.final.now.speed).toBe(1); expect(d.final.ifWorn.speed).toBe(1.5); // linear below half the cap
   });
 });

@@ -13,3 +13,6 @@ __pycache__/
 *.sqlite-shm
 guildwright-data/
 guildwright-backups/
+
+# Raw Seveneves icon pack: licence forbids redistributing the assets on their own. Never commit.
+art/private-src/

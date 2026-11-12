@@ -1,0 +1,39 @@
+{
+ "_doc": "Material tints for build.py: spec token mat=<family>.<name>[@strength]. Hex values are the target mean colour; tint_image keeps the shading. Use only to fill gaps where the pack has no distinct icon.",
+ "families": {
+  "metal": {
+   "copper": "#b4673a",
+   "bronze": "#a8803a",
+   "iron": "#8a8f98",
+   "steel": "#b9c4d2",
+   "mithril": "#7fc6e6",
+   "silver": "#c8ccd6",
+   "gold": "#e0b23a",
+   "wyrmforged": "#5a8f6a"
+  },
+  "wood": {
+   "pine": "#c79a5c",
+   "oak": "#8a5a30",
+   "yew": "#6b3f2a",
+   "ironwood": "#4a3a34"
+  },
+  "cloth": {
+   "hessian": "#a58a5e",
+   "linen": "#d8cdb0",
+   "canvas": "#c2b48c",
+   "silk": "#7a5ab0"
+  },
+  "leather": {
+   "rough": "#8a5a3a",
+   "tanned": "#a86a38",
+   "hardened": "#5a3a2a",
+   "leather": "#8a5a3a",
+   "studded": "#a86a38"
+  },
+  "jewel": {
+   "copper": "#b4673a",
+   "glowstone": "#e6c35c",
+   "sapphire": "#4a6fd6"
+  }
+ }
+}

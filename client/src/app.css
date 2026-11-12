@@ -2,6 +2,8 @@
    The theme choice lives in Menu > Settings and never follows prefers-color-scheme. */
 :root {
   color-scheme: dark;
+  /* corner radius: chips and tiles / buttons and rows / panels and sheets. Item icons and the scene stay square. */
+  --rad-sm: 6px; --rad-md: 10px; --rad-lg: 14px;
   --plaster: #10141c; --grain: rgba(180, 200, 255, .045); --paper: #1a212d; --sunk: #141a24;
   --ink: #ece8dc; --ink-2: #b0b5c1; --ink-3: #98a0b0; --rule: #3a4457; --rule-2: #2a3242;
   --woad: #9db1ff; --woad-soft: #243050; --on-woad: #0c1121; --brass: #eec45f; --brass-fill: #e0ae3c;
@@ -188,34 +190,62 @@ input::placeholder { color: var(--ink-3); }
 :root[data-reduce-motion] *, :root[data-reduce-motion] *::before, :root[data-reduce-motion] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 :root[data-reduce-motion] .float { display: none; }
 
-/* ================= Phase 3 pixel frames (5 component types) =================
-   9-slice PNGs (2px source border drawn at 2x = 4px) via border-image. Centres stay transparent, so the
-   paper / sunk / woad tokens still colour the fill. Lists, rows and tabs stay unframed. */
-.btn:not(.ghost), .update, .shell main :is(.hero, .treasury, .card), .full section.rcard,
-.shell :is(div,span)[role="progressbar"], .shell .hpbar, :is(button,span,div).tile.tile:is([style*="--r-"],.empty,.hintt) {
+/* ================= Rounded pixel frames (art: ui-art/frames/{dark,light}, frames.json) =================
+   Framed elements take no border-radius; the frame image carries the rounded corners, the background stops at the padding box.
+   Dark is the default; light swaps the image files (zero-specificity prefix, so later state rules still win). */
+.update, .shell main :is(.hero, .treasury, .card), .full section.rcard, .btn:not(.ghost), .shell :is(div,span)[role="progressbar"], .shell .hpbar, div.sheet[role="dialog"] {
+  border-style: solid; border-color: transparent; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated; border-radius: 0;
+}
+.update, .shell main :is(.hero, .treasury, .card), .full section.rcard { border-image-slice: 6; border-image-width: 6px; }
+.btn:not(.ghost) { border-image-slice: 5; border-image-width: 5px; }
+.btn:not(.ghost):hover:not(:disabled) { border-image-slice: 5; border-image-width: 5px; }
+.btn:not(.ghost):active:not(:disabled) { border-image-slice: 5; border-image-width: 5px; }
+.btn.primary, .btn.primary:hover:not(:disabled), .btn.primary:active:not(:disabled), .btn[aria-pressed="true"] { border-image-slice: 5; border-image-width: 5px; }
+.btn.danger, .btn.danger:hover:not(:disabled) { border-image-slice: 5; border-image-width: 5px; }
+.btn.danger.solid { border-image-slice: 5; border-image-width: 5px; }
+.shell :is(div,span)[role="progressbar"], .shell .hpbar { border-image-slice: 4; border-image-width: 4px; }
+div.sheet[role="dialog"] { border-image-slice: 6 6 0 6; border-image-width: 6px 6px 0 6px; }
+.update, .shell main :is(.hero, .treasury, .card), .full section.rcard { border-image-source: url('./ui-art/frames/dark/card.png'); }
+.btn:not(.ghost) { border-image-source: url('./ui-art/frames/dark/btn.png'); }
+.btn:not(.ghost):hover:not(:disabled) { border-image-source: url('./ui-art/frames/dark/btn-hover.png'); }
+.btn:not(.ghost):active:not(:disabled) { border-image-source: url('./ui-art/frames/dark/btn-down.png'); }
+.btn.primary, .btn.primary:hover:not(:disabled), .btn.primary:active:not(:disabled), .btn[aria-pressed="true"] { border-image-source: url('./ui-art/frames/dark/btn-primary.png'); }
+.btn.danger, .btn.danger:hover:not(:disabled) { border-image-source: url('./ui-art/frames/dark/btn-danger.png'); }
+.btn.danger.solid { border-image-source: url('./ui-art/frames/dark/btn-danger-solid.png'); }
+.shell :is(div,span)[role="progressbar"], .shell .hpbar { border-image-source: url('./ui-art/frames/dark/bar.png'); }
+div.sheet[role="dialog"] { border-image-source: url('./ui-art/frames/dark/sheet.png'); }
+:where(:root[data-theme="light"]) .update, :where(:root[data-theme="light"]) .shell main :is(.hero, .treasury, .card), :where(:root[data-theme="light"]) .full section.rcard { border-image-source: url('./ui-art/frames/light/card.png'); }
+:where(:root[data-theme="light"]) .btn:not(.ghost) { border-image-source: url('./ui-art/frames/light/btn.png'); }
+:where(:root[data-theme="light"]) .btn:not(.ghost):hover:not(:disabled) { border-image-source: url('./ui-art/frames/light/btn-hover.png'); }
+:where(:root[data-theme="light"]) .btn:not(.ghost):active:not(:disabled) { border-image-source: url('./ui-art/frames/light/btn-down.png'); }
+:where(:root[data-theme="light"]) .btn.primary, :where(:root[data-theme="light"]) .btn.primary:hover:not(:disabled), :where(:root[data-theme="light"]) .btn.primary:active:not(:disabled), :where(:root[data-theme="light"]) .btn[aria-pressed="true"] { border-image-source: url('./ui-art/frames/light/btn-primary.png'); }
+:where(:root[data-theme="light"]) .btn.danger, :where(:root[data-theme="light"]) .btn.danger:hover:not(:disabled) { border-image-source: url('./ui-art/frames/light/btn-danger.png'); }
+:where(:root[data-theme="light"]) .btn.danger.solid { border-image-source: url('./ui-art/frames/light/btn-danger-solid.png'); }
+:where(:root[data-theme="light"]) .shell :is(div,span)[role="progressbar"], :where(:root[data-theme="light"]) .shell .hpbar { border-image-source: url('./ui-art/frames/light/bar.png'); }
+:where(:root[data-theme="light"]) div.sheet[role="dialog"] { border-image-source: url('./ui-art/frames/light/sheet.png'); }
+.update { padding: 6px 8px; margin-inline: 0; }
+.shell main :is(.hero, .treasury, .card), .full section.rcard { padding: 10px; border-width: 6px; }
+.update { border-width: 6px; }
+.btn:not(.ghost) { border-width: 5px; padding: 5px 9px; }
+.btn:not(.ghost):active:not(:disabled) { background: color-mix(in srgb, var(--woad-soft) 78%, #000); padding-top: 7px; padding-bottom: 3px; }
+.btn.primary, .btn[aria-pressed="true"] { background: var(--woad); }
+.btn.danger { background: var(--paper); }
+.btn.danger.solid { background: var(--bad); }
+.shell :is(div,span)[role="progressbar"], .shell .hpbar { border-width: 4px; height: 14px; background: var(--sunk); }
+.shell :is(div,span)[role="progressbar"].sm { height: 12px; }
+.shell :is(div,span)[role="progressbar"] > *, .shell .hpbar > * { box-shadow: inset 0 2px 0 rgba(255, 255, 255, .35); }
+div.sheet[role="dialog"] { border-width: 6px 6px 0; padding-top: 10px; }
+.panel { border-radius: var(--rad-lg); }
+/* segmented groups stay flat so their shared edges line up, rounded only at the group ends */
+.seg .btn.btn { border-image: none; border-width: 1px; border-color: var(--rule); border-radius: 0; padding: 8px 4px; background-clip: border-box; }
+.seg .btn.btn:first-child { border-radius: var(--rad-md) 0 0 var(--rad-md); } .seg .btn.btn:last-child { border-radius: 0 var(--rad-md) var(--rad-md) 0; }
+.seg .btn.btn[aria-pressed="true"] { border-color: var(--woad); background: var(--woad); }
+/* slot tiles keep their square pixel frames (icons stay crisp) */
+:is(button,span,div).tile.tile:is([style*="--r-"],.empty,.hintt) {
   border-style: solid; border-width: 4px; border-color: transparent;
   border-image-slice: 2; border-image-width: 4px; border-image-repeat: stretch;
   background-clip: padding-box; image-rendering: pixelated;
 }
-/* card */
-.update, .shell main :is(.hero, .treasury, .card), .full section.rcard { border-image-source: url('./ui-art/card.png'); }
-.update { padding: 8px 10px; margin-inline: -4px; }
-.shell main :is(.hero, .treasury, .card), .full section.rcard { padding: 16px; }
-/* button */
-.btn:not(.ghost) { border-image-source: url('./ui-art/btn.png'); padding: 6px 10px; }
-.btn:not(.ghost):hover:not(:disabled) { border-image-source: url('./ui-art/btn-hover.png'); }
-.btn:not(.ghost):active:not(:disabled) { border-image-source: url('./ui-art/btn-down.png'); padding-top: 8px; padding-bottom: 4px; }
-.btn.primary, .btn.primary:hover:not(:disabled), .btn[aria-pressed="true"] { border-image-source: url('./ui-art/btn-primary.png'); }
-.btn.primary:active:not(:disabled) { border-image-source: url('./ui-art/btn-primary.png'); }
-.btn.danger, .btn.danger:hover:not(:disabled) { border-image-source: url('./ui-art/btn-danger.png'); }
-.btn.danger.solid { border-image-source: url('./ui-art/btn-danger-solid.png'); }
-/* segmented groups stay flat so their shared edges line up */
-.seg .btn { border-image: none; border-width: 1px; border-color: var(--rule); background-clip: border-box; padding: 8px 4px; }
-.seg .btn[aria-pressed="true"] { border-color: var(--woad); }
-/* bar (progress / HP); thin inline meters (xp, contribution ticks) stay flat */
-.shell :is(div,span)[role="progressbar"], .shell .hpbar { border-image-source: url('./ui-art/bar.png'); height: 14px; background: var(--sunk); }
-.shell :is(div,span)[role="progressbar"].sm { height: 12px; }
-.shell :is(div,span)[role="progressbar"] > *, .shell .hpbar > * { box-shadow: inset 0 2px 0 rgba(255, 255, 255, .35); }
 /* slot (item tiles): rarity read from the inline --ink-r custom property */
 :is(button,span,div).tile.tile[style*="--r-common"] { border-image-source: url('./ui-art/slot-common.png'); }
 :is(button,span,div).tile.tile[style*="--r-uncommon"] { border-image-source: url('./ui-art/slot-uncommon.png'); }
@@ -224,13 +254,11 @@ input::placeholder { color: var(--ink-3); }
 :is(button,span,div).tile.tile[style*="--r-legendary"] { border-image-source: url('./ui-art/slot-legendary.png'); }
 :is(button,span,div).tile.tile[style*="--r-mythic"] { border-image-source: url('./ui-art/slot-mythic.png'); }
 :is(button,span,div).tile.tile:is(.empty,.hintt) { border-image-source: url('./ui-art/slot-empty.png'); }
-/* sheet: brass lip on top, thin sides. Sheets are role=dialog with the .sheet class. */
-div.sheet[role="dialog"] {
-  border-style: solid; border-color: transparent; border-width: 8px 4px 0;
-  border-image: url('./ui-art/sheet.png') 4 2 0 2 / 8px 4px 0 4px stretch;
-  background-clip: padding-box; image-rendering: pixelated; padding-top: 8px;
-}
-
+/* shared corners for everything else (zero specificity, so a component can still set its own): boxes, rows, chips, inputs get sm;
+   buttons and menu rows get md. Item tiles and icons stay square. */
+:where(.shell main, .full, [role="dialog"]) :where(div, li, dl, section, article, details, summary, label, button, input, select, textarea):not(.tile, .ii, .mk, .sq, [role="progressbar"], canvas) { border-radius: var(--rad-sm); }
+:where(.shell main, .full, [role="dialog"]) :where(button, input, select, textarea, .item, .hero, .rowbtn):not(.tile, .chip) { border-radius: var(--rad-md); }
+.chip { border-radius: var(--rad-sm); }
 /* tab bar icons: 32px Shikashi icons at 1x, DB32-remapped */
 .tabbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
 .tabbar .ico { width: 32px; height: 32px; image-rendering: pixelated; display: block; opacity: .75; }

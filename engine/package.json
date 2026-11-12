@@ -15,7 +15,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "extract-legacy": "node scripts/extract-legacy.mjs"
+    "extract-legacy": "node scripts/extract-legacy.mjs",
+    "balance": "node ../scripts/balance/run.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

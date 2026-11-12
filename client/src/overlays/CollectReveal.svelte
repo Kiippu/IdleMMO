@@ -46,6 +46,8 @@
       .forEach(([r, q]) => out.push({ key: `c:${r}`, label: `${r[0].toUpperCase()}${r.slice(1)} crafts`, value: q, fmt: (v) => `×${n(v)}`, rarity: r, group: 'craft' }));
     return out;
   });
+  // Tools that dropped below 50% while away (engine field; absent = none).
+  let wornTools = $derived<Array<{ uid?: string; itemId?: string; name?: string; cond: number }>>(((summary as any)?.wornTools ?? []).filter((t: any) => t && Number.isFinite(t.cond)));
   let headline = $derived(summary?.skills?.[0]?.headline ?? null);
   let best = $derived(summary?.bestFind ?? null);
   let awayText = $derived(summary?.awaySec ? ` · ${fmtDuration(summary.awaySec)}` : '');
@@ -148,6 +150,8 @@
         <p class="sub">The game ticked but nothing changed. You weren't working on anything.</p>
       {/if}
 
+      {#each wornTools as t (t.uid ?? t.itemId ?? t.name)}<p class="worn">{t.name ?? (t.itemId ? itemName(t.itemId) : 'A tool')} is worn: <span class="num">{Math.round(t.cond)}%</span></p>{/each}
+
       {#if summary.stoppedReason}<p class="stopped" class:done={summary.stoppedDone}>{summary.stoppedReason}</p>{/if}
 
       {#if !finished}<p class="hint">Tap anywhere to skip</p>{/if}
@@ -195,6 +199,7 @@
   @media (prefers-reduced-motion: reduce) { li.flash { animation: none; } }
   .stopped.done { color: var(--ok); }
   .stopped { margin: 0; padding: 8px; background: var(--sunk); border: 1px solid var(--rule); color: var(--warn); font-size: var(--t-sm); }
+  .worn { margin: 0; padding: 8px 12px; background: var(--sunk); border: 1px solid var(--rule); color: var(--warn); font-size: var(--t-sm); }
   .hint { margin: 0; text-align: center; color: var(--ink-3); font-size: var(--t-sm); }
   .foot { position: sticky; bottom: 0; margin: 0 calc(var(--gut-r) * -1) 0 calc(var(--gut-l) * -1); padding: 12px var(--gut-r) max(12px, env(safe-area-inset-bottom)) var(--gut-l); background: var(--plaster); border-top: 1px solid var(--rule); }
   .collect { width: 100%; }

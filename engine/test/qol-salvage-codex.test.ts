@@ -45,7 +45,7 @@ describe('salvage', () => {
     expect(r.salvaged).toBe(1); expect(s.gear.some((g: any) => g.uid === 'gP')).toBe(false);
     expect(s.gear.some((g: any) => g.uid === 'gR')).toBe(true);
     const r2 = E.salvage(s, [eq, 'gL', 'gR'], { allowProtected: true });
-    expect(r2.salvaged).toBe(2); expect(r2.blocked).toEqual([{ uid: eq, reason: expect.stringMatching(/Equipped/) }]);
+    expect(r2.salvaged).toBe(2); expect(r2.blocked).toEqual([{ uid: eq, reason: 'In use. Take it off first.' }]);
     expect(E.salvage(s, [eq]).ok).toBe(false);
   });
 
@@ -98,7 +98,7 @@ describe('discovery and codex', () => {
       const base = h.E.newState();
       base.inv.sapphire = [0, 2, 0, 0, 0]; base.seen = {};
       const s = h.E.migrate(JSON.parse(JSON.stringify(base)));
-      expect(s.v).toBe(7);
+      expect(s.v).toBe(8);
       Object.keys(s.inv).forEach((id) => expect(s.seen[id], id).toBe(true));
       s.gear.forEach((g: any) => expect(s.seen[g.itemId]).toBe(true));
       expect(() => h.E.tick(s, 1)).not.toThrow();

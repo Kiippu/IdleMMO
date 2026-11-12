@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 import { freshEngine, resolveRaidByClock, invTotal } from './engine-helpers';
 import { plural } from '../src/core';
 
-const V7 = () => JSON.parse(readFileSync(resolve(__dirname, 'fixtures', 'v7-phase3-save.json'), 'utf8'));
+const V8 = () => JSON.parse(readFileSync(resolve(__dirname, 'fixtures', 'v8-gear-save.json'), 'utf8'));
 const piece = (s: any, uid: string, itemId: string, rarity = 'common', quality = 50) => {
   const g = { uid, itemId, rarity, quality, affixes: [], dur: 100, maxDur: 100 }; s.gear.push(g); return g;
 };
@@ -91,7 +91,7 @@ describe('quantity jobs', () => {
 
   it('a v7 save with no count runs unlimited; a saved count survives save/load', async () => {
     const h = await freshEngine(); const { E } = h;
-    const old = E.migrate(V7());
+    const old = E.migrate(V8());
     expect(old.active).toMatchObject({ actionId: 'smelt_copper' });
     expect(old.active.left).toBeUndefined();
     const s = E.newState(); E.start(s, 'mine_copper', 7);
@@ -197,7 +197,7 @@ describe('treasury log', () => {
 
   it('a v7 save: old contract-escrow kinds read as escrow, and the missing opening payout is backfilled once', async () => {
     const { E } = await freshEngine();
-    const raw = V7();
+    const raw = V8();
     expect(raw.crew.treasury.log.some((e: any) => e.kind === 'contract-escrow')).toBe(true);
     expect(raw.crew.treasury.log.some((e: any) => e.opening)).toBe(false);
     const s = E.migrate(raw);
@@ -217,20 +217,22 @@ describe('max HP follows gear', () => {
     const s = E.newState();
     const max0 = E.playerStats(s).maxHp;
     expect(s.hp).toBe(max0);
-    piece(s, 'gH', 'copper_helm');
+    piece(s, 'gH', 'copper_band');
     E.equip(s, 'gH');
     const max1 = E.playerStats(s).maxHp;
-    expect(max1).toBe(max0 + 5);
+    const hp = E.gearDetail(s, 'gH').stats.find((l: any) => l.key === 'hp').value;
+    expect(hp).toBeGreaterThan(0);
+    expect(max1).toBe(max0 + hp);
     expect(s.hp).toBe(max1);
-    s.hp = max1 - 20;
-    E.unequip(s, 'head');
-    expect(s.hp).toBe(max1 - 20); // below the new max: unchanged
+    s.hp = max1 - 40;
+    E.unequip(s, 'ring1');
+    expect(s.hp).toBe(max1 - 40); // below the new max: unchanged
     E.equip(s, 'gH');
-    expect(s.hp).toBe(max1 - 15);
+    expect(s.hp).toBe(max1 - 40 + hp);
     s.hp = max1;
-    E.unequip(s, 'head');
+    E.unequip(s, 'ring1');
     expect(s.hp).toBe(max0);
-    const l = E.saveLoadout(s, { name: 'Helm', slots: Object.assign({}, s.equipped, { head: 'gH' }) }).loadout;
+    const l = E.saveLoadout(s, { name: 'Ring', slots: Object.assign({}, s.equipped, { ring1: 'gH' }) }).loadout;
     E.equipLoadout(s, l.id);
     expect(s.hp).toBe(max1);
   });
@@ -284,7 +286,7 @@ describe('recently unlocked', () => {
 
   it('a save from before the field shows nothing it had already unlocked; later unlocks appear', async () => {
     const { E } = await freshEngine();
-    const raw = V7();
+    const raw = V8();
     expect(raw.seenUnlocks).toBeUndefined();
     const s = E.migrate(raw);
     expect(E.skillLevel(s, 'mining')).toBeGreaterThanOrEqual(14);
@@ -312,11 +314,17 @@ describe('war room views', () => {
   it('equipDeltas: engine stat change for each unequipped bag piece vs its slot', async () => {
     const { E } = await freshEngine();
     const s = E.newState();
-    piece(s, 'gH', 'copper_helm');
+    piece(s, 'gH', 'bronze_helm');
     const d = E.derivedExtras(s).equipDeltas;
-    expect(d.gH).toMatchObject({ hp: 5, def: 2, atk: 0, heal: 0 });
+    expect(d.gH).toMatchObject({ slot: 'head', hp: 0, def: 60, atk: 0, heal: 0 });
+    expect(d.gH.speed).toBeUndefined();
     expect(d.gH.power).toBe(E.loadoutStats(s, Object.assign({}, s.equipped, { head: 'gH' })).power - E.playerStats(s).power);
     expect(d[s.equipped.weapon]).toBeUndefined();
+    // tools and outfit pieces are not fight gear: no equipDelta, a workDelta instead
+    piece(s, 'gT', 'iron_pickaxe');
+    const ex = E.derivedExtras(s);
+    expect(ex.equipDeltas.gT).toBeUndefined();
+    expect(ex.workDeltas.gT.speed).toBeCloseTo(0.5, 5); // T2 1.5% vs T1 1.0%, Standard, pre-cap
   });
 });
 
@@ -356,11 +364,11 @@ describe('crew', () => {
 describe('v7 save', () => {
   it('a real phase-3 v7 save still loads and plays', async () => {
     const h = await freshEngine(); const { E, mod } = h;
-    h.storage.setItem(mod.DATA.config.saveKey, JSON.stringify(V7()));
+    h.storage.setItem(mod.DATA.config.saveKey, JSON.stringify(V8()));
     const r = E.loadSave();
     expect(r.status).toBe('ok');
     const s = r.state;
-    expect(s.v).toBe(7);
+    expect(s.v).toBe(8);
     expect(typeof s.seenUnlocks).toBe('object');
     const ex = E.derivedExtras(s);
     for (const k of ['maxMake', 'readiness', 'recentUnlocks', 'equipDeltas']) expect(ex[k]).toBeTruthy();

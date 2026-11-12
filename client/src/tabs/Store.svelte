@@ -17,7 +17,7 @@
   let { onContracts }: Props = $props();
 
   const GRADE_LABEL = GRADE_NAMES;
-  const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring' };
+  const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring', ring1: 'Ring', ring2: 'Ring', amulet: 'Amulet' };
   const itemsMap: Record<string, any> = (DATA as any).items;
   const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
   const itemName = (id: string) => itemsMap[id]?.name ?? id;
@@ -28,7 +28,23 @@
   let gold = $derived(Math.floor(snap?.gold ?? 0));
   let inv = $derived<Record<string, number[]>>(snap?.inv ?? {});
   let gear = $derived<any[]>(snap?.gear ?? []);
-  let equipped = $derived<Record<string, string | null>>(snap?.equipped ?? {});
+  let equipped = $derived.by<Record<string, string | null>>(() => {
+    const m: Record<string, string | null> = { ...(snap?.equipped ?? {}) };
+    for (const [set, pieces] of Object.entries<any>((snap as any)?.workOutfit ?? {})) for (const [p, uid] of Object.entries<any>(pieces ?? {})) m[`outfit:${set}:${p}`] = uid;
+    for (const [sk, uid] of Object.entries<any>((snap as any)?.tools ?? {})) m[`tool:${sk}`] = uid;
+    return m;
+  });
+  // The always-on Tools shelf: Uncommon Tier 1 tools, no stock limit.
+  let toolShelf = $derived<Array<{ itemId: string; name: string; skill: string; price: number; rarity: string }>>((store?.tools ?? []) as any);
+  const skillName = (id: string) => ((DATA as any).skills as any[] | undefined)?.find((x) => x.id === id)?.name ?? cap(id);
+  async function buyTool(t: { itemId: string; name: string; price: number }) {
+    if (t.price > gold) { say(`${t.name} costs ${fmtG(t.price)} and you have ${fmtG(gold)}.`, true); return; }
+    try {
+      const res: any = await engineClient.storeBuyTool(t.itemId);
+      if (res && res.ok === false) { say(res.reason || 'Could not complete.', true); return; }
+      say(`Bought ${t.name} for ${fmtG(res?.gold ?? t.price)}. It is in your bag; swap it in under War Room › Loadout › Tools.`);
+    } catch (e) { console.error(e); say('Could not complete.', true); }
+  }
   let slots = $derived<any[]>(store?.slots ?? []);
   let resources = $derived(slots.filter((s) => s.kind !== 'gear'));
   let gearSlots = $derived(slots.filter((s) => s.kind === 'gear'));
@@ -165,6 +181,24 @@
             <span class="meta">{gatherText(s)}</span>
           </button>
           <button type="button" class="btn buy" disabled={s.qty < 1} onclick={() => buy(s)}>{s.qty < 1 ? 'Sold out' : 'Buy'}</button>
+        </li>
+      {/each}
+    </ul>
+  </section>
+
+  <section class="group" aria-label="Tools shelf">
+    <h3>Tools</h3>
+    <p class="note">Always in stock. Better tools come from crafting or raid drops.</p>
+    <ul class="tiles tools">
+      {#each toolShelf as t (t.itemId)}
+        <li class="tl">
+          <button type="button" class="tile" onclick={() => openItem({ itemId: t.itemId })} aria-label="{t.name}, {fmtG(t.price)}">
+            <span class="sq" style:color={`var(--r-${t.rarity})`} style:border-color={`var(--r-${t.rarity})`} aria-hidden="true"><ItemIcon id={t.itemId} rarity={t.rarity} /></span>
+            <span class="nm">{t.name}</span>
+            <span class="meta">{skillName(t.skill)} · {cap(t.rarity)}</span>
+            <span class="price num">{fmtG(t.price)}</span>
+          </button>
+          <button type="button" class="btn buy" onclick={() => buyTool(t)}>Buy</button>
         </li>
       {/each}
     </ul>

@@ -10,6 +10,7 @@
   import { craftCardOn } from '../settings-core';
   import { play } from '../sound';
   import ItemIcon from '../art/ItemIcon.svelte';
+  import { DATA } from '@guildwright/engine';
   import { gradeName } from '../engine/grades';
   import { craftReward, enqueueRewards, nextReward, skipRewards } from './rewardQueue.svelte';
 
@@ -75,6 +76,31 @@
   const sign = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '');
   const fmt = (n: number) => String(Math.round(Math.abs(n) * 100) / 100);
   let name = $derived(detail?.name ?? '');
+  const SECTION: Record<string, string> = { fight: 'Fight gear', outfit: 'Work outfit', tool: 'Tool' };
+  const SETS: Record<string, string> = { gather: 'Gather', refine: 'Refine', craft: 'Craft' };
+  const skillName = (id: string) => ((DATA as any).skills as Array<{ id: string; name: string }>).find((x) => x.id === id)?.name ?? id;
+  // "Fight gear · Tier 2", "Work outfit · Gather set · Tier 1", "Tool · Mining · Tier 3"
+  let kind = $derived.by(() => {
+    const d = detail as any;
+    if (!d?.section) return '';
+    const mid = d.section === 'outfit' ? (d.outfitSet ? `${SETS[d.outfitSet] ?? d.outfitSet} set` : '') : d.section === 'tool' && d.toolSkill ? skillName(d.toolSkill) : '';
+    return [SECTION[d.section] ?? d.section, mid, d.tier ? `Tier ${d.tier}` : ''].filter(Boolean).join(' · ');
+  });
+  // What the compared piece sits in: slot / set piece / skill.
+  let cmpAt = $derived.by(() => {
+    const a = (detail?.compare as any)?.at;
+    if (!a) return '';
+    return a.section === 'fight' ? `worn ${String(a.slot).replace(/(\d)$/, ' $1')}` : a.section === 'outfit' ? `${SETS[a.set] ?? a.set} set ${a.piece}` : `${skillName(a.skill)} tool`;
+  });
+  let emptyAt = $derived.by(() => { const d = detail as any; return d?.section === 'tool' ? 'No tool in that skill yet' : d?.section === 'outfit' ? 'Nothing worn in that spot' : 'Nothing equipped in that slot'; });
+  // Tools: the skill's real (capped) totals now vs with this tool.
+  let finals = $derived.by(() => {
+    const f = (detail as any)?.final as { now: Record<string, number>; ifWorn: Record<string, number> } | undefined;
+    if (!f) return [] as Array<{ key: string; now: number; to: number }>;
+    return Object.keys(f.ifWorn).filter((k) => (f.ifWorn[k] ?? 0) || (f.now[k] ?? 0)).map((k) => ({ key: k, now: f.now[k] ?? 0, to: f.ifWorn[k] ?? 0 }));
+  });
+  const EFF: Record<string, string> = { speed: 'Speed', double: 'Double output', save: 'Save input', quality: 'Quality', find: 'Bonus find', rarity: 'Rarity odds' };
+  const effName = (k: string) => ((DATA as any).effects as Array<{ id: string; name: string }> | undefined)?.find((e) => e.id === k)?.name ?? EFF[k] ?? k;
 </script>
 
 <svelte:window onkeydown={onKey} />
@@ -87,23 +113,27 @@
     {#if rank >= 3 && !reduced()}<div class="sparks" aria-hidden="true">{#each Array(rank * 3) as _, i}<i style:--i={i}></i>{/each}</div>{/if}
 
     <div class="stage">
-      <div class="card" class:flip={!reduced()}>
+      <div class="flipper" class:up={reduced() || !!loadedFor} class:anim={!reduced()}>
+      {#if !reduced()}<div class="back" aria-hidden="true"><svg viewBox="0 0 32 32" width="64" height="64" shape-rendering="crispEdges"><path d="M16 3 L19 13 L29 16 L19 19 L16 29 L13 19 L3 16 L13 13 Z" fill="currentColor"/><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>{/if}
+      <div class="card">
         <p class="kick">{cap(cur.rarity)} craft{craftReward.total > 1 ? ` · ${step} of ${craftReward.total}` : ''}</p>
-        <span class="tile" aria-hidden="true"><ItemIcon id={cur.itemId} size={64} rarity={cur.rarity} grade={cur.grade} /></span>
+        <span class="tile" aria-hidden="true"><ItemIcon id={cur.itemId} size={32} rarity={cur.rarity} grade={cur.grade} /></span>
         <h2 id="cr-title">{name || '…'}</h2>
+        {#if kind}<p class="meta kind">{kind}</p>{/if}
         <p class="meta">{cap(cur.rarity)}{detail ? ` · ${detail.gradeName}` : cur.grade != null ? ` · ${gradeName(cur.grade)}` : ''}</p>
 
         {#if detail}
-          <ul class="st">{#each detail.stats as s (s.key)}<li><span>{s.label}</span><b class="num">{s.value}</b></li>{/each}</ul>
+          {#if detail.stats?.length}<ul class="st">{#each detail.stats as s (s.key)}<li><span>{s.label}</span><b class="num">{s.value}{(s as any).unit === 'pct' ? '%' : ''}</b></li>{/each}</ul>{/if}
           {#if detail.effects?.length}<ul class="af ef">{#each detail.effects as e (e.key)}<li>{e.text}</li>{/each}</ul>{/if}
           {#if detail.affixes.length}<ul class="af">{#each detail.affixes as a (a.id)}<li>{a.label}</li>{/each}</ul>{/if}
           <div class="cmp">
             {#if detail.compare}
-              <p class="ch">Compared to <span style:color={`var(--r-${detail.compare.rarity})`}>{detail.compare.name}</span></p>
+              <p class="ch">Compared to <span style:color={`var(--r-${detail.compare.rarity})`}>{detail.compare.name}</span>{cmpAt ? ` (${cmpAt})` : ''}</p>
               <ul>{#each detail.compare.diff as d (d.key)}<li class:up={d.delta > 0} class:dn={d.delta < 0}><span>{d.label}</span><b class="num">{d.mine} <small>(was {d.theirs})</small> <span class="ar">{d.delta > 0 ? '▲' : d.delta < 0 ? '▼' : '='} {sign(d.delta)}{d.delta === 0 ? '' : fmt(d.delta)}</span></b></li>{/each}
               {#each detail.effects ?? [] as e (e.key)}{@const w = detail.compare.effects?.find((x) => x.key === e.key)}{#if w}{@const dl = Math.round((e.value - w.value) * 100) / 100}<li class="ef2" class:up={dl > 0} class:dn={dl < 0}><span>{e.label}</span><b class="num">{e.value}{e.unit === 'pct' ? '%' : ''} <small>(was {w.value}{w.unit === 'pct' ? '%' : ''})</small> <span class="ar">{dl > 0 ? '▲' : dl < 0 ? '▼' : '='} {sign(dl)}{dl === 0 ? '' : fmt(dl)}</span></b></li>{/if}{/each}</ul>
-            {:else if !detail.equipped}<p class="ch">New slot: nothing equipped</p>{/if}
+            {:else if !detail.equipped}<p class="ch">{emptyAt}</p>{/if}
           </div>
+          {#if finals.length}<ul class="fin">{#each finals as f (f.key)}<li class:up={f.to > f.now} class:dn={f.to < f.now}><span>{effName(f.key)} (skill total)</span><b class="num">{f.to}{f.key === 'quality' ? '' : '%'} <small>(now {f.now}{f.key === 'quality' ? '' : '%'})</small></b></li>{/each}</ul>{/if}
         {:else if loadedFor}
           <p class="meta">Details unavailable.</p>
         {/if}
@@ -115,6 +145,7 @@
           <button type="button" class="btn" onclick={nextReward}>Nice</button>
         </div>
       </div>
+      </div>
     </div>
   </div>
 {/if}
@@ -124,31 +155,37 @@
   @keyframes fin { from { opacity: 0; } }
   .rays { position: absolute; left: 50%; top: 50%; width: 220vmax; height: 220vmax; margin: -110vmax 0 0 -110vmax; pointer-events: none;
     background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--ink-r) 55%, transparent) 0 calc(180deg / var(--rays)), transparent 0 calc(360deg / var(--rays)));
-    -webkit-mask-image: radial-gradient(circle, #000 0, #000 8%, transparent 32%); mask-image: radial-gradient(circle, #000 0, #000 8%, transparent 32%);
+    -webkit-mask-image: radial-gradient(circle, #000 0, #000 6%, transparent 24%); mask-image: radial-gradient(circle, #000 0, #000 6%, transparent 24%);
     animation: spin 28s linear infinite; }
   .rays.b { opacity: .5; transform: scale(1.4) rotate(12deg); animation: spin 42s linear infinite reverse; }
   @keyframes spin { to { rotate: 360deg; } }
-  .halo { position: absolute; left: 50%; top: 50%; width: min(120vw, 560px); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--ink-r) 45%, transparent), transparent 65%); pointer-events: none; animation: breathe 2.6s ease-in-out infinite; }
+  .halo { position: absolute; left: 50%; top: 50%; width: min(86vw, 400px); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--ink-r) 45%, transparent), transparent 65%); pointer-events: none; animation: breathe 2.6s ease-in-out infinite; }
   @keyframes breathe { 50% { opacity: .65; scale: 1.08; } }
   .sparks i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; background: var(--ink-r); pointer-events: none;
     animation: spark 2.4s ease-out infinite; animation-delay: calc(var(--i) * -0.19s); --a: calc(var(--i) * 47deg); }
-  @keyframes spark { 0% { transform: rotate(var(--a)) translateY(0) scale(.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(-44vmin) scale(1); opacity: 0; } }
+  @keyframes spark { 0% { transform: rotate(var(--a)) translateY(0) scale(.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(-32vmin) scale(1); opacity: 0; } }
   .still .rays, .still .halo { animation: none; }
   @media (prefers-reduced-motion: reduce) { .rays, .halo, .sparks i { animation: none; } .cr { animation: none; } }
 
-  .stage { position: relative; width: 100%; max-width: var(--col); padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom)); max-height: 100%; overflow-y: auto; perspective: 900px; }
-  .card { display: grid; gap: 8px; justify-items: center; text-align: center; padding: 16px 14px; background: var(--paper); border: 2px solid var(--ink-r); box-shadow: 0 0 var(--glow) color-mix(in srgb, var(--ink-r) 60%, transparent); }
-  .card.flip { animation: flip 650ms cubic-bezier(.2,.9,.3,1.2); }
-  @keyframes flip { from { transform: rotateY(90deg) scale(.5); opacity: 0; } 60% { opacity: 1; } }
+  .stage { position: relative; width: 100%; max-width: 328px; padding: max(32px, env(safe-area-inset-top)) 32px max(32px, env(safe-area-inset-bottom)); max-height: 100%; overflow-y: auto; perspective: 900px; }
+  .card { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 12px 10px; border-radius: var(--rad-lg); backface-visibility: hidden; min-height: 280px; align-content: start; background: var(--paper); border: 2px solid var(--ink-r); box-shadow: 0 0 var(--glow) color-mix(in srgb, var(--ink-r) 60%, transparent); }
+  .flipper { position: relative; transform-style: preserve-3d; transform: rotateY(180deg); }
+  .flipper.up { transform: none; }
+  .flipper.anim.up { animation: flip 600ms ease-out; }
+  @keyframes flip { from { transform: rotateY(180deg) scale(.94); } 80% { transform: rotateY(0) scale(1.05); } to { transform: rotateY(0) scale(1); } }
+  .back { position: absolute; inset: 0; display: grid; place-items: center; transform: rotateY(180deg); backface-visibility: hidden; color: var(--paper); border-radius: var(--rad-lg);
+    background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--ink-r) 82%, #000) 0 6px, var(--ink-r) 6px 12px); border: 3px solid color-mix(in srgb, var(--ink-r) 60%, #fff); box-shadow: 0 0 var(--glow) color-mix(in srgb, var(--ink-r) 60%, transparent); }
   .kick { margin: 0; font: 700 var(--t-xs)/1 var(--f-label, var(--f-body)); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-r); }
-  .tile { display: grid; place-items: center; width: 80px; height: 80px; border: 2px solid var(--ink-r); background: var(--sunk); }
-  h2 { margin: 0; font: 600 var(--t-xl)/1.15 var(--f-display); color: var(--ink-r); }
+  .tile { display: grid; place-items: center; width: 60px; height: 60px; border: 2px solid var(--ink-r); background: var(--sunk); }
+  h2 { margin: 0; font: 600 var(--t-lg)/1.15 var(--f-display); color: var(--ink-r); }
   .meta { margin: 0; color: var(--ink-2); font-size: var(--t-sm); }
   ul { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 4px; }
-  li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; background: var(--sunk); border: 1px solid var(--rule); font-size: var(--t-md); color: var(--ink); text-align: left; }
-  .af li { color: var(--ink-2); font-size: var(--t-sm); justify-content: flex-start; gap: 4px; }
+  li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; border-radius: var(--rad-sm); background: var(--sunk); border: 1px solid var(--rule); font-size: var(--t-sm); color: var(--ink); text-align: left; }
+  .af li { color: var(--ink-2); font-size: var(--t-xs); justify-content: flex-start; gap: 4px; }
   .cmp { width: 100%; display: grid; gap: 4px; }
   .ch { margin: 4px 0 0; color: var(--ink-2); font-size: var(--t-sm); text-align: left; }
+  .fin li.up b { color: var(--ok); } .fin li.dn b { color: var(--bad, var(--warn)); }
+  .meta.kind { font: 700 var(--t-xs)/1.2 var(--f-label, var(--f-body)); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); }
   .cmp li.up b { color: var(--ok); } .cmp li.dn b { color: var(--bad, var(--warn)); }
   small { color: var(--ink-3); font-size: var(--t-xs); font-weight: 400; }
 .hold { margin: 0; color: var(--ink-2); font-size: var(--t-sm); }

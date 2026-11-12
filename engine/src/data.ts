@@ -1,3 +1,5 @@
+import { buildGear } from './data/gear/build';
+import { EFFECTS, AFFIXES, FIGHT_SLOTS, OUTFIT_SETS, OUTFIT_PIECES, TOOL_SKILLS, SKILL_GROUP } from './data/gear/model';
 // Static game content (was window.GW.DATA). Ported from legacy/data.js unchanged.
 /* eslint-disable */
 
@@ -11,9 +13,6 @@ function add(id: string, name: string, kind: string, tier: any, value: any, spri
 }
 const P = { perishable: true };
 const mat = (id: string, name: string, tier: any, value: any, sprite: any, tint: any, extra?: any) => add(id, name, 'material', tier, value, sprite, tint, extra);
-// gear value is derived from its recipe below when left null
-const gear = (id: string, name: string, tier: any, sprite: any, tint: any, slot: any, role: any, stats: any, extra?: any) =>
-  add(id, name, 'gear', tier, null, sprite, tint, Object.assign({ slot, role, stats }, extra || {}));
 const food = (id: string, name: string, tier: any, tint: any, heal?: any) => add(id, name, 'food', tier, null, 'food', tint, { heal });
 const potion = (id: string, name: string, tier: any, tint: any, extra?: any) => add(id, name, 'potion', tier, null, 'potion', tint, extra);
 const catalyst = (id: string, name: string, tier: any, tint: any, procMult?: any) => add(id, name, 'catalyst', tier, null, 'catalyst', tint, { procMult });
@@ -107,94 +106,26 @@ core('seraph_core', 'Seraph core', '#ffd86a');
 core('crown_core', 'Hollow crown core', '#a58cf0');
 core('leviathan_core', 'Leviathan core', '#38c9b8');
 
-// gear: striker
-gear('training_sword', 'Training sword', 1, 'sword', '#b8875a', 'weapon', 'striker', { atk: 3 });
-gear('pine_shortbow', 'Pine shortbow', 1, 'bow', '#d1a46b', 'weapon', 'striker', { atk: 4 });
-gear('bronze_sword', 'Bronze sword', 1, 'sword', '#b08d57', 'weapon', 'striker', { atk: 7 });
-gear('leather_cap', 'Leather cap', 1, 'helm', '#b08560', 'head', 'striker', { atk: 1, def: 1 }, { tags: { hunting: 0.05 } });
-gear('leather_jerkin', 'Leather jerkin', 1, 'chest', '#b08560', 'chest', 'striker', { atk: 1, def: 2, hp: 5 });
-gear('leather_breeches', 'Leather breeches', 1, 'legs', '#a07850', 'legs', 'striker', { atk: 1, def: 1, hp: 4 });
-gear('iron_longsword', 'Iron longsword', 2, 'sword', '#8f8f95', 'weapon', 'striker', { atk: 12 });
-gear('oak_longbow', 'Oak longbow', 2, 'bow', '#a97a48', 'weapon', 'striker', { atk: 11 });
-gear('studded_jerkin', 'Studded jerkin', 2, 'chest', '#8b5a3c', 'chest', 'striker', { atk: 2, def: 4, hp: 10 });
-gear('studded_leggings', 'Studded leggings', 2, 'legs', '#8b5a3c', 'legs', 'striker', { atk: 1, def: 3, hp: 8 }, { tags: { hunting: 0.08 } });
-gear('frostbite_saber', 'Frostbite saber', 3, 'sword', '#9fd8ee', 'weapon', 'striker', { atk: 18 }, { element: 'frost' });
-gear('venomstring_bow', 'Venomstring yew bow', 3, 'bow', '#6f8f3a', 'weapon', 'striker', { atk: 20 }, { element: 'venom' });
-gear('hardened_hood', 'Hardened hood', 3, 'helm', '#5b3a26', 'head', 'striker', { atk: 3, def: 4, hp: 8 }, { tags: { hunting: 0.12 } });
-gear('hardened_brigandine', 'Hardened brigandine', 3, 'chest', '#5b3a26', 'chest', 'striker', { atk: 4, def: 9, hp: 25 });
-gear('emberbrand', 'Emberbrand', 4, 'sword', '#e2603a', 'weapon', 'striker', { atk: 32 }, { element: 'fire' });
-gear('dawnstring_greatbow', 'Dawnstring greatbow', 4, 'bow', '#f2d27a', 'weapon', 'striker', { atk: 30 }, { element: 'holy' });
-gear('drakeskin_leggings', 'Drakeskin leggings', 4, 'legs', '#3d6b4f', 'legs', 'striker', { atk: 5, def: 10, hp: 30 });
-gear('drakeskin_coat', 'Drakeskin coat', 4, 'chest', '#3d6b4f', 'chest', 'striker', { atk: 7, def: 14, hp: 40 });
-// gear: guardian
-gear('pine_buckler', 'Pine buckler', 1, 'shield', '#d1a46b', 'offhand', 'guardian', { def: 3 });
-gear('copper_helm', 'Copper helm', 1, 'helm', '#d08a55', 'head', 'guardian', { def: 2, hp: 5 }, { tags: { mining: 0.05 } });
-gear('bronze_mace', 'Bronze mace', 1, 'sword', '#b08d57', 'weapon', 'guardian', { atk: 3, def: 2 });
-gear('bronze_chainmail', 'Bronze chainmail', 2, 'chest', '#b08d57', 'chest', 'guardian', { def: 7, hp: 15 });
-gear('oak_kite_shield', 'Oak kite shield', 2, 'shield', '#a97a48', 'offhand', 'guardian', { def: 7, hp: 10 });
-gear('iron_greaves', 'Iron greaves', 2, 'legs', '#8f8f95', 'legs', 'guardian', { def: 6, hp: 12 });
-gear('iron_warhammer', 'Iron warhammer', 2, 'sword', '#8f8f95', 'weapon', 'guardian', { atk: 6, def: 4 });
-gear('steel_greathelm', 'Steel greathelm', 3, 'helm', '#b4bcc6', 'head', 'guardian', { def: 9, hp: 20 });
-gear('steel_cuirass', 'Steel cuirass', 3, 'chest', '#b4bcc6', 'chest', 'guardian', { def: 16, hp: 40 });
-gear('yew_tower_shield', 'Yew tower shield', 3, 'shield', '#7b4f33', 'offhand', 'guardian', { def: 14, hp: 25 });
-gear('stoneheart_maul', 'Stoneheart maul', 3, 'sword', '#8c8c7a', 'weapon', 'guardian', { atk: 10, def: 6, hp: 15 }, { element: 'holy' });
-gear('mithril_greaves', 'Mithril greaves', 4, 'legs', '#7fd0e0', 'legs', 'guardian', { def: 16, hp: 35 });
-gear('drakescale_aegis', 'Drakescale aegis', 4, 'shield', '#4f8f6a', 'offhand', 'guardian', { def: 22, hp: 45 });
-gear('mithril_plate', 'Mithril plate', 4, 'chest', '#7fd0e0', 'chest', 'guardian', { def: 28, hp: 70 });
-// gear: mender
-gear('padded_tunic', 'Padded tunic', 1, 'chest', '#d8cbb0', 'chest', 'mender', { def: 2, heal: 1, hp: 10 }, { tags: { quality: 2 } });
-gear('pine_staff', 'Pine staff', 1, 'staff', '#d1a46b', 'weapon', 'mender', { atk: 1, heal: 4 });
-gear('linen_hood', 'Linen hood', 1, 'helm', '#efe7d2', 'head', 'mender', { heal: 1, hp: 3 }, { tags: { foraging: 0.05 } });
-gear('linen_robe', 'Linen robe', 1, 'chest', '#efe7d2', 'chest', 'mender', { def: 1, heal: 2, hp: 6 });
-gear('oak_staff', 'Oak staff', 2, 'staff', '#a97a48', 'weapon', 'mender', { atk: 2, heal: 9 });
-gear('canvas_trousers', 'Canvas trousers', 2, 'legs', '#8b9a5b', 'legs', 'mender', { def: 3, heal: 2, hp: 8 }, { tags: { foraging: 0.06 } });
-gear('nettle_robe', 'Nettle robe', 2, 'chest', '#8b9a5b', 'chest', 'mender', { def: 2, heal: 5, hp: 10 });
-gear('herbalist_cowl', 'Herbalist cowl', 2, 'helm', '#7d8f4e', 'head', 'mender', { def: 1, heal: 3, hp: 6 }, { tags: { foraging: 0.12 } });
-gear('dawnward_staff', 'Dawnward staff', 3, 'staff', '#f2e3a0', 'weapon', 'mender', { atk: 4, heal: 18 }, { element: 'holy' });
-gear('silk_cowl', 'Silk cowl', 3, 'helm', '#f3eefa', 'head', 'mender', { def: 2, heal: 6, hp: 10 }, { tags: { quality: 4 } });
-gear('silk_trousers', 'Silk trousers', 3, 'legs', '#e9d9f2', 'legs', 'mender', { def: 4, heal: 5, hp: 14 });
-gear('silk_robe', 'Silk robe', 3, 'chest', '#e9d9f2', 'chest', 'mender', { def: 4, heal: 10, hp: 20 });
-gear('moonweave_hood', 'Moonweave hood', 4, 'helm', '#cfd8ff', 'head', 'mender', { def: 3, heal: 10, hp: 18 });
-gear('moonweave_vestment', 'Moonweave vestment', 4, 'chest', '#cfd8ff', 'chest', 'mender', { def: 7, heal: 18, hp: 40 });
-gear('moonheart_staff', 'Moonheart staff', 4, 'staff', '#dfe5ff', 'weapon', 'mender', { atk: 6, heal: 32 }, { element: 'holy' });
-// gear: rings (jewelcrafting)
-gear('copper_band', 'Copper band', 1, 'ring', '#d08a55', 'ring', 'guardian', { hp: 6 }, { tags: { mining: 0.04 } });
-gear('gemstone_ring', 'Gemstone ring', 1, 'ring', '#9aa77f', 'ring', 'striker', { atk: 2 }, { tags: { quality: 3 } });
-gear('glowstone_ring', 'Glowstone ring', 2, 'ring', '#8fe3c0', 'ring', 'mender', { heal: 3 }, { tags: { foraging: 0.06 } });
-gear('iron_signet', 'Iron signet', 2, 'ring', '#8f8f95', 'ring', 'guardian', { def: 3, hp: 8 }, { tags: { mining: 0.06 } });
-gear('pearl_ring', 'Pearl-set silver ring', 3, 'ring', '#efe6da', 'ring', 'mender', { heal: 6, hp: 6 }, { tags: { fishing: 0.08 } });
-gear('sapphire_signet', 'Sapphire signet', 3, 'ring', '#3a64c8', 'ring', 'guardian', { def: 5, hp: 20 });
-gear('ruby_warband', 'Ruby war-band', 4, 'ring', '#c8304a', 'ring', 'striker', { atk: 8, hp: 10 }, { element: 'fire' });
-gear('black_pearl_ring', 'Black pearl ring', 4, 'ring', '#3a3448', 'ring', 'mender', { heal: 12, hp: 12 });
 
-// gear: skill tools and clothing (boost gathering / crafting; light combat stats)
-gear('copper_pickaxe', 'Copper pickaxe', 1, 'sword', '#d08a55', 'weapon', 'utility', { atk: 1 }, { tags: { mining: 0.15 } });
-gear('bronze_hatchet', 'Bronze hatchet', 1, 'sword', '#b08d57', 'weapon', 'utility', { atk: 2 }, { tags: { woodcutting: 0.15 } });
-gear('iron_pickaxe', 'Iron pickaxe', 2, 'sword', '#8f8f95', 'weapon', 'utility', { atk: 3 }, { tags: { mining: 0.25 } });
-gear('iron_felling_axe', 'Iron felling axe', 2, 'sword', '#8f8f95', 'weapon', 'utility', { atk: 4 }, { tags: { woodcutting: 0.25 } });
-gear('foragers_satchel', "Forager's satchel", 1, 'shield', '#c9b98a', 'offhand', 'utility', { hp: 3 }, { tags: { foraging: 0.15 } });
-gear('anglers_hat', "Angler's hat", 1, 'helm', '#9fb4bf', 'head', 'utility', { hp: 3 }, { tags: { fishing: 0.15 } });
-gear('artisans_apron', "Artisan's apron", 2, 'chest', '#8b5a3c', 'chest', 'utility', { def: 1, hp: 6 }, { tags: { quality: 6 } });
-gear('trappers_leggings', "Trapper's leggings", 2, 'legs', '#7d7468', 'legs', 'utility', { def: 2, hp: 6 }, { tags: { hunting: 0.15 } });
 
 // food (cooking)
-food('bread', 'Bread', 1, '#d9a35b', 12);
-food('grilled_minnows', 'Grilled minnows', 1, '#c9a27a', 10);
-food('herb_trout', 'Herb-baked trout', 2, '#b88a5a', 25);
-food('bloodmoss_broth', 'Bloodmoss broth', 2, '#a3443c', 40);
-food('salmon_pie', 'Salmon pie', 3, '#e09a6a', 55);
-food('frostcap_salmon', 'Frostcap salmon', 3, '#e8b0a0', 75);
-food('angler_feast', 'Angler feast', 4, '#f2c94c', 110);
+food('bread', 'Bread', 1, '#d9a35b', 120);
+food('grilled_minnows', 'Grilled minnows', 1, '#c9a27a', 100);
+food('herb_trout', 'Herb-baked trout', 2, '#b88a5a', 250);
+food('bloodmoss_broth', 'Bloodmoss broth', 2, '#a3443c', 400);
+food('salmon_pie', 'Salmon pie', 3, '#e09a6a', 550);
+food('frostcap_salmon', 'Frostcap salmon', 3, '#e8b0a0', 750);
+food('angler_feast', 'Angler feast', 4, '#f2c94c', 1100);
 // potions (alchemy)
-potion('mint_tonic', 'Mint tonic', 1, '#7fd18a', { heal: 15 });
-potion('wisplight_salve', 'Wisplight salve', 1, '#b7c7e8', { heal: 25 });
+potion('mint_tonic', 'Mint tonic', 1, '#7fd18a', { heal: 150 });
+potion('wisplight_salve', 'Wisplight salve', 1, '#b7c7e8', { heal: 250 });
 potion('ironskin_draught', 'Ironskin draught', 2, '#9a9a8a', { buff: { stat: 'def', pct: 0.1 } });
 potion('fury_draught', 'Fury draught', 2, '#d0463c', { buff: { stat: 'atk', pct: 0.1 } });
-potion('restoring_elixir', 'Restoring elixir', 3, '#e06a8a', { heal: 60 });
-potion('frostward_tonic', 'Frostward tonic', 3, '#8fd3e8', { heal: 20, buff: { stat: 'def', pct: 0.15 } });
+potion('restoring_elixir', 'Restoring elixir', 3, '#e06a8a', { heal: 600 });
+potion('frostward_tonic', 'Frostward tonic', 3, '#8fd3e8', { heal: 200, buff: { stat: 'def', pct: 0.15 } });
 potion('clarity_draught', 'Clarity draught', 3, '#b4a8f5', { buff: { stat: 'heal', pct: 0.15 } });
-potion('sunpetal_elixir', 'Sunpetal elixir', 4, '#f6d55c', { heal: 120, buff: { stat: 'heal', pct: 0.2 } });
-potion('rimeheart_draught', 'Rimeheart draught', 5, '#bfe8ff', { heal: 40, buff: { stat: 'def', pct: 0.25 } });
+potion('sunpetal_elixir', 'Sunpetal elixir', 4, '#f6d55c', { heal: 1200, buff: { stat: 'heal', pct: 0.2 } });
+potion('rimeheart_draught', 'Rimeheart draught', 5, '#bfe8ff', { heal: 400, buff: { stat: 'def', pct: 0.25 } });
 // catalysts
 catalyst('quickening_salts', 'Quickening salts', 2, '#e8c46a', 1.5);
 catalyst('cut_prism', 'Cut prism', 3, '#7aa0f0', 1.75);
@@ -273,75 +204,9 @@ R('spin_silk', 'weaving', 'Silk thread', 30, 5, 38, { spider_silk: 2 }, { silk_t
 R('weave_silk', 'weaving', 'Silk cloth', 42, 7, 58, { silk_thread: 3 }, { silk_cloth: 1 });
 R('weave_moon', 'weaving', 'Moonweave', 55, 8, 90, { silk_cloth: 2, moon_essence: 1 }, { moonweave: 1 });
 
-// crafting: smithing
-C('training_sword', 'smithing', 'Training sword', 1, 4, 12, { copper_bar: 1, pine_plank: 1 });
-C('copper_helm', 'smithing', 'Copper helm', 3, 5, 16, { copper_bar: 2, copper_rivet: 6 });
-C('bronze_mace', 'smithing', 'Bronze mace', 6, 5, 20, { bronze_bar: 3, pine_plank: 1 });
-C('bronze_sword', 'smithing', 'Bronze sword', 8, 5, 22, { bronze_bar: 3, copper_rivet: 4, rough_leather: 1 });
-C('bronze_chainmail', 'smithing', 'Bronze chainmail', 12, 6, 30, { bronze_bar: 4, copper_rivet: 20, rough_leather: 1 });
-C('iron_longsword', 'smithing', 'Iron longsword', 20, 6, 40, { iron_bar: 3, copper_rivet: 6, tanned_leather: 1 });
-C('iron_greaves', 'smithing', 'Iron greaves', 22, 6, 42, { iron_bar: 3, leather_strap: 2, copper_rivet: 10 });
-C('iron_warhammer', 'smithing', 'Iron warhammer', 25, 7, 48, { iron_bar: 3, oak_plank: 1, tanned_leather: 1 });
-C('frostbite_saber', 'smithing', 'Frostbite saber', 35, 8, 75, { steel_bar: 6, leather_strap: 2, copper_rivet: 16, frostcap: 2 });
-C('steel_greathelm', 'smithing', 'Steel greathelm', 38, 8, 80, { steel_bar: 5, leather_strap: 2, copper_rivet: 20, linen_cloth: 1 });
-C('stoneheart_maul', 'smithing', 'Stoneheart maul', 42, 8, 90, { steel_bar: 4, stone_heart: 1, yew_plank: 1, hardened_leather: 1 });
-C('steel_cuirass', 'smithing', 'Steel cuirass', 45, 10, 120, { steel_bar: 12, leather_strap: 4, copper_rivet: 40 });
-C('mithril_greaves', 'smithing', 'Mithril greaves', 56, 9, 140, { mithril_bar: 6, drakeskin: 2, copper_rivet: 30, linen_cloth: 2 });
-C('emberbrand', 'smithing', 'Emberbrand', 58, 10, 165, { mithril_bar: 6, drakeskin: 2, copper_rivet: 30, ruby: 2 });
-C('mithril_plate', 'smithing', 'Mithril plate', 60, 10, 200, { mithril_bar: 10, drake_scale: 1, drakeskin: 4, copper_rivet: 60 });
-C('copper_pickaxe', 'smithing', 'Copper pickaxe', 2, 4, 14, { copper_bar: 2, pine_plank: 1 });
-C('bronze_hatchet', 'smithing', 'Bronze hatchet', 5, 5, 18, { bronze_bar: 2, pine_plank: 1 });
-C('iron_pickaxe', 'smithing', 'Iron pickaxe', 18, 6, 36, { iron_bar: 2, oak_plank: 1, leather_strap: 1 });
-C('iron_felling_axe', 'smithing', 'Iron felling axe', 21, 6, 40, { iron_bar: 2, oak_plank: 2 });
-// woodworking
-C('pine_shortbow', 'woodworking', 'Pine shortbow', 1, 4, 12, { pine_plank: 2, linen_thread: 1 });
-C('pine_buckler', 'woodworking', 'Pine buckler', 1, 4, 12, { pine_plank: 3, copper_rivet: 4 });
-C('pine_staff', 'woodworking', 'Pine staff', 3, 4, 14, { pine_plank: 3, faint_essence: 1 });
-C('oak_kite_shield', 'woodworking', 'Oak kite shield', 15, 6, 34, { oak_plank: 3, iron_bar: 1, copper_rivet: 8 });
-C('oak_staff', 'woodworking', 'Oak staff', 16, 6, 34, { oak_plank: 3, glow_essence: 1, copper_bar: 1 });
-C('oak_longbow', 'woodworking', 'Oak longbow', 18, 6, 38, { oak_plank: 3, linen_thread: 2, bone_shard: 2 });
-C('dawnward_staff', 'woodworking', 'Dawnward staff', 35, 8, 75, { yew_plank: 3, storm_essence: 2, silver_bar: 1, wood_varnish: 1 });
-C('venomstring_bow', 'woodworking', 'Venomstring yew bow', 38, 8, 80, { yew_plank: 4, silk_thread: 3, bloodmoss: 3, wood_varnish: 1 });
-C('yew_tower_shield', 'woodworking', 'Yew tower shield', 40, 8, 85, { yew_plank: 4, steel_bar: 3, hardened_leather: 2, copper_rivet: 20 });
-C('dawnstring_greatbow', 'woodworking', 'Dawnstring greatbow', 55, 9, 150, { ironwood_plank: 4, silk_cloth: 1, drakeskin: 2, wood_varnish: 2, sunpetal: 1 });
-C('drakescale_aegis', 'woodworking', 'Drakescale aegis', 57, 10, 170, { ironwood_plank: 4, drake_scale: 2, mithril_bar: 2, copper_rivet: 30 });
-C('moonheart_staff', 'woodworking', 'Moonheart staff', 60, 10, 190, { ironwood_plank: 3, moon_essence: 2, black_pearl: 1, gold_bar: 1 });
-// leatherworking
-C('leather_cap', 'leatherworking', 'Leather cap', 1, 4, 12, { rough_leather: 2, copper_rivet: 2 });
-C('leather_jerkin', 'leatherworking', 'Leather jerkin', 5, 5, 18, { rough_leather: 3, copper_rivet: 4 });
-C('leather_breeches', 'leatherworking', 'Leather breeches', 8, 5, 20, { rough_leather: 2, linen_thread: 2, copper_rivet: 4 });
-C('studded_jerkin', 'leatherworking', 'Studded jerkin', 18, 6, 36, { tanned_leather: 3, copper_rivet: 12 });
-C('studded_leggings', 'leatherworking', 'Studded leggings', 22, 6, 40, { tanned_leather: 2, leather_strap: 2, copper_rivet: 8 });
-C('hardened_hood', 'leatherworking', 'Hardened hood', 32, 7, 60, { hardened_leather: 2, silk_thread: 1, copper_rivet: 10 });
-C('hardened_brigandine', 'leatherworking', 'Hardened brigandine', 40, 8, 85, { hardened_leather: 4, steel_bar: 2, copper_rivet: 30, silk_thread: 1 });
-C('drakeskin_leggings', 'leatherworking', 'Drakeskin leggings', 52, 9, 130, { drakeskin: 3, silk_thread: 2, copper_rivet: 24 });
-C('drakeskin_coat', 'leatherworking', 'Drakeskin coat', 56, 10, 160, { drakeskin: 4, mithril_bar: 2, copper_rivet: 40, silk_thread: 2 });
-C('artisans_apron', 'leatherworking', "Artisan's apron", 12, 5, 26, { rough_leather: 3, linen_thread: 2, copper_rivet: 4 });
-C('trappers_leggings', 'leatherworking', "Trapper's leggings", 16, 6, 32, { tanned_leather: 2, bone_shard: 3, linen_thread: 1 });
-// tailoring
-C('padded_tunic', 'tailoring', 'Padded tunic', 1, 4, 12, { linen_thread: 3 });
-C('foragers_satchel', 'tailoring', "Forager's satchel", 4, 4, 16, { linen_cloth: 1, linen_thread: 2 });
-C('anglers_hat', 'tailoring', "Angler's hat", 7, 5, 18, { linen_cloth: 1, flax_fiber: 3 });
-C('linen_hood', 'tailoring', 'Linen hood', 3, 4, 14, { linen_cloth: 1, linen_thread: 1 });
-C('linen_robe', 'tailoring', 'Linen robe', 6, 5, 20, { linen_cloth: 3, linen_thread: 2 });
-C('canvas_trousers', 'tailoring', 'Canvas trousers', 15, 6, 32, { nettle_canvas: 2, leather_strap: 1, copper_rivet: 4 });
-C('nettle_robe', 'tailoring', 'Nettle robe', 20, 6, 38, { nettle_canvas: 3, linen_thread: 2, glow_essence: 1 });
-C('herbalist_cowl', 'tailoring', 'Herbalist cowl', 24, 6, 42, { nettle_canvas: 2, bloodmoss: 1 });
-C('silk_cowl', 'tailoring', 'Silk cowl', 34, 7, 62, { silk_thread: 3, frostcap: 1, leather_strap: 1 });
-C('silk_trousers', 'tailoring', 'Silk trousers', 38, 8, 72, { silk_thread: 4, hardened_leather: 1, copper_rivet: 8 });
-C('silk_robe', 'tailoring', 'Silk robe', 44, 8, 85, { silk_cloth: 2, leather_strap: 2, storm_essence: 1 });
-C('moonweave_hood', 'tailoring', 'Moonweave hood', 56, 9, 140, { moonweave: 1, silk_cloth: 1, sunpetal: 1, leather_strap: 1 });
-C('moonweave_vestment', 'tailoring', 'Moonweave vestment', 60, 10, 190, { moonweave: 2, drakeskin: 1, gold_bar: 1 });
-// jewelcrafting
-C('copper_band', 'jewelcrafting', 'Copper band', 1, 4, 12, { copper_bar: 2 });
-C('gemstone_ring', 'jewelcrafting', 'Gemstone ring', 8, 5, 20, { bronze_bar: 1, rough_gem: 1 });
-C('glowstone_ring', 'jewelcrafting', 'Glowstone ring', 16, 5, 32, { copper_bar: 1, glow_essence: 2, rough_gem: 1 });
-C('iron_signet', 'jewelcrafting', 'Iron signet', 20, 6, 38, { iron_bar: 2, rough_gem: 1, leather_strap: 1 });
-C('pearl_ring', 'jewelcrafting', 'Pearl-set silver ring', 30, 6, 55, { silver_bar: 1, river_pearl: 1, linen_thread: 2 });
+// crafting: gear (smithing, woodworking, leatherworking, tailoring, jewelcrafting) is generated from the
+// gear families (data/gear) and merged below. Jewelcrafting also cuts catalysts:
 C('cut_prism', 'jewelcrafting', 'Cut prism', 33, 6, 50, { sapphire: 1, silver_bar: 1 });
-C('sapphire_signet', 'jewelcrafting', 'Sapphire signet', 40, 7, 75, { silver_bar: 1, sapphire: 1, leather_strap: 1 });
-C('ruby_warband', 'jewelcrafting', 'Ruby war-band', 52, 8, 120, { gold_bar: 1, ruby: 1, wood_varnish: 1 });
-C('black_pearl_ring', 'jewelcrafting', 'Black pearl ring', 58, 9, 150, { mithril_bar: 1, black_pearl: 1, moon_essence: 1 });
 C('emberglass_lens', 'jewelcrafting', 'Emberglass lens', 60, 10, 180, { ember_scale: 1, ruby: 1, silver_bar: 1 });
 // alchemy
 C('mint_tonic', 'alchemy', 'Mint tonic', 1, 3, 8, { mint_leaf: 3 });
@@ -365,38 +230,41 @@ C('sear_frostcap_salmon', 'cooking', 'Frostcap salmon', 42, 7, 60, { salmon: 2, 
 C('cook_angler_feast', 'cooking', 'Angler feast', 55, 8, 85, { abyssal_angler: 1, sunpetal: 1, wild_grain: 3 }, { angler_feast: 2 });
 
 // combat: striker (hides, silk)
-F('fight_wolfwood', 'striker', 'Mangy wolves', 1, 5, 12, 'Wolfwood edge', { name: 'Mangy wolf', power: 3, dmg: 2 }, [1, 3],
+F('fight_wolfwood', 'striker', 'Mangy wolves', 1, 5, 12, 'Wolfwood edge', { name: 'Mangy wolf', power: 30, dmg: 20 }, [1, 3],
   [d('scrap_hide', 0.6, 1, 2), d('bone_shard', 0.4, 1, 2), d('wolf_pelt', 0.05, 1, 1)]);
-F('fight_ridge', 'striker', 'Ridge wolves', 12, 6, 26, 'Howling ridge', { name: 'Ridge wolf', power: 10, dmg: 6 }, [3, 8],
+F('fight_ridge', 'striker', 'Ridge wolves', 12, 6, 26, 'Howling ridge', { name: 'Ridge wolf', power: 100, dmg: 60 }, [3, 8],
   [d('wolf_pelt', 0.6, 1, 2), d('bone_shard', 0.4, 1, 2)]);
-F('fight_hollow', 'striker', 'Hollow spiders', 28, 7, 44, 'Webbed hollow', { name: 'Hollow spider', power: 22, dmg: 12 }, [8, 18],
+F('fight_hollow', 'striker', 'Hollow spiders', 28, 7, 44, 'Webbed hollow', { name: 'Hollow spider', power: 220, dmg: 120 }, [8, 18],
   [d('spider_silk', 0.6, 1, 3), d('bone_shard', 0.3, 1, 3)]);
-F('fight_bearclaw', 'striker', 'Cave bears', 35, 8, 56, 'Bearclaw pass', { name: 'Cave bear', power: 30, dmg: 16 }, [12, 26],
+F('fight_bearclaw', 'striker', 'Cave bears', 35, 8, 56, 'Bearclaw pass', { name: 'Cave bear', power: 300, dmg: 160 }, [12, 26],
   [d('bear_hide', 0.55, 1, 2), d('wolf_pelt', 0.3, 1, 2)]);
-F('fight_drakemire', 'striker', 'Mire drakes', 52, 9, 90, 'Drakemire', { name: 'Mire drake', power: 48, dmg: 26 }, [25, 50],
+F('fight_drakemire', 'striker', 'Mire drakes', 52, 9, 90, 'Drakemire', { name: 'Mire drake', power: 480, dmg: 260 }, [25, 50],
   [d('drake_hide', 0.5, 1, 2), d('bone_shard', 0.5, 2, 4)]);
 // combat: guardian (hides, elite cores-lite)
-F('fight_quarry_road', 'guardian', 'Quarry rats', 1, 5, 12, 'Old quarry road', { name: 'Quarry rat', power: 3, dmg: 3 }, [1, 3],
+F('fight_quarry_road', 'guardian', 'Quarry rats', 1, 5, 12, 'Old quarry road', { name: 'Quarry rat', power: 30, dmg: 30 }, [1, 3],
   [d('scrap_hide', 0.5, 1, 2), d('bone_shard', 0.3, 1, 1), d('copper_ore', 0.3, 1, 3)]);
-F('fight_palisade', 'guardian', 'Palisade bandits', 15, 6, 30, 'Bandit palisade', { name: 'Palisade bandit', power: 12, dmg: 7 }, [5, 12],
+F('fight_palisade', 'guardian', 'Palisade bandits', 15, 6, 30, 'Bandit palisade', { name: 'Palisade bandit', power: 120, dmg: 70 }, [5, 12],
   [d('wolf_pelt', 0.45, 1, 2), d('iron_ore', 0.3, 1, 3)]);
-F('fight_ironhide', 'guardian', 'Ironhide bears', 30, 7, 48, 'Ironhide den', { name: 'Ironhide bear', power: 26, dmg: 14 }, [10, 22],
+F('fight_ironhide', 'guardian', 'Ironhide bears', 30, 7, 48, 'Ironhide den', { name: 'Ironhide bear', power: 260, dmg: 140 }, [10, 22],
   [d('bear_hide', 0.5, 1, 2), d('scrap_hide', 0.4, 1, 3)]);
-F('fight_golems', 'guardian', 'Granite golems (elite)', 40, 9, 66, 'Golem quarry', { name: 'Granite golem', power: 36, dmg: 20 }, [16, 34],
+F('fight_golems', 'guardian', 'Granite golems (elite)', 40, 9, 66, 'Golem quarry', { name: 'Granite golem', power: 360, dmg: 200 }, [16, 34],
   [d('stone_heart', 0.12, 1, 1), d('iron_ore', 0.5, 2, 4), d('coal', 0.5, 2, 4)]);
-F('fight_roost', 'guardian', 'Roost wardens (elite)', 56, 10, 100, 'Drake roost', { name: 'Roost warden', power: 52, dmg: 30 }, [30, 60],
+F('fight_roost', 'guardian', 'Roost wardens (elite)', 56, 10, 100, 'Drake roost', { name: 'Roost warden', power: 520, dmg: 300 }, [30, 60],
   [d('drake_scale', 0.1, 1, 1), d('drake_hide', 0.4, 1, 2)]);
 // combat: mender (essences)
-F('fight_shrine', 'mender', 'Restless wisps', 1, 5, 12, 'Hollow shrine', { name: 'Restless wisp', power: 3, dmg: 2 }, [1, 3],
+F('fight_shrine', 'mender', 'Restless wisps', 1, 5, 12, 'Hollow shrine', { name: 'Restless wisp', power: 30, dmg: 20 }, [1, 3],
   [d('faint_essence', 0.6, 1, 2)]);
-F('fight_marsh', 'mender', 'Marsh glimmers', 14, 6, 28, 'Glimmer marsh', { name: 'Marsh glimmer', power: 11, dmg: 6 }, [4, 10],
+F('fight_marsh', 'mender', 'Marsh glimmers', 14, 6, 28, 'Glimmer marsh', { name: 'Marsh glimmer', power: 110, dmg: 60 }, [4, 10],
   [d('glow_essence', 0.5, 1, 2), d('faint_essence', 0.4, 1, 2)]);
-F('fight_spire', 'mender', 'Storm sprites', 32, 7, 50, 'Stormcrown spire', { name: 'Storm sprite', power: 28, dmg: 15 }, [10, 24],
+F('fight_spire', 'mender', 'Storm sprites', 32, 7, 50, 'Stormcrown spire', { name: 'Storm sprite', power: 280, dmg: 150 }, [10, 24],
   [d('storm_essence', 0.45, 1, 2), d('glow_essence', 0.3, 1, 2)]);
-F('fight_chapel', 'mender', 'Drowned acolytes', 40, 8, 64, 'Sunken chapel', { name: 'Drowned acolyte', power: 36, dmg: 20 }, [15, 30],
+F('fight_chapel', 'mender', 'Drowned acolytes', 40, 8, 64, 'Sunken chapel', { name: 'Drowned acolyte', power: 360, dmg: 200 }, [15, 30],
   [d('storm_essence', 0.5, 1, 2), d('river_pearl', 0.1, 1, 1), d('glow_essence', 0.3, 1, 2)]);
-F('fight_barrow', 'mender', 'Barrow revenants', 50, 9, 88, 'Moonlit barrow', { name: 'Barrow revenant', power: 45, dmg: 25 }, [22, 46],
+F('fight_barrow', 'mender', 'Barrow revenants', 50, 9, 88, 'Moonlit barrow', { name: 'Barrow revenant', power: 450, dmg: 250 }, [22, 46],
   [d('moon_essence', 0.35, 1, 1), d('storm_essence', 0.3, 1, 2), d('bone_shard', 0.5, 1, 3)]);
+
+// gear items + recipes (gear spec 2026-11-12): families x tiers, see data/gear/
+{ const g = buildGear(undefined, (id) => (items[id] ? items[id].value : 0)); Object.assign(items, g.items); g.actions.forEach((a) => actions.push(a)); }
 
 // crafted item values: ~1.3x the Standard value of the recipe inputs, per unit made
 for (const a of actions as any[]) {
@@ -410,27 +278,27 @@ for (const a of actions as any[]) {
 
 // ---------- bosses ----------
 const bosses = [
-  { id: 'ashen_wyrm', name: 'Ashen Wyrm', title: 'Boss 1', hp: 1700000, power: 20, reqPower: 30, weekends: 1.6, cores: 24, weakTo: 'frost', hits: 'fire',
+  { id: 'ashen_wyrm', name: 'Ashen Wyrm', title: 'Boss 1', hp: 1700000, power: 200, reqPower: 300, weekends: 1.6, cores: 24, weakTo: 'frost', hits: 'fire',
     phases: [{ name: 'Scorched hide', check: 'mitigation' }, { name: 'Burn', check: 'damage' }, { name: 'Ember rain', check: 'healing' }],
     loot: [d('wyrm_core', 0.15, 1, 1), d('ember_scale', 0.6, 1, 3), d('coal', 0.8, 4, 10)],
     palette: ['#3b2a2a', '#c2462e', '#f0a04b'] },
-  { id: 'rimefang_matriarch', name: 'Rimefang Matriarch', title: 'Boss 2', hp: 4700000, power: 34, reqPower: 50, weekends: 1.8, cores: 24, weakTo: 'fire', hits: 'frost',
+  { id: 'rimefang_matriarch', name: 'Rimefang Matriarch', title: 'Boss 2', hp: 4700000, power: 340, reqPower: 500, weekends: 1.8, cores: 24, weakTo: 'fire', hits: 'frost',
     phases: [{ name: 'Frozen pelt', check: 'mitigation' }, { name: 'Blizzard howl', check: 'healing' }, { name: 'Pack frenzy', check: 'damage' }],
     loot: [d('rimefang_core', 0.15, 1, 1), d('rime_shard', 0.6, 1, 3), d('wolf_pelt', 0.8, 4, 8)],
     palette: ['#1f2c3d', '#5d9ccf', '#dff3ff'] },
-  { id: 'blightroot_colossus', name: 'Blightroot Colossus', title: 'Boss 3', hp: 7800000, power: 50, reqPower: 75, weekends: 2.0, cores: 22, weakTo: 'holy', hits: 'venom',
+  { id: 'blightroot_colossus', name: 'Blightroot Colossus', title: 'Boss 3', hp: 7800000, power: 500, reqPower: 750, weekends: 2.0, cores: 22, weakTo: 'holy', hits: 'venom',
     phases: [{ name: 'Barkskin', check: 'mitigation' }, { name: 'Spore cloud', check: 'healing' }, { name: 'Uprooting', check: 'damage' }],
     loot: [d('blight_core', 0.15, 1, 1), d('venom_gland', 0.6, 1, 3), d('bloodmoss', 0.8, 3, 8)],
     palette: ['#1f2a1a', '#5f8a2e', '#c6e05a'] },
-  { id: 'sunfallen_seraph', name: 'Sunfallen Seraph', title: 'Boss 4', hp: 11500000, power: 66, reqPower: 100, weekends: 2.2, cores: 20, weakTo: 'venom', hits: 'holy',
+  { id: 'sunfallen_seraph', name: 'Sunfallen Seraph', title: 'Boss 4', hp: 11500000, power: 660, reqPower: 1000, weekends: 2.2, cores: 20, weakTo: 'venom', hits: 'holy',
     phases: [{ name: 'Radiant ward', check: 'mitigation' }, { name: 'Judgement', check: 'damage' }, { name: 'Searing light', check: 'healing' }],
     loot: [d('seraph_core', 0.15, 1, 1), d('halo_fragment', 0.6, 1, 3), d('sunpetal', 0.7, 2, 5)],
     palette: ['#3a2f1a', '#d9b44a', '#fff4c2'] },
-  { id: 'hollow_king', name: 'The Hollow King', title: 'Boss 5', hp: 15000000, power: 80, reqPower: 120, weekends: 2.4, cores: 18, weakTo: 'holy', hits: 'frost',
+  { id: 'hollow_king', name: 'The Hollow King', title: 'Boss 5', hp: 15000000, power: 800, reqPower: 1200, weekends: 2.4, cores: 18, weakTo: 'holy', hits: 'frost',
     phases: [{ name: 'Grave guard', check: 'mitigation' }, { name: 'Soul drain', check: 'healing' }, { name: 'Last court', check: 'damage' }],
     loot: [d('crown_core', 0.15, 1, 1), d('grave_silver', 0.6, 1, 3), d('moon_essence', 0.7, 2, 4)],
     palette: ['#1c1a24', '#6b5b8f', '#c9b8f0'] },
-  { id: 'abyssal_leviathan', name: 'Abyssal Leviathan', title: 'Boss 6', hp: 20000000, power: 100, reqPower: 150, weekends: 2.6, cores: 16, weakTo: 'frost', hits: 'venom',
+  { id: 'abyssal_leviathan', name: 'Abyssal Leviathan', title: 'Boss 6', hp: 20000000, power: 1000, reqPower: 1500, weekends: 2.6, cores: 16, weakTo: 'frost', hits: 'venom',
     phases: [{ name: 'Tidal shell', check: 'mitigation' }, { name: 'Undertow', check: 'damage' }, { name: 'Brine plague', check: 'healing' }],
     loot: [d('leviathan_core', 0.15, 1, 1), d('abyssal_pearl', 0.6, 1, 2), d('black_pearl', 0.5, 1, 3)],
     palette: ['#0f1d2a', '#2b6f8a', '#7fe0d0'] }
@@ -447,19 +315,6 @@ const raidRoles = [
   { id: 'mender', name: 'Mender', check: 'healing', stat: 'heal', powerLabel: 'Healing power', aura: 'healing', takesHits: true, blurb: 'Keeps the line standing. Fills healing checks.' },
   { id: 'striker', name: 'Striker', check: 'damage', stat: 'atk', powerLabel: 'Damage power', aura: 'damage', takesHits: true, blurb: 'Hits hard. Fills damage checks.' },
   { id: 'supply', name: 'Supply line', check: null, stat: null, powerLabel: 'Supplies carried', aura: null, takesHits: false, blurb: 'Carries your pouch to the front. Counts as attendance; no hits taken.' }
-];
-const statTags = [
-  { id: 'damage', name: 'Damage', kind: 'combat', unit: 'pts', stat: 'atk' },
-  { id: 'defence', name: 'Defence', kind: 'combat', unit: 'pts', stat: 'def' },
-  { id: 'healing', name: 'Healing', kind: 'combat', unit: 'pts', stat: 'heal' },
-  { id: 'vitality', name: 'Vitality', kind: 'combat', unit: 'pts', stat: 'hp' },
-  { id: 'mining', name: 'Mining speed', kind: 'skill', unit: 'pct', skill: 'mining', effect: 'speed' },
-  { id: 'woodcutting', name: 'Woodcutting speed', kind: 'skill', unit: 'pct', skill: 'woodcutting', effect: 'speed' },
-  { id: 'foraging', name: 'Foraging', kind: 'skill', unit: 'pct', skill: 'herbalism', effect: 'yield' },
-  { id: 'fishing', name: 'Fishing', kind: 'skill', unit: 'pct', skill: 'fishing', effect: 'yield' },
-  { id: 'hunting', name: 'Hunting', kind: 'skill', unit: 'pct', skill: 'combat', effect: 'drops' },
-  { id: 'quality', name: 'Quality', kind: 'skill', unit: 'pts', skill: 'crafting', effect: 'quality' },
-  { id: 'speed', name: 'Speed', kind: 'skill', unit: 'pct', skill: 'all', effect: 'speed' }
 ];
 const tactics = [
   { id: 'focus', name: 'Focus adds', blurb: '+15% damage in damage phases.' },
@@ -513,7 +368,10 @@ export const ECON = {
   storeSellMult: 0.4,          // the store buys anything from the player at value x this (gold floor + sink); below contracts (1.1x)
   storeResourceSlots: 6,       // resource slots per hourly rotation
   storeGearSlots: 3,           // gear slots per hourly rotation
-  storeGearMaxTier: 2,         // gear tiers on sale (low/mid only)
+  storeGearMaxTier: 1,         // fight gear tiers in the hourly rotation (gear spec: T1 only)
+  storeToolPrice: 600,         // Uncommon T1 tools, always on sale (gear overhaul 2026-11-12)
+  storeToolTier: 1,
+  storeToolRarity: 'uncommon',
 };
 
 // Display rarity per item id (the collect reveal orders rarer items last and flashes their ink).
@@ -546,8 +404,8 @@ export const DATA: any = {
     playerMarket: false,
     pityThreshold: 40,
     speedFactor: SPEED,           // phase 2.5: match the prototype's pace (owner's call, 2026-11-08)
-    baseHp: 60,
-    hpPerCombatLevel: 4,
+    baseHp: 600,                  // x10 combat scale (gear spec 2026-11-12)
+    hpPerCombatLevel: 40,
     // v4 weekend raids
     raidWindow: { startDay: 6, startHour: 10, endDay: 0, endHour: 22 }, // Sat 10:00 -> Sun 22:00 local
     raidChargeHours: 10,          // raid hours per weekend; 6 frames per hour in the sim
@@ -635,26 +493,16 @@ export const DATA: any = {
   itemRarity,
   actions,
 
-  affixes: [
-    { id: 'keen', name: 'Keen', stat: 'atk', range: [1, 6] },
-    { id: 'savage', name: 'Savage', stat: 'atk', range: [4, 12] },
-    { id: 'sturdy', name: 'Sturdy', stat: 'def', range: [1, 6] },
-    { id: 'bulwark', name: 'Bulwark', stat: 'def', range: [4, 12] },
-    { id: 'soothing', name: 'Soothing', stat: 'heal', range: [1, 6] },
-    { id: 'radiant', name: 'Radiant', stat: 'heal', range: [4, 12] },
-    { id: 'hale', name: 'Hale', stat: 'hp', range: [5, 25] },
-    { id: 'of_the_bear', name: 'of the Bear', stat: 'hp', range: [15, 45] },
-    { id: 'of_embers', name: 'of Embers', stat: 'fire', range: [2, 8] },
-    { id: 'of_rime', name: 'of Rime', stat: 'frost', range: [2, 8] },
-    { id: 'of_venom', name: 'of Venom', stat: 'venom', range: [2, 8] },
-    { id: 'of_dawn', name: 'of Dawn', stat: 'holy', range: [2, 8] },
-    { id: 'enduring', name: 'Enduring', stat: 'dur', range: [10, 30] },
-    { id: 'swift', name: 'Swift', stat: 'speed', range: [3, 10] }
-  ],
+  affixes: AFFIXES,
+  effects: EFFECTS,
+  fightSlots: FIGHT_SLOTS,
+  outfitSets: OUTFIT_SETS,
+  outfitPieces: OUTFIT_PIECES,
+  toolSkills: TOOL_SKILLS,
+  skillGroups: SKILL_GROUP,
 
   bosses,
   raidRoles,
-  statTags,
   tactics,
   stances,
   crewRanks,
@@ -676,6 +524,8 @@ export const DATA: any = {
 
   starter: {
     items: { bread: [0, 10, 0, 0, 0] },
-    gear: [{ itemId: 'training_sword', equip: true }, { itemId: 'padded_tunic', equip: true }]
+    // fight starter kit (Common, Rough) worn; every new save also gets a Common T1 Standard tool in all 15 tool slots
+    gear: [{ itemId: 'bronze_sword', equip: true, quality: 30 }, { itemId: 'hessian_robe', equip: true, quality: 30 }],
+    toolTier: 1
   }
 };

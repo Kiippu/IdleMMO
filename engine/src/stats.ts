@@ -1,35 +1,49 @@
-// Stats, roles and tags.
-// Ported from legacy/engine.js lines 1284-1373. Behaviour must stay identical to the
-// legacy build (see test/parity.test.ts); design changes come in phase 1.
+// Fight stats and role power (x10 scale). Gear overhaul 2026-11-12: tags, Swift and E.skillBonus are gone;
+// work bonuses (tools + outfit) are E.workBonus in gear.ts.
 /* eslint-disable */
-import { E, SLOTS, num, cfg, skillDefs, elements, item, action, combatSkillIds, clamp, lcFirst, gradeOf, gradeMult, rarityDef } from './core';
+import { E, SLOTS, num, cfg, elements, combatSkillIds, lcFirst } from './core';
 import { findGear, emptyElements } from './gear';
-import { roleDefs, roleDef, tagDefs } from './v4-helpers';
+import { roleDefs, roleDef } from './v4-helpers';
 import { bossReq } from './server';
 import { pouchHealTotal } from './raid-rules';
+import { ELEMENT_SHARE_CAP, WARD_CAP, ELEMENT_MULT, ROLE_POWER } from './data/gear/model';
 
-// ================================================================ v4: stats, roles, tags
+/** { atk, def, heal, maxHp, power, elements (share % of weapon damage, total <= 50), wards (% less damage, each <= 20) } */
 export function statsFor(state, slots) {
   const c = cfg();
-  const out = { atk: 0, def: 0, heal: 0, maxHp: 0, power: 0, elements: emptyElements(), speed: 0 };
+  const out = { atk: 0, def: 0, heal: 0, maxHp: 0, power: 0, elements: emptyElements(), wards: emptyElements() };
   let gearHp = 0;
   SLOTS.forEach((slot) => {
     const g = findGear(state, slots && slots[slot]); if (!g) return;
     const s = E.gearStats(g);
-    out.atk += s.atk; out.def += s.def; out.heal += s.heal; gearHp += s.hp; out.speed += s.speed;
-    Object.keys(s.elements).forEach((e) => { out.elements[e] = num(out.elements[e], 0) + s.elements[e]; });
+    out.atk += s.atk; out.def += s.def; out.heal += s.heal; gearHp += s.hp;
+    Object.keys(s.elements).forEach((e) => { out.elements[e] = num(out.elements[e], 0) + num(s.elements[e], 0); });
+    Object.keys(s.wards).forEach((e) => { out.wards[e] = num(out.wards[e], 0) + num(s.wards[e], 0); });
   });
+  const share = Object.values(out.elements).reduce((a: number, b: any) => a + num(b, 0), 0) as number;
+  const k = share > ELEMENT_SHARE_CAP ? ELEMENT_SHARE_CAP / share : 1;
+  Object.keys(out.elements).forEach((e) => { out.elements[e] = Math.round(out.elements[e] * k * 10) / 10; });
+  Object.keys(out.wards).forEach((e) => { out.wards[e] = Math.round(Math.min(WARD_CAP, out.wards[e]) * 10) / 10; });
   const combatSum = combatSkillIds().reduce((a, id) => a + E.skillLevel(state, id), 0);
-  out.maxHp = Math.max(1, Math.round(num(c.baseHp, 60) + num(c.hpPerCombatLevel, 4) * (combatSum - 3) + gearHp));
-  const elemSum: number = (Object.values(out.elements) as number[]).reduce<number>((a, b: any) => a + (num(b, 0) as number), 0);
-  out.power = Math.round(out.atk + out.def + out.heal + out.maxHp / 10 + elemSum * 0.5);
-  out.speed = Math.min(50, out.speed);
+  out.maxHp = Math.max(1, Math.round(num(c.baseHp, 600) + num(c.hpPerCombatLevel, 40) * (combatSum - 3) + gearHp));
+  out.power = Math.round(out.atk + out.def + out.heal + out.maxHp / 10);
   return out;
 }
+/** element multiplier for the striker: 1 + sum over elements of share x (m - 1), m 1.25 weak / 0.75 the boss's own / 1 */
+export function elementFactor(ps, boss) {
+  if (!boss) return 1;
+  let f = 1;
+  elements().forEach((e) => {
+    const s = num(ps.elements && ps.elements[e], 0) / 100; if (!s) return;
+    const m = e === boss.weakTo ? ELEMENT_MULT.weak : e === boss.hits ? ELEMENT_MULT.own : 1;
+    f += s * (m - 1);
+  });
+  return f;
+}
 export function powersOf(ps, boss) {
-  const weak = boss ? num(ps.elements[boss.weakTo], 0) : 0;
-  const other = Object.keys(ps.elements).filter((e) => !boss || e !== boss.weakTo).reduce((a, e) => a + ps.elements[e], 0);
-  return { striker: Math.round(ps.atk * 3 + weak * 3 + other), guardian: Math.round(ps.def * 2.5 + ps.maxHp * 0.1), mender: Math.round(ps.heal * 3), supply: 0 };
+  const P = ROLE_POWER;
+  return { striker: Math.round(ps.atk * P.striker.atk * elementFactor(ps, boss)), guardian: Math.round(ps.def * P.guardian.def + ps.maxHp * P.guardian.maxHp),
+    mender: Math.round(ps.heal * P.mender.heal), supply: 0 };
 }
 export function slotsOf(state, ref) {
   if (ref && typeof ref === 'object') return ref;
@@ -48,52 +62,7 @@ E.roleCheck = function (state, role, ref) {
   return { role, ok, power, need, label: rd.powerLabel || 'Power', missing,
     reason: ok ? (missing.length ? 'Some pieces are no longer in your bag.' : '') : `${rd.name} needs ${need} ${lcFirst(rd.powerLabel || 'power')} (you have ${power}).` };
 };
-export const TAG_PHRASE = { damage: 'damage', defence: 'defence', healing: 'healing', vitality: 'HP', mining: 'mining speed', woodcutting: 'woodcutting speed',
-  foraging: 'foraging yield', fishing: 'fishing yield', hunting: 'hunting drops', quality: 'quality', speed: 'action speed' };
-export const tagUnit = (id) => { const t = tagDefs().find((x) => x.id === id); return t ? t.unit : (['mining', 'woodcutting', 'foraging', 'fishing', 'hunting', 'speed'].includes(id) ? 'pct' : 'pts'); };
-export const tagIds = () => (tagDefs().length ? tagDefs().map((t) => t.id) : Object.keys(TAG_PHRASE));
-E.statTags = () => tagDefs().slice();
-E.gearTags = function (g) {
-  const out: any = {}; tagIds().forEach((t) => { out[t] = 0; });
-  const it = g && item(g.itemId); if (!it) return out;
-  const st = E.gearStats(g);
-  out.damage = st.atk; out.defence = st.def; out.healing = st.heal; out.vitality = st.hp; out.speed = Math.round(st.speed * 10) / 1000;
-  if (!(num(g.dur, 0) > 0)) return out;
-  const m = num(rarityDef(g.rarity).statMult, 1) * gradeMult(gradeOf(g.quality));
-  Object.keys(it.tags || {}).forEach((k) => { const v = num(it.tags[k], 0) * m; out[k] = num(out[k], 0) + (tagUnit(k) === 'pts' ? Math.round(v) : Math.round(v * 1000) / 1000); });
-  return out;
-};
-export function slotsTags(state, slots) {
-  const out: any = {}; tagIds().forEach((t) => { out[t] = 0; });
-  SLOTS.forEach((s) => { const g = findGear(state, slots && slots[s]); if (!g) return; const t = E.gearTags(g); Object.keys(t).forEach((k) => { out[k] = Math.round((num(out[k], 0) + t[k]) * 1000) / 1000; }); });
-  return out;
-}
-export function tagScore(g, tag, boss) {
-  const st = E.gearStats(g);
-  if (tag === 'damage') { const w = boss ? num(st.elements[boss.weakTo], 0) : 0; return st.atk * 3 + w * 3 + (Object.values(st.elements) as number[]).reduce<number>((a, b: any) => a + (num(b, 0) as number), 0) - w; }
-  if (tag === 'defence') return st.def * 2.5 + st.hp * 0.1;
-  if (tag === 'healing') return st.heal * 3;
-  return num(E.gearTags(g)[tag], 0);
-}
-E.tagValue = (g, tag) => tagScore(g, tag, null);
-E.activityTag = function (skillId) {
-  const map = { mining: 'mining', woodcutting: 'woodcutting', herbalism: 'foraging', fishing: 'fishing', guardian: 'defence', mender: 'healing', striker: 'damage' };
-  return map[skillId] || 'quality';
-};
-E.skillBonus = function (state, skillId, slots) {
-  const t = slotsTags(state, slots || state.equipped);
-  const def = skillDefs().find((s) => s.id === skillId) || {};
-  const out = { speed: 0, yield: 0, quality: 0, drops: 0 };
-  tagDefs().forEach((td) => {
-    const v = num(t[td.id], 0); if (!v || td.kind !== 'skill' || td.id === 'speed') return;
-    const applies = td.skill === skillId || (td.skill === 'combat' && def.tier === 'combat') || (td.skill === 'crafting' && (def.tier === 'crafting' || def.tier === 'refining' || def.tier === 'gathering'));
-    if (!applies) return;
-    if (td.effect === 'speed') out.speed += v; else if (td.effect === 'yield') out.yield += v; else if (td.effect === 'quality') out.quality += v; else if (td.effect === 'drops') out.drops += v;
-  });
-  out.speed = clamp(out.speed, 0, 0.6); out.yield = clamp(out.yield, 0, 1);
-  return out;
-};
 E.loadoutStats = function (state, ref) {
   const slots = slotsOf(state, ref); const ps = statsFor(state, slots);
-  return Object.assign(ps, { tags: slotsTags(state, slots), powers: powersOf(ps, E.currentBoss(state)) });
+  return Object.assign(ps, { powers: powersOf(ps, E.currentBoss(state)) });
 };

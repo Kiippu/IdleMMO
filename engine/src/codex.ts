@@ -72,7 +72,8 @@ function buildEntry(id) {
   const gr = rec ? recipeFor(id) : null; const outQty = gr ? Math.max(1, num(gr.outputs[id], 1)) : 1;
   return {
     id, name: it.name, rarity: it.rarity || 'common', kind: it.kind, tier: num(it.tier, 1), slot: gear ? it.slot : null, role: gear ? it.role || null : null,
-    stats: gear ? Object.assign({}, it.stats || {}) : null, element: it.element || null, tags: it.tags ? Object.assign({}, it.tags) : null,
+    stats: gear && it.stats ? Object.assign({}, it.stats) : null, element: it.element || null,
+    section: gear ? it.section || 'fight' : null, toolSkill: it.toolSkill || null, outfitSet: it.outfitSet || null, effects: it.effects ? it.effects.map((e) => Object.assign({}, e)) : null,
     heal: num(it.heal, 0) || null, buff: it.buff ? Object.assign({}, it.buff) : null, value: num(it.value, 0),
     recipe: rec ? { actionId: rec.id, skill: rec.skill, level: num(rec.level, 1), inputs: Object.assign({}, rec.inputs || {}), outputQty: num(rec.outputs[id], 1), secs: num(rec.sec, 0), xp: num(rec.xp, 0) * num((D().config || {}).xpMult, 1) } : null,
     usedIn: allActions().filter((a) => a && a.inputs && a.inputs[id]).map((a) => ({ actionId: a.id, name: a.name, skill: a.skill, level: num(a.level, 1), qty: a.inputs[id], outputs: Object.keys(a.outputs || {}) })),

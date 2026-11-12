@@ -7,7 +7,7 @@
 //     bag gear piece: the change in your stats if you wore it instead of what is in its slot now.
 /* eslint-disable */
 import { E, SLOTS, arr, num, item } from './core';
-import { findGear } from './gear';
+import { findGear, sectionOf, targetFightSlot } from './gear';
 import { statsFor, powersOf } from './stats';
 import { bossReq } from './server';
 import { lockedNow } from './raid-rules';
@@ -20,7 +20,7 @@ const ARMOUR = { guardian: 'Craft armour at Smithing', mender: 'Craft robes at T
 
 function bagHas(state, slot, slots) {
   const worn = new Set(SLOTS.map((s) => slots[s]).filter(Boolean));
-  return arr(state.gear).some((g) => !worn.has(g.uid) && num(g.dur, 0) > 0 && item(g.itemId) && item(g.itemId).slot === slot);
+  return arr(state.gear).some((g) => { const it = item(g.itemId); return !worn.has(g.uid) && num(g.dur, 0) > 0 && it && sectionOf(it) === 'fight' && it.slot === slot; });
 }
 
 export function raidReadiness(state) {
@@ -42,8 +42,10 @@ export function raidReadiness(state) {
   const noArmour = ['head', 'chest', 'legs'].filter((s) => !piece(s));
   if (noArmour.length) tips.push(noArmour.some((s) => bagHas(state, s, slots)) ? 'Equip armour from your bag' : ARMOUR[bestRole]);
   if (bestRole === 'guardian' && !piece('offhand')) tips.push(bagHas(state, 'offhand', slots) ? 'Equip a shield' : 'Craft a shield at Woodworking');
-  if (bestRole === 'striker' && boss && boss.weakTo && !(num(ps.elements[boss.weakTo], 0) > 0)) tips.push(`${boss.name} is weak to ${boss.weakTo}: use a ${boss.weakTo} weapon`);
-  if (!piece('ring')) tips.push(bagHas(state, 'ring', slots) ? 'Equip a ring' : 'Craft a ring at Jewelcrafting');
+  const EL = { fire: 'fire', frost: 'frost', venom: 'poison', holy: 'holy' };
+  if (bestRole === 'striker' && boss && boss.weakTo && !(num(ps.elements[boss.weakTo], 0) > 0)) tips.push(`${boss.name} is weak to ${EL[boss.weakTo] || boss.weakTo}: use a ${EL[boss.weakTo] || boss.weakTo} weapon`);
+  if (!piece('ring1') || !piece('ring2')) tips.push(bagHas(state, 'ring', slots) ? 'Equip a ring' : 'Craft a ring at Jewelcrafting');
+  else if (!piece('amulet')) tips.push(bagHas(state, 'amulet', slots) ? 'Equip an amulet' : 'Craft an amulet at Jewelcrafting');
   if (!tips.length) tips.push(ok ? 'Higher grades and rarities raise your share' : 'Craft higher-tier gear for your role');
   return { req, power, bestRole, best, ok, tips: tips.slice(0, 3) };
 }
@@ -55,12 +57,15 @@ export function equipDeltas(state) {
   const cur = statsFor(state, state.equipped);
   const worn = new Set(SLOTS.map((s) => state.equipped[s]).filter(Boolean));
   arr(state.gear).forEach((g) => {
-    const it = item(g.itemId); if (!it || worn.has(g.uid) || !SLOTS.includes(it.slot)) return;
-    const next = Object.assign({}, state.equipped, { [it.slot]: g.uid });
+    const it = item(g.itemId); if (!it || worn.has(g.uid) || sectionOf(it) !== 'fight') return;
+    const slot = targetFightSlot(state, it); if (!slot) return;
+    const next = Object.assign({}, state.equipped, { [slot]: g.uid });
+    if (slot === 'weapon' && it.hands === 2) next.offhand = null;
     const ns = statsFor(state, next);
-    const elements = {};
-    Object.keys(ns.elements).forEach((e) => { const d = num(ns.elements[e], 0) - num(cur.elements[e], 0); if (d) elements[e] = d; });
-    out[g.uid] = { hp: ns.maxHp - cur.maxHp, atk: ns.atk - cur.atk, def: ns.def - cur.def, heal: ns.heal - cur.heal, power: ns.power - cur.power, speed: ns.speed - cur.speed, elements };
+    const elements = {}, wards = {};
+    Object.keys(ns.elements).forEach((e) => { const d = Math.round((num(ns.elements[e], 0) - num(cur.elements[e], 0)) * 10) / 10; if (d) elements[e] = d; });
+    Object.keys(ns.wards).forEach((e) => { const d = Math.round((num(ns.wards[e], 0) - num(cur.wards[e], 0)) * 10) / 10; if (d) wards[e] = d; });
+    out[g.uid] = { slot, hp: ns.maxHp - cur.maxHp, atk: ns.atk - cur.atk, def: ns.def - cur.def, heal: ns.heal - cur.heal, power: ns.power - cur.power, elements, wards };
   });
   return out;
 }

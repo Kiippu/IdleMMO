@@ -17,6 +17,15 @@ Prefixes: `sk` Shikashi (`col,row` of the 32px sheet), `ky` Kyrise (`col,row` of
 16px sources are scaled 2x (nearest) and get a 1px dark outline if they have none.
 `generic` entries are grey bases per engine sprite kind (the client tints them as a fallback); `named` entries are non-item icons (gold, bond ...).
 
+## Seveneves pack (private source)
+Item icons come from the Seveneves 1,000+ icon pack. Its licence forbids redistributing the assets on their own, so the raw
+pack lives in `art/private-src/seveneves/` (gitignored, never commit; override with `SEVENEVES_SRC`). Only the built atlas ships.
+Map spec `sv:06/14` = folder 06, `icon_14.png` (pad to 32 px, no extra outline); `own:tool_sickle` = our drawn icon in `art/src/own/`
+(`python3 scripts/art/draw-tools.py` redraws the 7 tools, `tools-review.py out.png` makes a review sheet).
+`mat=metal.iron@.8` tints towards a material colour from `art/materials.json` (metal, wood, cloth, leather per tier); use it only to fill gaps.
+`build.py --inventory` lists usable icons (drops near-empty and duplicate files; 01-weapons `weapon_NN` repeats `icon_NN`).
+If the private folder is missing the build stops with a message and leaves the committed atlas untouched.
+
 ## Reusing the DB32 remap (scene, UI)
 ```
 python3 scripts/art/remap.py in.png out.png [--alpha-cut 128]

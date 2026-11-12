@@ -83,7 +83,7 @@ export function simulateFight(state, ctx) {
     if (kind === 'food' || kind === 'potion') u.heal++; else u.buff++;
     if (stockOutFrame == null) stockOutFrame = curFrame;
   };
-  const vaultCreditOf = (id, g) => Math.max(4, healOfAny(id, g)) * num(c.vaultCreditMult, 1);
+  const vaultCreditOf = (id, g) => Math.max(40, healOfAny(id, g)) * num(c.vaultCreditMult, 1);
   const vaultFind = (pred, needHp?) => { // smallest heal that covers needHp, else the biggest
     let best = null, biggest = null;
     Object.keys(vstock).forEach((id) => {
@@ -119,9 +119,9 @@ export function simulateFight(state, ctx) {
   const stMit = stance === 'defensive' ? 1.2 : stance === 'aggressive' ? 0.9 : 1;
   const stTaken = stance === 'aggressive' ? 1.3 : stance === 'defensive' ? 0.7 : 1;
   const endure = rules.tactic === 'endure' ? 1.2 : 1;
-  const pressure = 0.07 * clamp(fair / Math.max(5, pw.guardian * 0.5 + Math.max(pw.striker, pw.mender, pw.guardian) * 0.5), 0.4, 3);
-  const mitigFrac = clamp(ps.def / (ps.def + fair * 1.5 + 10) * endure * (stance === 'defensive' ? 1.2 : 1), 0, 0.7);
-  const resist = clamp(num(ps.elements[boss.hits], 0) * 0.02, 0, 0.2);
+  const pressure = 0.07 * clamp(fair / Math.max(50, pw.guardian * 0.5 + Math.max(pw.striker, pw.mender, pw.guardian) * 0.5), 0.4, 3);
+  const mitigFrac = clamp(ps.def / (ps.def + fair * 1.5 + 100) * endure * (stance === 'defensive' ? 1.2 : 1), 0, 0.7);
+  const resist = clamp(num(ps.wards && ps.wards[boss.hits], 0) / 100, 0, 0.2); // Warded (gear overhaul)
   // supply line: delivers the pouch evenly across the fight
   const pouchStart = sumInv(pouch); const supplyUnits = role === 'supply' ? pouchStart : 0; let supplyAcc = 0, supplyDelivered = 0;
   let hp = ctx.joined ? clamp(num(ctx.startHp, maxHp), 1, maxHp) : 0; let down = 0;
@@ -228,7 +228,7 @@ export function simulateFight(state, ctx) {
       while (supplyAcc >= 1) {
         supplyAcc -= 1;
         const id = Object.keys(pouch).find((x) => invCount(pouch, x) > 0); if (!id) break;
-        const g = takeOne(id, BEST); const h = Math.max(4, healOfAny(id, g));
+        const g = takeOne(id, BEST); const h = Math.max(40, healOfAny(id, g));
         out.healing += h; // credited to whatever check is running
         crewFood += item(id).kind === 'food' ? 1 : 0;
         supplyDelivered++;
