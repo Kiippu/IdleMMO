@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { canPlay, createSfx, type AudioLike } from './sfx';
-import { parseSettings } from '../settings-core';
+import { parseSettings, DEFAULT_SETTINGS } from '../settings-core';
 
 function fakeCtx() {
   const log = { oscillators: 0, resumes: 0, suspends: 0 };
@@ -75,8 +75,8 @@ describe('sfx gating', () => {
 
 describe('parseSettings', () => {
   it('defaults when empty or broken', () => {
-    expect(parseSettings(null)).toEqual({ muted: false, reduceMotion: false, theme: 'dark' });
-    expect(parseSettings('{nope')).toEqual({ muted: false, reduceMotion: false, theme: 'dark' });
+    expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
+    expect(parseSettings('{nope')).toEqual(DEFAULT_SETTINGS);
   });
   it('reads the theme and ignores bad values', () => {
     expect(parseSettings('{"theme":"light"}').theme).toBe('light');
@@ -84,6 +84,6 @@ describe('parseSettings', () => {
   });
   it('reads the muted flag and ignores wrong types', () => {
     expect(parseSettings('{"muted":true}').muted).toBe(true);
-    expect(parseSettings('{"muted":"yes","reduceMotion":1}')).toEqual({ muted: false, reduceMotion: false, theme: 'dark' });
+    expect(parseSettings('{"muted":"yes","reduceMotion":1}')).toEqual(DEFAULT_SETTINGS);
   });
 });

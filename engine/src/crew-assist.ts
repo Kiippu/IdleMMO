@@ -140,7 +140,8 @@ export function crewStep(state, dt, events, playerMult) {
       if (state.active && state.active.jobId === job.id) { state.active = null; events.push({ type: 'stopped', reason: 'Job finished.' }); }
       continue;
     }
-    const helping = !!(state.active && state.active.jobId === job.id);
+    // a held assist (craft card on screen) adds nothing; the crewmate's own work goes on
+    const helping = !!(state.active && state.active.jobId === job.id && !state.active.held);
     let rate = ownerRate(act) + (helping ? playerRate(state, act) * num(playerMult, 1) : 0);
     if (!(rate > 0) || !isFinite(rate)) rate = ownerRate(act); // never let a bad rate freeze a job
     job.qty = Math.max(1, Math.floor(num(job.qty, 1))); job.done = clamp(Math.floor(num(job.done, 0)), 0, job.qty);

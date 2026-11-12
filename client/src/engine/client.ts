@@ -70,6 +70,14 @@ export const engineClient = {
   /** hide these from derived.extras.recentUnlocks for good (saved) */
   dismissUnlocks: (actionIds: string[]) => rpc<{ ok: boolean; reason: string; dismissed: number }>({ id: nextId(), type: 'dismissUnlocks', actionIds }),
   stop: () => rpc<void>({ id: nextId(), type: 'stop' }),
+  /**
+   * Craft card pause: hold (true) or release (false) the active job's progress; everything else keeps running.
+   * While held: snapshot.active.held === true and snapshot.active.heldFrac = the frozen bar fraction (0..1).
+   * On release the worker re-stamps repStartedAt so the bar continues from that fraction. The hold clears itself
+   * on load, after 10 minutes, and when the job changes; it survives a tab hide/show (the hidden time is credited
+   * as normal offline time and the hold comes back after the catch-up).
+   */
+  holdJob: (on: boolean) => rpc<void>({ id: nextId(), type: 'holdJob', on }),
   pause: () => rpc<void>({ id: nextId(), type: 'pause' }),
   resume: async () => {
     const s = await rpc<OfflineSummary | null>({ id: nextId(), type: 'resume' });

@@ -56,4 +56,26 @@ describe('progress sync: ticks land on rep completion', () => {
     }
     expect(crafts).toBeGreaterThan(0);
   });
+
+  it('a held job ticks at the idle rate, makes no progress, and resumes from the same bar fraction', () => {
+    let wall = Date.UTC(2026, 10, 3, 9, 0, 0);
+    const E: any = createEngine({ rng: mulberry32(9), now: () => wall, storage: null, data: DATA });
+    const s = E.newState();
+    E.start(s, 'mine_copper');
+    let last = wall; E.stampRep(s, wall);
+    wall += Math.round(s.active.repMs * 0.5); runTick(E, s, wall, last); last = wall;
+    const p = s.active.progress;
+    E.holdJob(s, true);
+    for (let i = 0; i < 20; i++) {
+      wall += 1000; const r = runTick(E, s, wall, last); last = wall;
+      expect(r.delayMs).toBe(TICK_MAX_MS);
+      expect(r.events.some((e: any) => e.type === 'complete')).toBe(false);
+    }
+    expect(s.active.progress).toBe(p);
+    expect(s.active.heldFrac).toBeCloseTo(0.5, 2);
+    E.holdJob(s, false);
+    const r = E.stampRep(s, wall);
+    expect((wall - s.active.repStartedAt) / s.active.repMs).toBeCloseTo(0.5, 2);
+    expect(nextTickDelay(r.secLeft)).toBeLessThan(TICK_MAX_MS + 1);
+  });
 });

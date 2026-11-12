@@ -3,7 +3,7 @@ import { parseSettings, SETTINGS_KEY as KEY, DEFAULT_SETTINGS, type Settings, ty
 
 function load(): Settings {
   try { return parseSettings(localStorage.getItem(KEY)); } catch { /* storage blocked */ }
-  return { ...DEFAULT_SETTINGS };
+  return parseSettings(null);
 }
 export const settings = $state<Settings>(load());
 

@@ -111,6 +111,7 @@ E.start = function (state, actionId, count) {
   if (state.active && state.active.actionId === actionId && !state.active.jobId) {
     // same action again: keep its progress, take the new count
     if (n) { state.active.left = n; state.active.count = n; state.active.got = 0; } else { delete state.active.left; delete state.active.count; delete state.active.got; }
+    clearHold(state.active); // a verb that changes the job clears the hold
     return { ok: true, reason: '', loadoutId };
   }
   state.active = n ? { actionId, progress: 0, left: n, count: n, got: 0 } : { actionId, progress: 0 };
@@ -147,6 +148,10 @@ E.maxMake = function (state) {
   return out;
 };
 E.stop = function (state) { state.active = null; return { ok: true }; };
+// Job hold (2026-11-12, craft card pause): state.active.held (+ heldAt engine-clock ms, heldFrac 0..1 while held)
+// are additive, in-memory only fields: migrate never copies them, so a load always starts unheld.
+export const HOLD_MAX_MS = 10 * 60 * 1000;
+export function clearHold(a) { if (a) { delete a.held; delete a.heldAt; delete a.heldFrac; } }
 E.setSetting = function (state, key, value) {
   if (key === 'matPriority') { if (value !== 'best' && value !== 'worst') return { ok: false, reason: 'Priority must be best or worst.' }; state.settings.matPriority = value; return { ok: true }; }
   if (key === 'useCatalyst' || key === 'useCore') { state.settings[key] = !!value; return { ok: true }; }

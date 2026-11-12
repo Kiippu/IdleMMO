@@ -19,7 +19,7 @@
   const BOOST_MS = 130, BLEND = 0.5;
   // The bar runs on the same clock as completion: (Date.now() - repStartedAt) / repMs, both stamped by the engine.
   // Hit boosts are drawn on top but fade out toward the end, so the bar reaches 100% exactly when the rep really ends.
-  let repKey = '', peak = 0;
+  let repKey = '', peak = 0, wasHeld = false;
   const num = (v: unknown, d = 0) => (typeof v === 'number' && isFinite(v) ? v : d);
 
   $effect(() => {
@@ -30,6 +30,8 @@
       if (document.hidden || !fillEl) return;
       const a = engine.snapshot?.active;
       if (!a) return;
+      // Held (craft card open): freeze at the last drawn fraction, no movement, no hit boost.
+      if ((a as { held?: boolean }).held) { wasHeld = true; return; }
       const wall = Date.now();
       const start = num(a.repStartedAt, NaN), len = num(a.repMs, 0);
       let f: number, startPerf: number;
@@ -42,7 +44,8 @@
         startPerf = now - f * T * 1000;
       }
       const key = `${a.actionId}|${isFinite(start) ? start : ''}`;
-      if (key !== repKey) { repKey = key; peak = 0; }
+      if (key !== repKey) { repKey = key; if (!wasHeld) peak = 0; }   // after a hold the engine re-stamps the rep: keep the frozen value, continue from it
+      wasHeld = false;
       let v = f;
       if (!reducedMotion() && f < 1) {
         const anim = heroLook(engine.snapshot).look.anim;

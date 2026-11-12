@@ -481,6 +481,10 @@ export interface GearInfo {
 
 // Progress sync (2026-11-12): E.repTiming(state) → { repSec, elapsedSec, secLeft } | null;
 //   E.stampRep(state, wallMs) writes state.active.repStartedAt / repMs (wall-clock ms; bar = (now - repStartedAt) / repMs).
+// Job hold (2026-11-12): E.holdJob(state, on) → { ok, held, reason? }. While held: state.active.held === true,
+//   heldAt (engine-clock ms), heldFrac (0..1, the frozen bar fraction, set by stampRep); the job makes no progress,
+//   stampRep returns secLeft: Infinity. Cleared by release, start/stop/assist (new job), load (never saved
+//   through migrate), E.applyOffline, and after 10 minutes (HOLD_MAX_MS).
 
 /** Configure the injected context and return the engine. One engine per JS realm. */
 export function createEngine(opts: Partial<EngineContext>): any;

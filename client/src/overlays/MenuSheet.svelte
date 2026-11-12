@@ -1,6 +1,9 @@
 <script lang="ts">
   // One menu for the rarely used things: Log, Save, Credits, Settings.
   import { settings, setSetting } from '../settings.svelte';
+  import { CRAFT_RARITIES, type CraftRarity } from '../settings-core';
+  const SHORT: Record<CraftRarity, string> = { uncommon: 'Unc', rare: 'Rare', epic: 'Epic', legendary: 'Leg', mythic: 'Myth' };
+  const toggleCard = (r: CraftRarity) => setSetting('craftCards', { ...settings.craftCards, [r]: !settings.craftCards[r] });
   import { CREDITS } from '../art/credits';
 
   type Props = { onClose: () => void; onLog: () => void; onSave: () => void };
@@ -37,7 +40,7 @@
       <ul class="items">
         <li><button type="button" class="item" onclick={() => go(onLog)}><span>Log</span><small>What you found and earned</small></button></li>
         <li><button type="button" class="item" onclick={() => go(onSave)}><span>Save</span><small>Back up or move your game</small></button></li>
-        <li><button type="button" class="item" onclick={() => (view = 'settings')}><span>Settings</span><small>Theme, sound and motion</small></button></li>
+        <li><button type="button" class="item" onclick={() => (view = 'settings')}><span>Settings</span><small>Theme, sound, motion and craft cards</small></button></li>
         <li><button type="button" class="item" onclick={() => (view = 'credits')}><span>Credits</span><small>Art, fonts and licences</small></button></li>
       </ul>
     {:else if view === 'settings'}
@@ -60,6 +63,15 @@
             <span>Reduce motion</span><small>{settings.reduceMotion ? 'On. No floating text, flashes or count-ups.' : 'Off. Your device setting still applies.'}</small>
             <b class="sw" class:on={settings.reduceMotion} aria-hidden="true">{settings.reduceMotion ? 'On' : 'Off'}</b>
           </button>
+        </li>
+        <li class="cc">
+          <span id="cc-l">Craft celebration</span>
+          <div class="chips" role="group" aria-labelledby="cc-l">
+            {#each CRAFT_RARITIES as r (r)}
+              <button type="button" class="chip" style:--ink-r={`var(--r-${r})`} aria-pressed={settings.craftCards[r]} aria-label={r[0].toUpperCase() + r.slice(1)} onclick={() => toggleCard(r)}>{SHORT[r]}</button>
+            {/each}
+          </div>
+          <small>Show the full-screen card for these crafts.</small>
         </li>
       </ul>
     {:else}
@@ -106,6 +118,12 @@
   .toggle small { grid-column: 1; }
   .sw { grid-row: 1 / span 2; grid-column: 2; align-self: center; min-width: 48px; text-align: center; padding: 6px 8px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-2); font: 700 var(--t-sm)/1 var(--f-body); }
   .sw.on { background: var(--woad); border-color: var(--woad); color: var(--on-woad); }
+  .cc { display: grid; gap: 6px; padding: 8px 12px; border: 1px solid var(--rule); background: var(--sunk); }
+  .cc span { font: 700 var(--t-md)/1.1 var(--f-body); }
+  .cc small { color: var(--ink-3); font-size: var(--t-xs); }
+  .chips { display: flex; gap: 6px; }
+  .chip { flex: 1; min-width: 44px; min-height: 44px; padding: 0 4px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-3); font: 700 var(--t-sm)/1 var(--f-body); }
+  .chip[aria-pressed='true'] { border: 2px solid var(--ink-r); color: var(--ink-r); background: color-mix(in srgb, var(--ink-r) 16%, var(--paper)); }
   .credits { color: var(--ink-2); font-size: var(--t-sm); }
   .credits p { margin: 0 0 12px; }
   .crl { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }

@@ -282,5 +282,7 @@ Save schema stays v7 (new fields additive).
   tunnel forwards. Runbook: `docs/pc-server.md`. Run on port 4173 so the current tunnel URL keeps working.
 - Start it with `npm run serve` (port 4173). Verified on the owner's Windows PC 2026-11-12: `/api/health` through the
   tunnel returns `db:true, tables:5`.
+- Quality craft card (2026-11-12): the active job is held (no progress, no held time credited later; `engineClient.holdJob`,
+  `state.active.held`) while a card is on screen. Settings › Craft celebration picks which rarities show the card (default all).
 - SHELVED after M0 (owner 2026-11-12): the gear and tool overhaul comes first. When M1 resumes, first capture one
   `[headers]` line from the server window (request made through the tunnel) for the Origin check.

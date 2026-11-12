@@ -4,7 +4,7 @@
 /* eslint-disable */
 import { ctx } from './context';
 import { E, OFFLINE_MAX_COMPLETIONS, MARKET_REFRESH_SEC, num, cfg, action, clamp, flags, fmtGold } from './core';
-import { completeOnce, countRep, mainOutput } from './actions';
+import { completeOnce, countRep, mainOutput, clearHold } from './actions';
 import { beginOfflineGains, endOfflineGains, emitGain } from './gains';
 import { crewStep } from './crew-assist';
 import { marketFills } from './tick';
@@ -65,6 +65,9 @@ E.applyOffline = function (state, nowMs) {
   const summary = { items: {}, xp: {}, gold: 0, crafts: {}, kills: 0, stoppedReason: null, stoppedDone: false, assisted: 0, tips: 0, raids: [], weeks: 0,
     // return moment (2026-11-11 layout pass): see return-summary.ts
     skills: [], bestFind: null, loot: [], goldBySource: [] };
+  // job hold: catch-up ignores and clears it. The held span before lastSeen was already ticked without
+  // progress (worker pause / 1s saves), so only the real time away is credited.
+  clearHold(state.active);
   const last = num(state.lastSeen, now);
   const capSec = num(cfg().offlineCapSec, 0);
   const seconds = clamp((now - last) / 1000, 0, capSec > 0 ? capSec : Infinity);

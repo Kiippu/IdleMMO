@@ -108,7 +108,13 @@ function stopTicking() {
 /** catch up and tick again; always restarts the ticker, even if the catch-up throws */
 function resumeNow(): OfflineSummary | null {
   try {
+    // job hold: the catch-up credits the hidden time as normal offline time and clears the hold; the craft card
+    // is still on screen after a tab hide/show, so put the hold back if the same job is still running
+    const a0 = state && state.active;
+    const heldJob = a0 && a0.held ? { actionId: a0.actionId, jobId: a0.jobId } : null;
     const res = E.applyOffline(state, Date.now()) as { seconds: number; summary: OfflineSummary } | null;
+    const a1 = state && state.active;
+    if (heldJob && a1 && a1.actionId === heldJob.actionId && a1.jobId === heldJob.jobId) E.holdJob(state, true);
     E.save(state);
     return res && res.seconds >= 60 ? { ...res.summary, awaySec: res.seconds } : null;
   } finally { startTicking(); }
@@ -157,6 +163,13 @@ async function handle(req: Req): Promise<unknown> {
     }
     case 'stop':
       E.stop(state);
+      return undefined;
+    case 'holdJob':
+      // passive: never triggers the paused→resume catch-up. While ticking, the message loop's pre-tick has
+      // already brought progress up to now (credited on hold, nothing credited on release) and reschedule()
+      // re-stamps repStartedAt afterwards so a released bar continues from the same fraction. While paused
+      // it only sets the flag; the next resume's catch-up handles it (see resumeNow).
+      E.holdJob(state, !!req.on);
       return undefined;
     case 'equip':
       E.equip(state, req.uid);
@@ -295,7 +308,7 @@ async function handle(req: Req): Promise<unknown> {
 
 // Requests that mean "the player is using the game": if the worker is still paused (e.g. a pause from
 // beforeunload/pagehide that was never followed by a resume), catch up and tick again first.
-const PASSIVE = new Set(['init', 'pause', 'resume', 'export', 'import', 'reset', 'salvagePreview', 'gearDetail']);
+const PASSIVE = new Set(['init', 'pause', 'resume', 'holdJob', 'export', 'import', 'reset', 'salvagePreview', 'gearDetail']);
 
 self.addEventListener('message', async (ev: MessageEvent<Req>) => {
   const req = ev.data;

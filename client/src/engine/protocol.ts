@@ -90,6 +90,8 @@ export type Req =
   | { id: string; type: 'start'; actionId: string; count?: number | null }
   | { id: string; type: 'dismissUnlocks'; actionIds: string[] }
   | { id: string; type: 'stop' }
+  /** craft card pause: hold (true) / release (false) the active job. Snapshot: state.active.held === true while held. */
+  | { id: string; type: 'holdJob'; on: boolean }
   | { id: string; type: 'pause' }
   | { id: string; type: 'resume' }
   | { id: string; type: 'equip'; uid: string }

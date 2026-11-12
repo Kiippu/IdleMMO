@@ -2,11 +2,12 @@
   // Full-screen celebration for a live quality craft (gear above common). Spiralling rays in the rarity ink,
   // the card flips in, stats compared against the piece worn in that slot. Several in one batch queue up.
   // Tapping outside never closes it. Reduced motion: static rays, no spin, no flip.
-  import { untrack } from 'svelte';
+  import { untrack, onDestroy } from 'svelte';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
   import type { GearDetail } from '../engine/protocol';
-  import { reducedMotion } from '../settings.svelte';
+  import { reducedMotion, settings } from '../settings.svelte';
+  import { craftCardOn } from '../settings-core';
   import { play } from '../sound';
   import ItemIcon from '../art/ItemIcon.svelte';
   import { gradeName } from '../engine/grades';
@@ -25,11 +26,22 @@
       const out: Array<{ uid: string; itemId: string; rarity: string; grade?: number }> = [];
       for (const e of evs) {
         if (e.type !== 'gain' || e.offline || e.source !== 'craft') continue;
-        for (const it of e.items ?? []) if (it.uid && (RANK[it.rarity] ?? 0) > 0) out.push({ uid: it.uid, itemId: it.itemId, rarity: it.rarity, grade: it.grade });
+        for (const it of e.items ?? []) if (it.uid && (RANK[it.rarity] ?? 0) > 0 && craftCardOn(settings, it.rarity)) out.push({ uid: it.uid, itemId: it.itemId, rarity: it.rarity, grade: it.grade });
       }
       enqueueRewards(out);
     });
   });
+
+  // Hold the active job while any card is queued: one hold per open period, released when the queue empties
+  // (Nice / Skip / Equip / Escape) and on teardown. holdJob failures never block the card.
+  let held = false;
+  const setHold = (on: boolean) => {
+    if (held === on) return;
+    held = on;
+    try { Promise.resolve(engineClient.holdJob(on)).catch((e: unknown) => console.error('holdJob failed', e)); } catch (e) { console.error('holdJob failed', e); }
+  };
+  $effect(() => { const open = cur !== null; untrack(() => setHold(open)); });
+  onDestroy(() => setHold(false));
 
   // Wait for the return reveal to close.
   let cur = $derived(engine.ready && !engine.offline ? craftReward.queue[0] ?? null : null);
@@ -96,6 +108,7 @@
           <p class="meta">Details unavailable.</p>
         {/if}
 
+        <p class="hold">Your job is paused while this card is open.</p>
         <div class="btns">
           {#if craftReward.total > 1 && craftReward.queue.length > 1}<button type="button" class="btn skip" onclick={skipRewards}>Skip rest</button>{/if}
           <button type="button" class="btn primary" bind:this={btn} disabled={busy || equipped || !detail || detail.equipped} onclick={equip}>{equipped ? 'Equipped' : 'Equip'}</button>
@@ -138,6 +151,7 @@
   .ch { margin: 4px 0 0; color: var(--ink-2); font-size: var(--t-sm); text-align: left; }
   .cmp li.up b { color: var(--ok); } .cmp li.dn b { color: var(--bad, var(--warn)); }
   small { color: var(--ink-3); font-size: var(--t-xs); font-weight: 400; }
+.hold { margin: 0; color: var(--ink-2); font-size: var(--t-sm); }
   .btns { display: flex; gap: 8px; width: 100%; margin-top: 6px; flex-wrap: wrap; }
   .btns .btn { flex: 1; min-height: 44px; }
   .btns .skip { flex-basis: 100%; }

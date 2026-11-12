@@ -3,7 +3,8 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { E, TICK_MAX_COMPLETIONS, MARKET_REFRESH_SEC, arr, num, cfg, grades, action, rand, clamp, itemName, logq, fmtGold, qtyName } from './core';
-import { pouchBlock, completeOnce } from './actions';
+import { pouchBlock, completeOnce, clearHold, HOLD_MAX_MS } from './actions';
+import { ctx } from './context';
 import { crewStep, ownerRate, playerRate, isJobAction } from './crew-assist';
 import { processClock } from './weekly';
 import { crewEconomyStep, crewLocksStep } from './crew-economy';
@@ -62,7 +63,8 @@ function tickBody(state, dt, opts, events) {
   const act = state.active && action(state.active.actionId);
   if (!act || act.kind !== 'combat') state.hp = Math.min(ps.maxHp, num(state.hp, 0) + ps.maxHp * 0.01 * dt); // gentle regen out of combat
   state.hp = clamp(state.hp, 0, ps.maxHp);
-  if (!(state.active && state.active.jobId)) advanceAction(state, dt, events, TICK_MAX_COMPLETIONS);
+  // a held job (craft card on screen) makes no progress; everything else runs. Held time is never credited later.
+  if (!(state.active && state.active.jobId) && !(state.active && state.active.held)) advanceAction(state, dt, events, TICK_MAX_COMPLETIONS);
   crewStep(state, dt, events, 1);
   crewEconomyStep(state, dt, events);
   processClock(state, events);
@@ -75,7 +77,24 @@ function tickBody(state, dt, opts, events) {
   }
   ensureStore(state);
   sweepSeen(state);
+  // safety: a hold never outlives 10 minutes (the card queue lives in the client's memory only)
+  const ha = state.active;
+  if (ha && ha.held && !(ctx.now() - num(ha.heldAt, 0) < HOLD_MAX_MS)) clearHold(ha);
 }
+
+/**
+ * Hold or release the active job (craft card pause). While held the job's progress does not advance
+ * (solo action: no reps; crew assist: the player adds nothing and gets no assist crafts) and the held time
+ * is never credited later. Releasing keeps the progress where it was; the worker re-stamps repStartedAt so
+ * the bar continues from the same fraction. Holding with nothing running is a no-op.
+ */
+E.holdJob = function (state, on) {
+  const a = state && state.active;
+  if (!on) { clearHold(a); return { ok: true, held: false }; }
+  if (!a) return { ok: false, reason: 'Nothing is running.', held: false };
+  if (!a.held) { a.held = true; a.heldAt = ctx.now(); }
+  return { ok: true, held: true };
+};
 
 // Rep timing (2026-11-12, progress-bar sync): how far the active rep is and how long it takes, in seconds.
 // The worker schedules its next tick for the moment the rep completes, and stamps wall-clock fields on
@@ -104,8 +123,14 @@ E.repTiming = function (state) {
 E.stampRep = function (state, wallMs) {
   const a = state && state.active; if (!a) return null;
   const r = E.repTiming(state);
-  if (!r) { delete a.repStartedAt; delete a.repMs; return null; }
+  if (!r) { delete a.repStartedAt; delete a.repMs; delete a.heldFrac; return null; }
   a.repMs = Math.round(r.repSec * 1000);
   a.repStartedAt = Math.round(num(wallMs, 0) - r.elapsedSec * 1000);
+  if (a.held) {
+    // frozen: the bar stays at heldFrac; nothing completes, so the worker just ticks at its idle rate
+    a.heldFrac = r.repSec > 0 ? clamp(r.elapsedSec / r.repSec, 0, 1) : 0;
+    return Object.assign({}, r, { secLeft: Infinity });
+  }
+  delete a.heldFrac;
   return r;
 };
