@@ -282,5 +282,9 @@ Save schema stays v7 (new fields additive).
   tunnel forwards. Runbook: `docs/pc-server.md`. Run on port 4173 so the current tunnel URL keeps working.
 - Start it with `npm run serve` (port 4173). Verified on the owner's Windows PC 2026-11-12: `/api/health` through the
   tunnel returns `db:true, tables:5`.
-- SHELVED after M0 (owner 2026-11-12): the gear and tool overhaul comes first. When M1 resumes, first capture one
-  `[headers]` line from the server window (request made through the tunnel) for the Origin check.
+- SHELVED after M0 (owner 2026-11-12): the gear and tool overhaul comes first.
+- Tunnel headers captured 2026-11-12 (phone, GET /api/health through the quick tunnel): `host` is the public
+  `*.trycloudflare.com` host (cloudflared does NOT rewrite it to localhost), `x-forwarded-proto: https`,
+  `cf-connecting-ip` is the player's IP, `x-forwarded-host` absent, `origin` null on a plain GET. So for M1: require
+  Origin == `https://` + Host on state-changing requests (browsers send Origin on POST/PUT fetches), plus the custom
+  request header; rate-limit by `cf-connecting-ip`; Secure cookies are fine. LOG_HEADERS set back to 0.
