@@ -7,6 +7,7 @@ import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, ran
 import { pushEvent } from './events';
 import { addXp } from './skills';
 import { rarityOdds } from './actions';
+import { wearTool } from './gear';
 import { schedule } from './clock';
 import { ensureCrewV5 } from './crew-economy';
 import { noteJobDone } from './crew-activity';
@@ -146,6 +147,7 @@ export function crewStep(state, dt, events, playerMult) {
     if (!(rate > 0) || !isFinite(rate)) rate = ownerRate(act); // never let a bad rate freeze a job
     job.qty = Math.max(1, Math.floor(num(job.qty, 1))); job.done = clamp(Math.floor(num(job.done, 0)), 0, job.qty);
     job.progress = num(job.progress, 0) + dt * rate;
+    if (helping) wearTool(state, act.skill, dt * num(playerMult, 1)); // assisting works with your own tool
     let guard = 0;
     while (job.progress >= 1 && job.done < job.qty && guard++ < 1000) { job.progress -= 1; job.done++; jobCraft(state, job, act, helping, events); }
     if (job.done >= job.qty) finishJob(state, job, act, events);

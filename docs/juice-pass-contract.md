@@ -1,5 +1,7 @@
 # Juice pass (branch `ui/juice-pass`): shared rules and interfaces
 
+> Historical (done). The gear overhaul (2026-11-12) bumps saves to v8 and replaces the "keep v7 loading" rule below; see CLAUDE.md.
+
 Four agents work at the same time in `/home/claude/kiippu/idlemmo` on branch `ui/juice-pass`.
 
 ## Ground rules (all agents)

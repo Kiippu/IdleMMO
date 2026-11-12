@@ -3,8 +3,9 @@
 // legacy build (see test/parity.test.ts); design changes come in phase 1.
 /* eslint-disable */
 import { ctx } from './context';
-import { E, OFFLINE_MAX_COMPLETIONS, MARKET_REFRESH_SEC, num, cfg, action, clamp, flags, fmtGold } from './core';
+import { E, OFFLINE_MAX_COMPLETIONS, MARKET_REFRESH_SEC, arr, num, cfg, action, clamp, flags, fmtGold } from './core';
 import { completeOnce, countRep, mainOutput, clearHold } from './actions';
+import { wearTool, findGear } from './gear';
 import { beginOfflineGains, endOfflineGains, emitGain } from './gains';
 import { crewStep } from './crew-assist';
 import { marketFills } from './tick';
@@ -40,6 +41,7 @@ function bulkGather(state, act, secs, sample, carry, events) {
     const cap = a && a.left != null ? Math.max(0, Math.floor(num(a.left, 0))) : Infinity;
     const n = Math.min(Math.floor(secs / t), toNext, cap); if (n < 1) break;
     secs -= n * t; reps += n;
+    wearTool(state, act.skill, n * t); // tool wear in bulk
     let gotMain = 0; const got = [];
     Object.keys(sample.items).forEach((key) => {
       const exact = sample.items[key] / Math.max(1, sample.n) * n + num(carry[key], 0);
@@ -75,6 +77,7 @@ E.applyOffline = function (state, nowMs) {
   if (seconds < 1) { const cev = []; processClock(state, cev); summary.raids = cev.filter((e) => e.type === 'raidResolved').map((e) => e.recapId); return { seconds: 0, summary }; }
   const ownGains = beginOfflineGains(); // gain events from the catch-up: aggregated, offline: true
   const gold0 = state.gold; const xp0 = {};
+  const cond0 = {}; arr(state.gear).forEach((g) => { if (g && g.cond != null) cond0[g.uid] = g.cond; });
   const lv0 = levelSnapshot(state); const racc = newReturnAcc();
   Object.keys(state.skills).forEach((k) => { xp0[k] = num(state.skills[k].xp, 0); });
   state.focus = 0;
@@ -150,6 +153,10 @@ E.applyOffline = function (state, nowMs) {
   summary.gold = Math.round(state.gold - gold0);
   Object.keys(state.skills).forEach((k) => { const d = num(state.skills[k].xp, 0) - num(xp0[k], 0); if (d > 0) summary.xp[k] = d; });
   Object.assign(summary, buildReturn(state, racc, lv0, summary.xp, summary.gold));
+  // tools that crossed below 50% during the catch-up (the return reveal says "<name> is worn: <cond>%")
+  const worn = arr(state.gear).filter((g) => g && g.cond != null && num(cond0[g.uid], 100) >= 50 && g.cond < 50)
+    .map((g) => ({ uid: g.uid, itemId: g.itemId, name: E.gearName(g), cond: Math.max(1, Math.round(g.cond)) }));
+  if (worn.length) (summary as any).wornTools = worn;
   const nItems = Object.values(summary.items).reduce((x: number, y: any) => x + num(y, 0), 0);
   const xpTot = Object.values(summary.xp).reduce((x: number, y: any) => x + num(y, 0), 0);
   // event log: one line per item gained, plus the gold, stamped with the catch-up time

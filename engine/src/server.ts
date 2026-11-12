@@ -9,7 +9,7 @@ import { bossPhases } from './weekly';
 // ================================================================ v4: server + boss ladder
 export function avgPop(state) { const h = arr(state.server && state.server.popHistory).filter((x) => x > 0); return h.length ? h.reduce((a, b) => a + b, 0) / h.length : num(cfg().serverPop, 1200); }
 export const seasonMult = (state) => 1 + 0.25 * (Math.max(1, num(state.raid.season, 1)) - 1);
-export function bossMaxHp(state, b, pop) { return Math.max(1000, Math.round(pop * num(b.reqPower, 30) * HP_K * num(b.weekends, 2) * seasonMult(state))); }
+export function bossMaxHp(state, b, pop) { return Math.max(1000, Math.round(pop * num(b.reqPower, 300) * HP_K * num(b.weekends, 2) * seasonMult(state))); }
 export function ensureRecord(state, idx, week) {
   const b = bosses()[idx]; if (!b) return null;
   const R = state.raid.bosses || (state.raid.bosses = {});
@@ -26,7 +26,7 @@ export function curRecord(state) {
   if (r) state.raid.bossHp = r.hpLeft;
   return r;
 }
-export const bossReq = (b) => Math.max(5, num(b && b.reqPower, 30));
+export const bossReq = (b) => Math.max(50, num(b && b.reqPower, 300));
 E.currentBoss = function (state) {
   const b = bosses(); if (!b.length) return null;
   const def = b[clamp(Math.floor(num(state && state.raid && state.raid.ladder, 0)), 0, b.length - 1)];

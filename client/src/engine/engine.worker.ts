@@ -171,10 +171,31 @@ async function handle(req: Req): Promise<unknown> {
       // it only sets the flag; the next resume's catch-up handles it (see resumeNow).
       E.holdJob(state, !!req.on);
       return undefined;
-    case 'equip':
-      E.equip(state, req.uid);
+    case 'equip': {
+      const res = E.equip(state, req.uid, req.slot);
       E.save(state);
-      return undefined;
+      return res;
+    }
+    case 'unequipGear': {
+      const res = E.unequipGear(state, req.uid);
+      E.save(state);
+      return res;
+    }
+    case 'repair': {
+      const res = E.repair(state, req.uid);
+      E.save(state);
+      return res;
+    }
+    case 'repairAllTools': {
+      const res = E.repairAllTools(state);
+      E.save(state);
+      return res;
+    }
+    case 'storeBuyTool': {
+      const res = E.storeBuyTool(state, req.itemId);
+      E.save(state);
+      return res;
+    }
     case 'unequip':
       E.unequip(state, req.slot);
       E.save(state);

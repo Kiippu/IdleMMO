@@ -7,8 +7,8 @@ import { cap1 } from './crew-economy';
 
 // ================================================================ v4: helpers
 export const DAY_MS = 86400000, WEEK_MS = 7 * DAY_MS;
-// Save schema (2026-11-11: v7; older saves are not loaded, see state.ts checkSave)
-export const SCHEMA = 7;
+// Save schema (2026-11-12: v8, gear overhaul; older saves are not loaded, see state.ts checkSave)
+export const SCHEMA = 8;
 export const CHECK_LABEL = { mitigation: 'Mitigation', healing: 'Healing', damage: 'Damage', food: 'Food', consumables: 'Consumables' };
 export const ROLE_CHECK = { guardian: 'mitigation', mender: 'healing', striker: 'damage' };
 export const RAID_ROLE_IDS = ['guardian', 'mender', 'striker', 'supply'];
@@ -22,7 +22,6 @@ export function mulberry(seed) { let a = seed >>> 0; return function () { a = (a
 export const clone = (x) => JSON.parse(JSON.stringify(x));
 export const roleDefs = () => (arr(D().raidRoles).length ? D().raidRoles : RAID_ROLE_IDS.map((id) => ({ id, name: cap1(id), check: ROLE_CHECK[id] || null, takesHits: id !== 'supply' })));
 export const roleDef = (id) => roleDefs().find((r) => r.id === id) || roleDefs()[2];
-export const tagDefs = () => arr(D().statTags);
 export const rankDefs = () => (arr(D().crewRanks).length ? D().crewRanks : [{ id: 'leader', name: 'Leader', perms: {}, withdrawCap: Infinity }, { id: 'officer', name: 'Officer', perms: {}, withdrawCap: 40 }, { id: 'member', name: 'Member', perms: {}, withdrawCap: 0 }]);
 export const rankDef = (id) => rankDefs().find((r) => r.id === id) || rankDefs()[rankDefs().length - 1];
 export const sumInv = (m) => Object.keys(m || {}).reduce((a, id) => a + arr(m[id]).reduce((x, y) => x + (y > 0 ? y : 0), 0), 0);

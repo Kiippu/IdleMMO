@@ -1,0 +1,84 @@
+{
+ "card": {
+  "slice": 6,
+  "width": "6px",
+  "file": {
+   "dark": "frames/dark/card.png",
+   "light": "frames/light/card.png"
+  },
+  "css": "border-style: solid; border-color: transparent; border-image-source: url(<file>); border-image-slice: 6; border-image-width: 6px; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated;"
+ },
+ "bar": {
+  "slice": 4,
+  "width": "4px",
+  "file": {
+   "dark": "frames/dark/bar.png",
+   "light": "frames/light/bar.png"
+  },
+  "css": "border-style: solid; border-color: transparent; border-image-source: url(<file>); border-image-slice: 4; border-image-width: 4px; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated;"
+ },
+ "sheet": {
+  "slice": "6 6 0 6",
+  "width": "6px 6px 0 6px",
+  "file": {
+   "dark": "frames/dark/sheet.png",
+   "light": "frames/light/sheet.png"
+  },
+  "css": "border-style: solid; border-color: transparent; border-image-source: url(<file>); border-image-slice: 6 6 0 6; border-image-width: 6px 6px 0 6px; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated;"
+ },
+ "btn": {
+  "slice": 5,
+  "width": "5px",
+  "file": {
+   "dark": "frames/dark/btn.png",
+   "light": "frames/light/btn.png"
+  },
+  "css": "border-style: solid; border-color: transparent; border-image-source: url(<file>); border-image-slice: 5; border-image-width: 5px; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated;"
+ },
+ "btn-hover": {
+  "slice": 5,
+  "width": "5px",
+  "file": {
+   "dark": "frames/dark/btn-hover.png",
+   "light": "frames/light/btn-hover.png"
+  },
+  "css": "border-style: solid; border-color: transparent; border-image-source: url(<file>); border-image-slice: 5; border-image-width: 5px; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated;"
+ },
+ "btn-down": {
+  "slice": 5,
+  "width": "5px",
+  "file": {
+   "dark": "frames/dark/btn-down.png",
+   "light": "frames/light/btn-down.png"
+  },
+  "css": "border-style: solid; border-color: transparent; border-image-source: url(<file>); border-image-slice: 5; border-image-width: 5px; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated;"
+ },
+ "btn-primary": {
+  "slice": 5,
+  "width": "5px",
+  "file": {
+   "dark": "frames/dark/btn-primary.png",
+   "light": "frames/light/btn-primary.png"
+  },
+  "css": "border-style: solid; border-color: transparent; border-image-source: url(<file>); border-image-slice: 5; border-image-width: 5px; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated;"
+ },
+ "btn-danger": {
+  "slice": 5,
+  "width": "5px",
+  "file": {
+   "dark": "frames/dark/btn-danger.png",
+   "light": "frames/light/btn-danger.png"
+  },
+  "css": "border-style: solid; border-color: transparent; border-image-source: url(<file>); border-image-slice: 5; border-image-width: 5px; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated;"
+ },
+ "btn-danger-solid": {
+  "slice": 5,
+  "width": "5px",
+  "file": {
+   "dark": "frames/dark/btn-danger-solid.png",
+   "light": "frames/light/btn-danger-solid.png"
+  },
+  "css": "border-style: solid; border-color: transparent; border-image-source: url(<file>); border-image-slice: 5; border-image-width: 5px; border-image-repeat: stretch; background-clip: padding-box; image-rendering: pixelated;"
+ },
+ "_doc": "Rounded pixel frames (6px radius panels, 5px buttons, 4px bar), per theme folder (dark default, light). Centre and corner pixels are transparent: no border-radius, set background-clip: padding-box and the background token the frame was drawn for: card/sheet/btn-danger --paper, bar/btn --sunk, btn-hover --woad-soft, btn-down --woad-soft darkened 22%, btn-primary --woad, btn-danger-solid --bad. Regenerate: python3 scripts/art/ui-frames.py client/src/ui-art"
+}

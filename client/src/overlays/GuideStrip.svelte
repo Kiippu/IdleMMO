@@ -24,7 +24,7 @@
     if ((engine.derived?.treasuryLog ?? []).some((e: any) => e.kind === 'contract' && e.who === 'You' && e.itemId === 'bread')) markDone('contract');
   });
   let next = $derived(nextStep());
-  let spare = $derived(((snap?.gear ?? []) as any[]).some((g) => !Object.values(snap?.equipped ?? {}).includes(g.uid) && (DATA as any).items[g.itemId]?.slot));
+  let spare = $derived(((snap?.gear ?? []) as any[]).some((g) => !Object.values(snap?.equipped ?? {}).includes(g.uid) && (DATA as any).items[g.itemId]?.section === 'fight'));
   let shown = $derived(next ? resolveStep(next, spare) : null);
   let doneCount = $derived(STEPS.filter((s) => guide.done[s.id]).length);
 </script>

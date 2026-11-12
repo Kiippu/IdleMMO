@@ -12,9 +12,10 @@
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import { markDone } from '../guide.svelte';
 
-  type Item = { id: string; name: string; slot?: string; kind?: string; value?: number; stats?: Record<string, number> };
+  type Item = { id: string; section?: 'fight' | 'outfit' | 'tool'; name: string; slot?: string; kind?: string; value?: number; stats?: Record<string, number> };
   type Gear = { uid: string; itemId: string; rarity: string; quality: number; dur: number; maxDur: number };
-  type Tile = { key: string; letter: string; name: string; rarity: string; qty?: number; kind: 'stack' | 'gear'; id: string; gear?: Gear; uids?: string[]; grades?: number[]; cat: 'Materials' | 'Gear' | 'Food & potions'; value: number; order: number };
+  type Tile = { key: string; letter: string; name: string; rarity: string; qty?: number; kind: 'stack' | 'gear'; id: string; gear?: Gear; uids?: string[]; grades?: number[]; cat: 'Materials' | 'Gear' | 'Food & potions'; value: number; order: number; section?: 'fight' | 'outfit' | 'tool' };
+  const SECTION_LABEL = { fight: 'Fight', outfit: 'Outfit', tool: 'Tool' } as const;
 
   const GRADE_LABEL = GRADE_NAMES;
   const STAT_NAME: Record<string, string> = { atk: 'attack', def: 'defence', heal: 'heal', hp: 'HP' };
@@ -32,7 +33,14 @@
   let snap = $derived(engine.snapshot);
   let view = $derived(engine.derived);
   let store = $derived<any>(view?.extras?.store ?? null);
-  let equipped = $derived<Record<string, string | null>>(snap?.equipped ?? {});
+  // Everything worn anywhere: fight slots, the three outfit sets and the 15 tool slots.
+  let equipped = $derived.by<Record<string, string | null>>(() => {
+    const m: Record<string, string | null> = { ...(snap?.equipped ?? {}) };
+    for (const [set, pieces] of Object.entries<any>((snap as any)?.workOutfit ?? {})) for (const [p, uid] of Object.entries<any>(pieces ?? {})) m[`outfit:${set}:${p}`] = uid;
+    for (const [sk, uid] of Object.entries<any>((snap as any)?.tools ?? {})) m[`tool:${sk}`] = uid;
+    return m;
+  });
+  let secF = $state<'all' | 'fight' | 'outfit' | 'tool'>('all');
   let info = $derived<Record<string, { stackKey: string | null }> | undefined>((view?.extras as any)?.gearInfo);
   let loadouts = $derived<any[]>(snap?.loadouts ?? []);
   let bag = $derived<Gear[]>((snap?.gear ?? []) as Gear[]);
@@ -63,7 +71,7 @@
     const rows = stack ? groupGear(spare, prot, DATA.grades, (g) => info?.[g.uid]?.stackKey) : spare.map((g) => ({ key: null, items: [g] }));
     const gs: Tile[] = rows.map((r) => {
       const g = r.items[0]; const n = r.items.length;
-      return { key: r.key ? `gs:${r.key}` : `g:${g.uid}`, letter: itemName(g.itemId)[0], name: gname(g), rarity: g.rarity, qty: n > 1 ? n : undefined, kind: 'gear' as const, id: g.itemId, gear: g, uids: r.items.map((x) => x.uid), cat: 'Gear' as const, value: store?.gearSellPrices?.[g.uid] ?? 0, order: Math.max(...r.items.map((x) => idx.get(x.uid) ?? 0)) };
+      return { key: r.key ? `gs:${r.key}` : `g:${g.uid}`, letter: itemName(g.itemId)[0], name: gname(g), rarity: g.rarity, qty: n > 1 ? n : undefined, kind: 'gear' as const, id: g.itemId, gear: g, uids: r.items.map((x) => x.uid), cat: 'Gear' as const, value: store?.gearSellPrices?.[g.uid] ?? 0, order: Math.max(...r.items.map((x) => idx.get(x.uid) ?? 0)), section: itemsMap[g.itemId]?.section };
     });
     return [...gs, ...out];
   }
@@ -98,7 +106,7 @@
     for (const g of Object.values(cats)) g.tiles.sort((a, b) => (a.status === b.status ? a.name.localeCompare(b.name) : a.status === 'known' ? -1 : 1));
     return { known, total, groups: ['Materials', 'Gear', 'Food & potions'].map((n) => cats[n]).filter(Boolean) };
   });
-  let mineVis = $derived(shown(mineTiles, bagFilter));
+  let mineVis = $derived(shown(mineTiles, bagFilter).filter((t) => secF === 'all' || (t.kind === 'gear' && t.section === secF)));
   let mineGear = $derived(mineVis.filter((t) => t.kind === 'gear'));
   let mineGearUids = $derived(mineGear.flatMap((t) => t.uids ?? []));
   let allGear = $derived(mineTiles.filter((t) => t.kind === 'gear'));
@@ -156,8 +164,9 @@
     <ul class="grid">
       {#each list as t (t.key)}
         <li>
-          <button type="button" class="tile" data-gear={t.kind === "gear" ? "1" : undefined} style:--ink-r={`var(--r-${t.rarity})`} onclick={() => tapTile(t, readOnly)} class:picked={!!sel[t.key]} aria-pressed={selecting && t.kind === 'gear' && !readOnly ? !!sel[t.key] : undefined} aria-label="{t.name}{t.qty ? `, quantity ${t.qty}` : ''}{sel[t.key] ? `, ${sel[t.key]} selected` : ''}">
+          <button type="button" class="tile" data-gear={t.kind === "gear" ? "1" : undefined} style:--ink-r={`var(--r-${t.rarity})`} onclick={() => tapTile(t, readOnly)} class:picked={!!sel[t.key]} aria-pressed={selecting && t.kind === 'gear' && !readOnly ? !!sel[t.key] : undefined} aria-label="{t.name}{t.section ? `, ${SECTION_LABEL[t.section]} gear` : ''}{t.qty ? `, quantity ${t.qty}` : ''}{sel[t.key] ? `, ${sel[t.key]} selected` : ''}">
             <ItemIcon id={t.id} rarity={t.rarity} />
+            {#if t.kind === 'gear' && t.section}<span class="sec" data-s={t.section} aria-hidden="true">{SECTION_LABEL[t.section]}</span>{/if}
             {#if t.qty}<span class="qty num">{#if sel[t.key]}{sel[t.key]}/{/if}{t.qty > 999 ? '999+' : t.qty}</span>{/if}
             {#if sel[t.key]}<span class="chk num" aria-hidden="true">✓</span>{/if}
           </button>
@@ -174,9 +183,12 @@
 </nav>
 
 {#if sub === 'mine'}
-  <section class="group">
+  <section class="group" class:selpad={selecting}>
     <h3>Bag</h3>
     {@render filters(bagFilter)}
+    <div class="chips" role="group" aria-label="Gear section">
+      {#each [['all', 'Any section'], ['fight', 'Fight'], ['outfit', 'Outfit'], ['tool', 'Tool']] as [id, label]}<button type="button" class="btn chip" aria-pressed={secF === id} onclick={() => (secF = id as typeof secF)}>{label}</button>{/each}
+    </div>
     {@render grid(mineVis, false, bagFilter, mineTiles.length)}
     {#if mineGear.length}
       <div class="foot">
@@ -235,7 +247,10 @@
   .foot { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .meta { margin: 8px 0 0; color: var(--ink-3); font-size: var(--t-xs); }
   .tile.picked { background: var(--woad-soft); outline: 3px solid var(--woad); outline-offset: -3px; }
+  .sec { position: absolute; right: 1px; top: 1px; padding: 1px 3px; background: var(--sunk); border: 1px solid var(--rule); color: var(--ink-2); font: 700 9px/1.2 var(--f-body); letter-spacing: .02em; pointer-events: none; }
+  .sec[data-s='tool'] { color: var(--brass); } .sec[data-s='outfit'] { color: var(--woad); }
   .chk { position: absolute; left: 1px; top: 1px; width: 18px; height: 18px; display: grid; place-items: center; background: var(--woad); color: var(--on-woad); font: 700 12px/1 var(--f-num); }
+  .selpad { padding-bottom: 76px; }
   .selbar { position: sticky; bottom: calc(var(--tabbar-h) + 8px); z-index: 5; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 60px; padding: 8px 10px; background: var(--paper); border: 1px solid var(--woad); box-shadow: 0 -4px 12px var(--shadow); }
   .selbar .sc { color: var(--ink); font-size: var(--t-md); }
   .selbar .hid { color: var(--ink-3); font-size: var(--t-sm); }

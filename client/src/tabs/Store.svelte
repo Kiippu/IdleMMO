@@ -17,7 +17,7 @@
   let { onContracts }: Props = $props();
 
   const GRADE_LABEL = GRADE_NAMES;
-  const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring' };
+  const SLOT_LABEL: Record<string, string> = { weapon: 'Weapon', offhand: 'Offhand', head: 'Head', chest: 'Chest', legs: 'Legs', ring: 'Ring', ring1: 'Ring', ring2: 'Ring', amulet: 'Amulet' };
   const itemsMap: Record<string, any> = (DATA as any).items;
   const itemRarity: Record<string, string> = (DATA as any).itemRarity ?? {};
   const itemName = (id: string) => itemsMap[id]?.name ?? id;
@@ -28,7 +28,23 @@
   let gold = $derived(Math.floor(snap?.gold ?? 0));
   let inv = $derived<Record<string, number[]>>(snap?.inv ?? {});
   let gear = $derived<any[]>(snap?.gear ?? []);
-  let equipped = $derived<Record<string, string | null>>(snap?.equipped ?? {});
+  let equipped = $derived.by<Record<string, string | null>>(() => {
+    const m: Record<string, string | null> = { ...(snap?.equipped ?? {}) };
+    for (const [set, pieces] of Object.entries<any>((snap as any)?.workOutfit ?? {})) for (const [p, uid] of Object.entries<any>(pieces ?? {})) m[`outfit:${set}:${p}`] = uid;
+    for (const [sk, uid] of Object.entries<any>((snap as any)?.tools ?? {})) m[`tool:${sk}`] = uid;
+    return m;
+  });
+  // The always-on Tools shelf: Uncommon Tier 1 tools, no stock limit.
+  let toolShelf = $derived<Array<{ itemId: string; name: string; skill: string; price: number; rarity: string }>>((store?.tools ?? []) as any);
+  const skillName = (id: string) => ((DATA as any).skills as any[] | undefined)?.find((x) => x.id === id)?.name ?? cap(id);
+  async function buyTool(t: { itemId: string; name: string; price: number }) {
+    if (t.price > gold) { say(`${t.name} costs ${fmtG(t.price)} and you have ${fmtG(gold)}.`, true); return; }
+    try {
+      const res: any = await engineClient.storeBuyTool(t.itemId);
+      if (res && res.ok === false) { say(res.reason || 'Could not complete.', true); return; }
+      say(`Bought ${t.name} for ${fmtG(res?.gold ?? t.price)}. It is in your bag; swap it in under War Room › Loadout › Tools.`);
+    } catch (e) { console.error(e); say('Could not complete.', true); }
+  }
   let slots = $derived<any[]>(store?.slots ?? []);
   let resources = $derived(slots.filter((s) => s.kind !== 'gear'));
   let gearSlots = $derived(slots.filter((s) => s.kind === 'gear'));
@@ -136,7 +152,7 @@
     <h3>Resources</h3>
     <ul class="tiles">
       {#each resources as s (s.slot)}
-        <li class="tl">
+        <li class="tl card">
           <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
             <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true"><ItemIcon id={s.itemId} rarity={s.rarity} /></span>
             <span class="nm">{s.name}</span>
@@ -155,7 +171,7 @@
     <h3>Gear</h3>
     <ul class="tiles">
       {#each gearSlots as s (s.slot)}
-        <li class="tl">
+        <li class="tl card">
           <button type="button" class="tile" class:out={s.qty < 1} onclick={() => openItem({ itemId: s.itemId })} aria-label="{s.name}, {fmtG(s.price)}, {s.qty} left">
             <span class="sq" style:color={`var(--r-${s.rarity})`} style:border-color={`var(--r-${s.rarity})`} aria-hidden="true"><ItemIcon id={s.itemId} rarity={s.rarity} /></span>
             <span class="nm">{s.name}</span>
@@ -165,6 +181,24 @@
             <span class="meta">{gatherText(s)}</span>
           </button>
           <button type="button" class="btn buy" disabled={s.qty < 1} onclick={() => buy(s)}>{s.qty < 1 ? 'Sold out' : 'Buy'}</button>
+        </li>
+      {/each}
+    </ul>
+  </section>
+
+  <section class="group" aria-label="Tools shelf">
+    <h3>Tools</h3>
+    <p class="note">Always in stock. Better tools come from crafting or raid drops.</p>
+    <ul class="tiles tools">
+      {#each toolShelf as t (t.itemId)}
+        <li class="tl card">
+          <button type="button" class="tile" onclick={() => openItem({ itemId: t.itemId })} aria-label="{t.name}, {fmtG(t.price)}">
+            <span class="sq" style:color={`var(--r-${t.rarity})`} style:border-color={`var(--r-${t.rarity})`} aria-hidden="true"><ItemIcon id={t.itemId} rarity={t.rarity} /></span>
+            <span class="nm">{t.name}</span>
+            <span class="meta">{skillName(t.skill)} · {cap(t.rarity)}</span>
+            <span class="price num">{fmtG(t.price)}</span>
+          </button>
+          <button type="button" class="btn buy" onclick={() => buyTool(t)}>Buy</button>
         </li>
       {/each}
     </ul>
@@ -232,7 +266,7 @@
 
   .tiles > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 10px; background: none; border: 0; color: var(--ink); }
+  .tile { width: 100%; min-height: 44px; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 0 0 6px; background: none; border: 0; color: var(--ink); }
   .tile:hover:not(:disabled) { background: var(--woad-soft); }
   .tile.out { opacity: .5; cursor: not-allowed; }
   .sq { width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid; background: var(--sunk); }
@@ -252,10 +286,9 @@
   .gchip:hover { background: var(--woad-soft); border-color: var(--woad); }
   .gchip .gl { padding: 2px 6px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-2); }
   .gchip .brass { font-size: var(--t-xs); }
-  .tl { display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--rule); }
-  .tl:has(.tile:hover:not(.out)) { border-color: var(--woad); }
+  .tl { display: flex; flex-direction: column; min-width: 0; }
   .tl .tile { flex: 1; }
-  .buy { width: calc(100% - 16px); margin: 0 8px 8px; }
+  .buy { width: 100%; margin: 0; }
   .seg { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 8px; }
   .seg .btn { border-left-width: 0; }
   .seg .btn:first-child { border-left-width: 1px; }

@@ -39,7 +39,7 @@ export const backdropFor = (skill: string | null) => (skill && BACKDROP_BY_SKILL
 export const backdropRow = (name: string) => Math.max(0, BD.names.indexOf(name));
 
 /** Tool carried while working a skill (otherwise a hands-only gesture or idle). */
-const TOOL_BY_SKILL: Record<string, 'pickaxe' | 'axe' | 'hammer' | 'rod'> = {
+const TOOL_BY_SKILL: Record<string, ToolKind> = {
   mining: 'pickaxe', woodcutting: 'axe', fishing: 'rod',
   smithing: 'hammer', smelting: 'hammer', carpentry: 'hammer', woodworking: 'hammer', leatherworking: 'hammer', jewelcrafting: 'hammer',
 };
@@ -48,26 +48,45 @@ const GESTURE = new Set(['herbalism', 'tanning', 'weaving', 'tailoring', 'cookin
 const COMBAT = new Set(['guardian', 'mender', 'striker']);
 
 // ---------------------------------------------------------------- equipment -> layers
-type WeaponKind = 'pickaxe' | 'axe' | 'mace' | 'sword' | 'staff' | 'bow' | 'hammer' | 'rod' | null;
-export function weaponKind(id: string | null): WeaponKind {
-  if (!id) return null;
-  if (/pickaxe/.test(id)) return 'pickaxe';
-  if (/hatchet|axe/.test(id)) return 'axe';
+/** The 12 weapon types of the gear data model; each has its own worn look (atlas layers `w_<type>_<material>_bg|fg`, built by scripts/art/build-hero.py).
+ *  Closest LPC layer, recoloured by material: spear = rapier, halberd = pickaxe head, warhammer = smith's hammer, scepter = club (brass), axe = hand axe. */
+export type WeaponType = 'sword' | 'axe' | 'dagger' | 'spear' | 'bow' | 'greatsword' | 'mace' | 'warhammer' | 'halberd' | 'wand' | 'scepter' | 'staff';
+type ToolKind = 'pickaxe' | 'axe' | 'hammer' | 'rod';
+export function weaponKind(id: string | null): WeaponType | null {
+  if (!id || /parrying/.test(id)) return null;
+  if (/greatsword/.test(id)) return 'greatsword';
+  if (/dagger/.test(id)) return 'dagger';
+  if (/spear/.test(id)) return 'spear';
+  if (/halberd/.test(id)) return 'halberd';
+  if (/warhammer|maul|hammer/.test(id)) return 'warhammer';
+  if (/mace/.test(id)) return 'mace';
+  if (/scepter/.test(id)) return 'scepter';
+  if (/wand/.test(id)) return 'wand';
   if (/staff/.test(id)) return 'staff';
   if (/bow/.test(id)) return 'bow';
-  if (/mace|maul|warhammer|hammer/.test(id)) return 'mace';
+  if (/axe/.test(id)) return 'axe';
   return 'sword';
 }
-const MATS = ['bronze', 'bronze', 'iron', 'steel', 'gold'];
+const WOODEN: WeaponType[] = ['bow', 'staff', 'wand'];
+const SWORD_MATS = ['bronze', 'bronze', 'iron', 'steel', 'gold'];
+/** Material look of a weapon by tier: wood (pine, oak, yew) for bow, staff, wand; metal (bronze, iron, steel) for the rest. T4 and up keep the T3 look. */
+const matOf = (t: WeaponType, tier: number) => {
+  const i = Math.min(3, Math.max(1, tier || 1)) - 1;
+  return (WOODEN.includes(t) ? ['pine', 'oak', 'yew'] : ['bronze', 'iron', 'steel'])[i];
+};
 
 export interface Gear { itemId: string | null; tier: number; role: string }
 export interface Equipped { weapon: Gear | null; head: Gear | null; chest: Gear | null; legs: Gear | null; offhand?: Gear | null }
-/** Offhand shield look (atlas layer prefix `<key>_bg` / `<key>_fg`). Guardian offhands only; the Forager's satchel and other non-shields stay hidden. */
-const SHIELD_BY_ID: Record<string, string> = { pine_buckler: 'sh_buckler', oak_kite_shield: 'sh_kite', yew_tower_shield: 'sh_tower', drakescale_aegis: 'sh_aegis' };
+/** Offhand worn look: shields by tier (buckler, kite, tower, aegis), the tome as a leather-bound board, the parrying dagger held back on the off side. */
 const SHIELD_BY_TIER = ['sh_buckler', 'sh_buckler', 'sh_kite', 'sh_tower', 'sh_aegis'];
-export function shieldKey(g: Gear | null | undefined): string | null {
-  if (!g || g.role !== 'guardian') return null;
-  return SHIELD_BY_ID[g.itemId ?? ''] ?? SHIELD_BY_TIER[Math.min(4, Math.max(1, g.tier))];
+export function offhandLook(g: Gear | null | undefined): { bg: string[]; fg: string[]; shield: boolean } | null {
+  const id = g?.itemId ?? '';
+  if (!g || !id) return null;
+  const tier = Math.min(4, Math.max(1, g.tier || 1));
+  if (/shield|buckler|aegis/.test(id)) { const k = SHIELD_BY_TIER[tier]; return { bg: [`${k}_bg`], fg: [`${k}_fg`], shield: true }; }
+  if (/tome/.test(id)) return { bg: ['sh_tome_bg'], fg: ['sh_tome_fg'], shield: true };
+  if (/parrying/.test(id)) return { bg: [`w_pd_${matOf('dagger', tier)}_bg`, `w_pd_${matOf('dagger', tier)}_fg`], fg: [], shield: false };
+  return null;
 }
 /** `hold`: a fixed frame for a calm standing pose (idle with a weapon in hand: only the action anims carry weapon layers). */
 export interface Look { back: string[]; front: string[]; anim: AnimName; backdrop: string; key: string; hold?: number }
@@ -96,16 +115,15 @@ function bodyLayers(eq: Equipped, crew: boolean): { under: string[]; over: strin
   return { under: ['body', 'head', 'boots', pants, torso, ...(showHair ? ['hair'] : [])], over: helm ? [helm] : [] };
 }
 
-function weaponLayers(kind: WeaponKind, w: Gear | null): { anim: AnimName; bg: string[]; fg: string[] } | null {
-  switch (kind) {
-    case 'rod': return { anim: 'fish', bg: ['rod_bg'], fg: ['rod_fg'] };
-    case 'pickaxe': case 'axe': case 'hammer': return { anim: 'slash', bg: [`${kind}_bg`], fg: [`${kind}_fg`] };
-    case 'mace': return { anim: 'slash', bg: ['mace_bg'], fg: ['mace_fg'] };
-    case 'sword': { const m = MATS[Math.min(4, Math.max(1, w?.tier ?? 1))]; return { anim: 'slash', bg: [`sword_${m}_bg`], fg: [`sword_${m}_fg`] }; }
-    case 'staff': return { anim: 'cast', bg: ['staff_bg'], fg: ['staff_fg'] };
-    case 'bow': return { anim: 'shoot', bg: ['bow_bg'], fg: ['bow_fg'] };
-    default: return null;
-  }
+function toolLayers(tool: ToolKind): { anim: AnimName; bg: string[]; fg: string[] } {
+  return tool === 'rod' ? { anim: 'fish', bg: ['rod_bg'], fg: ['rod_fg'] } : { anim: 'slash', bg: [`${tool}_bg`], fg: [`${tool}_fg`] };
+}
+function weaponLayers(kind: WeaponType | null, w: Gear | null): { anim: AnimName; bg: string[]; fg: string[] } | null {
+  if (!kind) return null;
+  if (kind === 'sword') { const m = SWORD_MATS[Math.min(4, Math.max(1, w?.tier ?? 1))]; return { anim: 'slash', bg: [`sword_${m}_bg`], fg: [`sword_${m}_fg`] }; }
+  const m = matOf(kind, w?.tier ?? 1);
+  const anim: AnimName = kind === 'staff' ? 'cast' : kind === 'bow' ? 'shoot' : 'slash';
+  return { anim, bg: [`w_${kind}_${m}_bg`], fg: [`w_${kind}_${m}_fg`] };
 }
 
 /** Layer draw lists for one figure working `skill`. `crew` = the crewmate palette (always plain work clothes). */
@@ -116,7 +134,7 @@ export function figure(skill: string | null, active: boolean, eq: Equipped, crew
   if (active && skill) {
     const tool = TOOL_BY_SKILL[skill];
     const wk = crew ? null : weaponKind(eq.weapon?.itemId ?? null);
-    const w = tool ? weaponLayers(tool, null) : COMBAT.has(skill) && !crew ? weaponLayers(wk, eq.weapon) : null;
+    const w = tool ? toolLayers(tool) : COMBAT.has(skill) && !crew ? weaponLayers(wk, eq.weapon) : null;
     if (COMBAT.has(skill) && !crew && !w) anim = 'slash';       // bare-handed
     else if (!w && GESTURE.has(skill)) anim = 'cast';
     if (w) { anim = w.anim; bg = w.bg; fg = w.fg; }
@@ -127,12 +145,11 @@ export function figure(skill: string | null, active: boolean, eq: Equipped, crew
     const w = weaponLayers(weaponKind(eq.weapon.itemId), eq.weapon);
     if (w) { anim = w.anim; bg = w.bg; fg = w.fg; hold = HOLD[w.anim]; }
   }
-  // Offhand shield: drawn in every animation that has shield art (slash, cast, shoot, fish). Shield-only idle holds slash frame 0.
-  const sh = crew ? null : shieldKey(eq.offhand);
-  if (sh) {
-    if (anim === 'idle') { anim = 'slash'; hold = HOLD.slash; }
-    bg = [`${sh}_bg`, ...bg];
-    fg = [`${sh}_fg`, ...fg];
+  // Offhand (shield, tome, parrying dagger): drawn in every animation that has shield art (slash, cast, shoot, fish). Offhand-only idle holds slash frame 0.
+  const oh = crew ? null : offhandLook(eq.offhand);
+  if (oh) {
+    if (oh.shield && anim === 'idle') { anim = 'slash'; hold = HOLD.slash; }
+    if (!oh.shield && anim !== 'slash') { /* the parrying dagger only has a slash pose: leave it out of other poses */ } else { bg = [...oh.bg, ...bg]; fg = [...oh.fg, ...fg]; }
   }
   const back = bg, front = fg;
   return { back, front: [...under, ...over, ...front], anim, backdrop: backdropFor(active ? skill : null), hold, key: [crew ? 'c' : 'h', anim, hold ?? '', ...bg, ...under, ...over, ...front].join(',') };

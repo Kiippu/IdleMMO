@@ -8,7 +8,7 @@ import { ctx } from './context';
 export const CFG_DEFAULTS = {
   saveKey: 'guildwright-proto-v1', startingGold: 150, xpMult: 4, xpCurveMult: 1, offlineCapSec: 43200, maxLevel: 99,
   marketTax: 0.05, pityThreshold: 40,
-  baseHp: 60, hpPerCombatLevel: 4,
+  baseHp: 600, hpPerCombatLevel: 40,
   // Every action's `sec` is multiplied by this factor at actionTimeWith. Phase 2.5 sets it
   // to 1 (the prototype's pace, owner's call). One knob — change here to retune.
   speedFactor: 1
@@ -39,7 +39,8 @@ export const SKILL_DEFAULTS = [
   ['guardian', 'combat'], ['mender', 'combat'], ['striker', 'combat']
 ].map(([id, tier]) => ({ id, name: id[0].toUpperCase() + id.slice(1), tier, blurb: '' }));
 export const ELEMENT_DEFAULTS = ['fire', 'frost', 'venom', 'holy'];
-export const SLOTS = ['weapon', 'offhand', 'head', 'chest', 'legs', 'ring'];
+// fight slots (gear overhaul 2026-11-12: ring1, ring2, amulet). Tools and the work outfit live in state.tools / state.workOutfit.
+export const SLOTS = ['weapon', 'offhand', 'head', 'chest', 'legs', 'ring1', 'ring2', 'amulet'];
 export const ROLES = ['striker', 'guardian', 'mender'];
 export const STANCES = ['aggressive', 'balanced', 'defensive'];
 export const TACTICS = ['focus', 'interrupt', 'endure'];

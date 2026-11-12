@@ -213,6 +213,8 @@ export interface StoreView {
   /** game-clock ms when the stock rotates */
   refreshesAt: number;
   slots: StoreSlot[];
+  /** Uncommon T1 tools, always on sale (gear overhaul); buy with E.storeBuyTool(state, itemId) */
+  tools: StoreToolRow[];
   buyMult: { resource: number; gear: number };
   sellMult: number;
   /** what the store pays per unit, by grade 0..4, for every stackable in your bag */
@@ -242,7 +244,9 @@ export interface Codex {
 export interface CatalogSource { actionId?: string; bossId?: string; source?: 'monster' | 'boss'; name: string; skill?: string; level?: number; chance: number; qty: number | [number, number] }
 export interface CatalogEntry {
   id: string; name: string; rarity: RarityId; kind: string; tier: number;
-  slot: string | null; role: string | null; stats: Record<string, number> | null; element: string | null; tags: Record<string, number> | null;
+  slot: string | null; role: string | null; stats: Record<string, number> | null; element: string | null;
+  /** gear overhaul: gear section, tool skill, outfit set, base work effects (null when not gear / not that section) */
+  section: GearSection | null; toolSkill: string | null; outfitSet: OutfitSet | null; effects: Array<{ id: EffectId; value: number; group?: string }> | null;
   heal: number | null; buff: { stat: string; pct: number } | null; value: number;
   /** lowest-level refine/craft recipe; secs = base seconds per rep (E.actionTime gives yours); xp per rep */
   recipe: { actionId: string; skill: string; level: number; inputs: Record<string, number>; outputQty: number; secs: number; xp: number } | null;
@@ -271,6 +275,14 @@ export interface DerivedExtras {
   disabledReasons: DisabledReasons;
   /** E.gearInfo(state) per bag gear uid (gear pass 2026-11-12) */
   gearInfo?: Record<string, GearInfo>;
+  /** gear overhaul 2026-11-12: per work skill (15) */
+  workBonus?: Record<string, WorkBonus>;
+  activeWork?: ActiveWork | null;
+  /** what repairAllTools would do now */
+  toolRepair?: { count: number; gold: number };
+  /** raw (pre-cap) effect change per bag tool / outfit piece vs what is in its slot */
+  workDeltas?: Record<string, Partial<Record<EffectId, number>>>;
+  outfitTotals?: Record<OutfitSet, OutfitSetTotals>;
 }
 export interface SkillProgress { level: number; rawLevel: number; capped: boolean; xp: number; cur: number; next: number; pct: number }
 
@@ -315,6 +327,8 @@ export interface OfflineSummary {
   loot: ReturnLoot[];
   /** sums to `gold`; 'other' = anything the named sources don't explain (escrow refunds, ...) */
   goldBySource: GoldBySource[];
+  /** tools that went from >= 50% to < 50% condition during the catch-up (gear overhaul) */
+  wornTools?: WornToolLine[];
 }
 
 // Raid recap view: E.recapView(state, recapId?) → RecapView | null (newest recap when no id); also
@@ -410,7 +424,7 @@ export interface DisabledReasons {
 //   E.load() → state | null (null for none / old-save / corrupt; unchanged signature).
 //   E.checkSave(parsedJson) → CheckSaveResult, without loading (use it for imported save codes before E.migrate).
 //   E.migrate(parsedJson) → state | null: normalises a v7 save; null for anything checkSave refuses.
-//   E.SCHEMA → 7.
+//   E.SCHEMA → 7. (Superseded: E.SCHEMA → 8 since the gear overhaul; v7 and older start fresh the same way.)
 // Removed with it: the v1/v3/v4/v5/v6 migration paths, xpScale rescaling (state.xpScale no longer exists),
 //   the low-level-spec 3,000g refund, coin → gold folding, requisition → contract merging, `at` → `t` treasury
 //   log normalising, open market listings returned to the bag on load, tax week-buff remapping (unknown buffs drop).
@@ -446,38 +460,122 @@ export const Engine: any;
 // E.salvage(state, uids[], opts): any number of uids in one call; deduped; one gain event; one log line.
 // Craft gains: { type: 'gain', source: 'craft', items: [{ itemId, qty: 1, grade, rarity, uid }] } per rep
 //   (offline catch-up: aggregated, offline: true).
-export interface StatLine { key: string; label: string; value: number }
-/** A gathering/crafting effect from gear tags (rarity- and grade-scaled; nominal even when broken).
- *  value is in display units: 15 = +15% when unit is 'pct', points when 'pts'. text e.g. "Mining speed +15%". */
-export interface EffectLine { key: string; label: string; value: number; unit: 'pct' | 'pts'; text: string }
+// ---- Gear overhaul 2026-11-12 (save schema v8; gear-overhaul-contract.md "Engine interface").
+// Three sections: fight gear (state.equipped, 8 slots), work outfit (state.workOutfit[set][piece]) and tools
+// (state.tools[skillId]), the last two used automatically by the action's kind / skill. Every combat number is x10.
+// Verbs: E.equip(state, uid, slot?) → EquipResult; E.unequip(state, fightSlot); E.unequipGear(state, uid);
+//   E.repair(state, uid) → RepairResult (fight or tool); E.repairAllTools(state); E.toolRepairAll(state) → { count, gold };
+//   E.workBonus(state, skillId) → WorkBonus; E.activeWork(state); E.workDeltas(state); E.outfitTotals(state);
+//   E.storeBuyTool(state, itemId) → StoreBuyResult; E.storeTools() → StoreToolRow[]; E.craftQuality(state, actionId).
+// Removed: equipped.ring, loadout.boundTo, E.bindLoadout, E.boundLoadout, E.autoBuild, E.compareGear, item tags,
+//   DATA.statTags, E.gearTags, E.statTags, E.tagValue, E.activityTag, E.skillBonus, Swift, playerStats.speed.
+export type GearSection = 'fight' | 'outfit' | 'tool';
+export type FightSlot = 'weapon' | 'offhand' | 'head' | 'chest' | 'legs' | 'ring1' | 'ring2' | 'amulet';
+export type OutfitSet = 'gather' | 'refine' | 'craft';
+export type OutfitPiece = 'head' | 'body' | 'hands' | 'feet';
+export type EffectId = 'speed' | 'double' | 'save' | 'quality' | 'find' | 'rarity';
+export type SkillGroup = 'gathering' | 'refining' | 'gearcraft' | 'consumables';
+export type ElementId = 'fire' | 'frost' | 'venom' | 'holy';
+export type WornAt =
+  | { section: 'fight'; slot: FightSlot }
+  | { section: 'outfit'; set: OutfitSet; piece: OutfitPiece }
+  | { section: 'tool'; skill: string };
+/** DATA.items[id] for gear (kind 'gear'); fight / tool / outfit fields only on that section */
+export interface GearItem {
+  id: string; name: string; kind: 'gear'; section: GearSection; tier: number;
+  /** fight: weapon|offhand|head|chest|legs|ring|amulet; outfit: OutfitPiece; tool: 'tool' */
+  slot: string; type: string; material: string; sprite: string; tint: string; value: number; rarity: RarityId;
+  maker: string; level: number;
+  role?: 'striker' | 'guardian' | 'mender'; hands?: 1 | 2; armour?: 'plate' | 'leather' | 'cloth';
+  primary?: 'atk' | 'def' | 'heal' | 'hp'; stats?: { atk?: number; def?: number; heal?: number; hp?: number };
+  element?: ElementId | null; elementShare?: number;
+  toolSkill?: string; toolGroup?: SkillGroup; outfitSet?: OutfitSet;
+  effects?: Array<{ id: EffectId; value: number; group?: 'gearcraft' | 'consumables' }>;
+}
+export interface GearPiece {
+  uid: string; itemId: string; rarity: RarityId; quality: number;
+  affixes: Array<{ id: string; roll: number }>;
+  /** fight gear only */ dur?: number; maxDur?: number;
+  /** tools only: 1..100 (float; round for display) */ cond?: number;
+  /** a new save's free tools: never sold or salvaged */ starter?: true;
+}
+export interface EquipResult { ok: boolean; reason: string; section: GearSection | null; at: WornAt | null; replaced: string | null }
+export interface RepairResult { ok: boolean; reason: string; gold: number; cond?: number; maxDur?: number }
+export interface RepairAllResult { ok: boolean; reason: string; gold: number; count: number }
+/** keys atk def heal hp (pts, x10), fire frost venom holy (pct share of weapon damage), ward_<element> (pct less damage) */
+export interface StatLine { key: string; label: string; value: number; unit?: 'pts' | 'pct'; /** statText(key, value), e.g. "Fire damage +3.3%" */ text?: string }
+/** value in display units: 1.5 = +1.5% when unit is 'pct', points when 'pts'. text e.g. "Speed +1.2%". */
+export interface EffectLine { key: EffectId | string; label: string; value: number; unit: 'pct' | 'pts'; text: string }
+export interface AffixLine { id: string; name: string; key: string; value: number; unit: 'pct' | 'pts'; label: string }
+export interface GearCompare {
+  uid: string; name: string; rarity: string; grade: number;
+  /** the slot this piece would go into (what equip(uid) replaces) */
+  at: WornAt;
+  stats: StatLine[]; effects: EffectLine[];
+  diff: Array<{ key: string; label: string; unit: 'pts' | 'pct'; mine: number; theirs: number; delta: number }>;
+  /** fight only: role power now vs if worn (x10, vs the current boss) */
+  power?: Record<'guardian' | 'mender' | 'striker', { from: number; to: number; delta: number }>;
+  broken?: boolean; cond?: number;
+}
 export interface GearDetail {
-  uid: string; itemId: string; name: string;
-  slot: string; rarity: string; grade: number; gradeName: string;
-  dur: number; maxDur: number; value: number;
-  stats: StatLine[];
-  /** gathering/crafting effects (mining speed, foraging/fishing yield, hunting drops, crafting quality) */
-  effects: EffectLine[];
-  affixes: Array<{ id: string; label: string; value: number; stat: string }>;
-  equipped: boolean;
-  compare: null | {
-    uid: string; name: string; rarity: string; grade: number;
-    stats: StatLine[];
-    /** the worn piece's effects (not diffed) */
-    effects: EffectLine[];
-    diff: Array<{ key: string; label: string; mine: number; theirs: number; delta: number }>;
-    /** the equipped piece is at 0 durability (counts for nothing until repaired) */
-    broken?: boolean;
-  };
+  uid: string; itemId: string; name: string; section: GearSection;
+  /** item slot (fight: weapon|offhand|head|chest|legs|ring|amulet; outfit piece; 'tool') */
+  slot: string; type: string; material: string; tier: number;
+  rarity: string; grade: number; gradeName: string; value: number;
+  worn: WornAt | null; equipped: boolean; inLoadout: boolean;
+  role?: string; hands?: number; dur?: number; maxDur?: number;
   /** at 0 durability: stats are what it gives once repaired */
   broken?: boolean;
-  /** part of a saved loadout */
-  inLoadout?: boolean;
+  /** fight: final numbers (base x grade + primary + affixes); [] for tools / outfit */
+  stats: StatLine[];
+  toolSkill?: string; cond?: number; wear?: 0 | 3 | 5 | 8;
+  outfitSet?: OutfitSet;
+  /** tools / outfit: this piece's own contribution (pre-cap), only effects its group uses; [] for fight gear */
+  effects: EffectLine[];
+  /** tools: the skill's final soft-capped totals now and if this tool were in its slot */
+  final?: { now: Record<EffectId, number>; ifWorn: Record<EffectId, number> };
+  affixes: AffixLine[];
+  /** null for outfit pieces and vault pieces */
+  repair: { gold: number; can: boolean; reason: string; newMaxDur?: number } | null;
+  /** vs what equip(uid) would replace; null when that slot is empty or this piece is worn */
+  compare: GearCompare | null;
 }
 export interface GearInfo {
-  grade: number; equipped: boolean; inLoadout: boolean;
-  /** `${itemId}|${grade}` when common, unequipped, in no loadout, never repaired and at full durability; else null */
+  section: GearSection; worn: WornAt | null; grade: number;
+  /** worn anywhere (fight slot, outfit or tool slot) */
+  equipped: boolean; inLoadout: boolean;
+  /** `${itemId}|${grade}` when common, not worn, in no loadout, unrepaired/full condition, no affixes; else null */
   stackKey: string | null;
+  /** tool cond < 50 or fight dur < 25% */
+  low?: boolean;
+  /** tools + outfit: = GearDetail.effects */
+  effectLines?: EffectLine[];
+  cond?: number; wear?: 0 | 3 | 5 | 8;
+  /** tools: what repair(uid) charges now (0 at 100%) */
+  repairGold?: number;
+  /** a new save's free tool: store and salvage refuse it */
+  starter?: true;
 }
+export interface WorkBonus {
+  skill: string; set: OutfitSet; group: SkillGroup;
+  toolUid: string | null; toolItemId: string | null; toolCond: number | null;
+  /** action speed lost to tool wear now (%) */
+  wear: 0 | 3 | 5 | 8;
+  /** final, soft-capped (cap x (1 - e^(-total/cap))), display units */
+  totals: Record<EffectId, number>;
+  /** before the cap */
+  raw: Record<EffectId, number>;
+  caps: Record<EffectId, number>;
+  lines: EffectLine[];
+  wearText: string | null;
+}
+export interface ActiveWork { actionId: string; skill: string; kind: 'gather' | 'refine' | 'craft'; set: OutfitSet; toolUid: string | null; toolItemId: string | null; outfitUids: string[]; bonus: WorkBonus }
+export interface OutfitSetTotals { totals: Record<EffectId, number>; lines: EffectLine[] }
+export interface StoreToolRow { itemId: string; name: string; skill: string; price: number; rarity: RarityId }
+export interface WornToolLine { uid: string; itemId: string; name: string; cond: number }
+export interface PlayerStats { atk: number; def: number; heal: number; maxHp: number; power: number; elements: Record<string, number>; wards: Record<string, number> }
+export interface EquipDelta { slot: FightSlot; hp: number; atk: number; def: number; heal: number; power: number; elements: Record<string, number>; wards: Record<string, number> }
+export interface CraftQuality { expected: number; min: number; max: number; grade: number }
 
 // Progress sync (2026-11-12): E.repTiming(state) → { repSec, elapsedSec, secLeft } | null;
 //   E.stampRep(state, wallMs) writes state.active.repStartedAt / repMs (wall-clock ms; bar = (now - repStartedAt) / repMs).
@@ -501,6 +599,17 @@ export const ctx: EngineContext;
 /** Static game content. */
 export const DATA: any;
 
+/** Work-effect number format (one format everywhere): >= 1 → one decimal, < 1 → two, with sign and unit.
+ *  fmtEffect(1, 'pct') → "+1.0%"; fmtEffect(0.25) → "+0.25%"; fmtEffect(2, 'pts') → "+2.0". */
+export function fmtEffect(value: number, unit?: 'pct' | 'pts'): string;
+/** the number part only: "1.0", "0.25" */
+export function fmtEffectNum(value: number): string;
+/** the value as shown (rounded to 1 decimal at >= 1, else 2) */
+export function effectShown(value: number): number;
+/** the one stat wording: statText('atk', 47) → "Attack +47"; statText('fire', 3.3) → "Fire damage +3.3%";
+ *  statText('ward_fire', 2) → "Fire resistance +2.0%". Element keys are fire / frost / venom ("Poison") / holy. */
+export function statText(key: string, value: number): string;
+
 /** Economy unit: one hour of a typical level-40 player's income, in gold (see data.ts). */
 export const H: number;
 /** Hour-based economy knobs that every hours-priced amount derives from. */
@@ -511,6 +620,7 @@ export const ECON: {
   storeResourceSlots: number; storeGearSlots: number; storeGearMaxTier: number;
   raidEvenShare: number; raidContribShare: number; raidCapIncomeHours: number;
   salvagePct: Record<string, number>;
+  storeToolPrice: number; storeToolTier: number; storeToolRarity: string;
 };
 
 declare const _default: typeof createEngine;

@@ -6,11 +6,13 @@
   import { ui } from '../ui.svelte';
   import { askText, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import RaidRecap from '../overlays/RaidRecap.svelte';
-  import Gear from './war/Gear.svelte';
+  import Fight from './war/Fight.svelte';
+  import Outfit from './war/Outfit.svelte';
+  import Tools from './war/Tools.svelte';
+  import { FIGHT_SLOTS, elementName } from './war/gearUi';
   import { engine } from '../engine/store.svelte';
   import { engineClient } from '../engine/client';
 
-  const SLOT_ORDER = ['weapon', 'offhand', 'head', 'chest', 'legs', 'ring'] as const;
   const STANCES = [
     { id: 'aggressive', label: 'Aggressive', blurb: 'Crit chance +5%. More damage, more risk.' },
     { id: 'balanced', label: 'Balanced', blurb: 'Even trades.' },
@@ -23,6 +25,8 @@
   ];
 
   let sub = $state<'loadout' | 'raid'>('loadout');
+  let sec = $state<'fight' | 'outfit' | 'tools'>('fight');
+  const SECS = [['fight', 'Fight'], ['outfit', 'Work outfit'], ['tools', 'Tools']] as const;
   let recapOpen = $state(false);
   $effect(() => { if (ui.warSub) { sub = ui.warSub; ui.warSub = null; } });
   let snap = $derived(engine.snapshot);
@@ -87,7 +91,6 @@
     } catch (err) { console.error('lock failed', err); }
   }
   async function equipLoadout2(id: string) {
-    if (readOnly) { await noticeSheet('Gear is locked', lockReason); return; }
     await equipLoadout(id);
   }
 
@@ -132,8 +135,11 @@
 </nav>
 
 {#if sub === 'loadout'}
-  {#if readOnly && lockReason}<p class="lock-note">{lockReason}</p>{/if}
-  <Gear />
+  <div class="seg sec" role="group" aria-label="Gear section">
+    {#each SECS as [id, label]}<button type="button" class="btn" aria-pressed={sec === id} onclick={() => (sec = id)}>{label}</button>{/each}
+  </div>
+  {#if sec === 'fight'}
+  <Fight />
 
   <details class="group saved" bind:open={loadoutsOpen}>
     <summary><h3>Saved loadouts <span class="num">({loadouts.length})</span></h3></summary>
@@ -149,10 +155,10 @@
           <li>
             <div class="row">
               <span class="name">{l.name}</span>
-              <span class="meta"><span class="num">{SLOT_ORDER.filter((s) => l.slots?.[s]).length}/6</span> pieces</span>
+              <span class="meta"><span class="num">{FIGHT_SLOTS.filter((s) => l.slots?.[s]).length}/8</span> pieces</span>
             </div>
             <div class="row actions">
-              <button type="button" class="btn" aria-disabled={readOnly} class:dim={readOnly} onclick={() => equipLoadout2(l.id)}>Equip</button>
+              <button type="button" class="btn" onclick={() => equipLoadout2(l.id)}>Equip</button>
               <button type="button" class="btn ghost" onclick={() => deleteLoadout(l.id, l.name)}>Delete</button>
             </div>
           </li>
@@ -160,6 +166,11 @@
       </ul>
     {/if}
   </details>
+  {:else if sec === 'outfit'}
+    <Outfit />
+  {:else}
+    <Tools />
+  {/if}
 {:else}
   <section class="group">
     {#if boss}
@@ -170,7 +181,7 @@
             <span class="boss-name">{boss.name}</span>
             <span class="meta">Boss <span class="num">{bossNo}</span> of <span class="num">{BOSS_TOTAL}</span>{boss.title && !/^boss\s*\d/i.test(boss.title) ? ` · ${boss.title}` : ''}</span>
             <div class="chips">
-              {#if boss.weakTo}<span class="chip">Weak to {boss.weakTo}</span>{/if}
+              {#if boss.weakTo}<span class="chip">Weak to {elementName(boss.weakTo)}</span>{/if}
               {#if chip}<span class="chip pri num">{chip}</span>{/if}
             </div>
           </div>
@@ -180,7 +191,7 @@
           {#each cps as c}<i class="tick" style="left: {Math.round((1 - c.at) * 100)}%"></i>{/each}
         </div>
         <p class="meta">HP <span class="num">{fmtN(Math.max(0, hpFrac * boss.maxHp))} / {fmtN(boss.maxHp)}</span>{#if boss.reqPower}{' '}· Req power <span class="num">{fmtN(Math.round(boss.reqPower))}</span>{/if}</p>
-        {#if boss.weakTo}<p class="meta">Wear gear with {boss.weakTo} damage to hit its weak spot for extra damage.</p>{/if}
+        {#if boss.weakTo}<p class="meta">Wear gear with {elementName(boss.weakTo)} damage to hit its weak spot for extra damage.</p>{/if}
         {#if cps.length}
           <p class="meta">Bonus chests open as the crew wears the boss down.</p>
           <ul class="chests">
@@ -354,6 +365,7 @@
   .next { margin-top: 8px; }
   .m { height: 4px; background: var(--paper); border: 1px solid var(--rule); display: block; overflow: hidden; }
 
+  .seg.sec { margin-bottom: 12px; }
   .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; }
   .seg .btn { padding: 8px 4px; border-left-width: 0; }
   .seg .btn:first-child { border-left-width: 1px; }

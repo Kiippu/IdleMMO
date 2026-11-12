@@ -70,7 +70,7 @@
       {:else}
         <p class="body"><span class="num">{pv.gearCount}</span> {pv.gearCount === 1 ? 'piece' : 'pieces'} will be broken down. This cannot be undone.</p>
         {#if pv.blocked.length}
-          <p class="meta"><span class="num">{pv.blocked.length}</span> of the <span class="num">{uids.length}</span> shown {pv.blocked.length === 1 ? 'is' : 'are'} kept: equipped, in a loadout, or rare or better. Tick "Include protected" to break {pv.blocked.length === 1 ? 'it' : 'them'} down too.</p>
+          <p class="meta"><span class="num">{pv.blocked.length}</span> of the <span class="num">{uids.length}</span> shown {pv.blocked.length === 1 ? 'is' : 'are'} kept: worn, in a loadout, or rare or better. Tick "Include protected" to break {pv.blocked.length === 1 ? 'it' : 'them'} down too.</p>
         {/if}
         {#if pv.items.length}
           <h3>You will get about</h3>
@@ -86,8 +86,8 @@
           {#if pv.blocked.length > 8}<p class="meta">and <span class="num">{pv.blocked.length - 8}</span> more.</p>{/if}
         {/if}
       {/if}
-      {#if !done}<label class="chk"><input type="checkbox" bind:checked={allow} /> <span>Include protected (equipped, loadouts, rare+)</span></label>{/if}
-      {#if !done && (!pv || pv.gearCount === 0)}<p class="meta">{!pv ? 'Working out what you would get…' : 'Nothing to salvage. Tick "Include protected" to see equipped and rare gear.'}</p>{/if}
+      {#if !done}<label class="chk"><input type="checkbox" bind:checked={allow} /> <span>Include protected (worn, loadouts, rare+)</span></label>{/if}
+      {#if !done && (!pv || pv.gearCount === 0)}<p class="meta">{!pv ? 'Working out what you would get…' : 'Nothing to salvage. Tick "Include protected" to see worn and rare gear.'}</p>{/if}
       <div class="actions">
         {#if done}
           <button type="button" class="btn primary" onclick={closeSalvage}>Done</button>

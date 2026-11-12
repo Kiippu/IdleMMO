@@ -5,8 +5,7 @@
 import { ctx } from './context';
 import { E, SLOTS, arr, num, item, lcFirst, nextId } from './core';
 import { findGear, gearHp } from './gear';
-import { tagDefs } from './v4-helpers';
-import { statsFor, powersOf, slotsOf, TAG_PHRASE, tagUnit, tagIds, slotsTags, tagScore } from './stats';
+import { statsFor, powersOf, slotsOf } from './stats';
 import { findVaultGear } from './crew-economy';
 
 // ================================================================ v4: loadouts
@@ -19,7 +18,7 @@ E.loadouts = function (state) {
     const missing = SLOTS.filter((s) => l.slots[s] && !findGear(state, l.slots[s]));
     const rc = {}; ['guardian', 'mender', 'striker'].forEach((r) => { rc[r] = E.roleCheck(state, r, l.slots); });
     return Object.assign({}, l, { slots: Object.assign({}, l.slots), missing, complete: missing.length === 0, pieces: SLOTS.filter((s) => l.slots[s]).length,
-      tags: slotsTags(state, l.slots), roleChecks: rc, isRaid: plan.loadoutId === l.id, locked: !!(lock && lock.loadoutId === l.id) });
+      roleChecks: rc, isRaid: plan.loadoutId === l.id, locked: !!(lock && lock.loadoutId === l.id) });
   });
 };
 E.saveLoadout = function (state, spec) {
@@ -30,7 +29,7 @@ E.saveLoadout = function (state, spec) {
   const name = String(spec.name || (l && l.name) || 'Loadout ' + (state.loadouts.length + 1)).slice(0, 24);
   if (!l) {
     if (state.loadouts.length >= 12) return { ok: false, reason: 'You can keep up to 12 loadouts.' };
-    l = { id: nextId(state, 'L'), name, slots, goal: spec.goal || null, boundTo: null, createdAt: ctx.now() };
+    l = { id: nextId(state, 'L'), name, slots, goal: spec.goal || null, createdAt: ctx.now() };
     state.loadouts.push(l);
   } else { l.name = name; l.slots = slots; if (spec.goal !== undefined) l.goal = spec.goal || null; }
   return { ok: true, reason: '', loadout: l };
@@ -50,54 +49,13 @@ E.equipLoadout = function (state, id) {
     if (!u) return;
     if (findGear(state, u)) { state.equipped[s] = u; n++; } else missing.push(s);
   });
+  const w = item((findGear(state, state.equipped.weapon) || {}).itemId); if (w && w.hands === 2) state.equipped.offhand = null;
   gearHp(state, max0);
   return { ok: true, reason: missing.length ? `Missing: ${missing.join(', ')}.` : '', missing, equipped: n };
 };
-E.autoBuild = function (state, tag, opts) {
-  opts = opts || {}; const boss = E.currentBoss(state);
-  const slots = emptySlots(); let score = 0;
-  SLOTS.forEach((s) => {
-    const cands = arr(state.gear).filter((g) => item(g.itemId) && item(g.itemId).slot === s && num(g.dur, 0) > 0);
-    if (!cands.length) return;
-    const general = (g) => { const st = E.gearStats(g); return st.atk + st.def + st.heal + st.hp / 10; };
-    cands.sort((a, b) => (tagScore(b, tag, boss) - tagScore(a, tag, boss)) || (general(b) - general(a)));
-    const best = cands[0];
-    if (tagScore(best, tag, boss) > 0) { slots[s] = best.uid; score += tagScore(best, tag, boss); }
-    else { const eq = findGear(state, state.equipped[s]); slots[s] = eq ? eq.uid : best.uid; }
-  });
-  const before = SLOTS.reduce((a, s) => { const g = findGear(state, state.equipped[s]); return a + (g ? tagScore(g, tag, boss) : 0); }, 0);
-  const res: any = { ok: true, reason: '', slots, score: Math.round(score * 1000) / 1000, gain: Math.round((score - before) * 1000) / 1000 };
-  if (opts.save) { const sv = E.saveLoadout(state, { id: opts.id, name: opts.name || ('Best ' + lcFirst(TAG_PHRASE[tag] || tag)), slots, goal: tag }); res.loadout = sv.loadout; res.ok = sv.ok; res.reason = sv.reason; }
-  return res;
-};
-E.bindLoadout = function (state, id, skillId) {
-  const l = E.loadout(state, id); if (!l) return { ok: false, reason: 'That loadout is gone.' };
-  if (skillId) arr(state.loadouts).forEach((x) => { if (x !== l && x.boundTo === skillId) x.boundTo = null; });
-  l.boundTo = skillId || null;
-  return { ok: true, reason: '' };
-};
-E.boundLoadout = (state, skillId) => arr(state.loadouts).find((l) => l.boundTo === skillId) || null;
-export function deltasBetween(state, slotsA, slotsB, vsName) {
-  const a = slotsTags(state, slotsA), b = slotsTags(state, slotsB); const out = [];
-  tagIds().forEach((t) => {
-    const d = Math.round((num(a[t], 0) - num(b[t], 0)) * 1000) / 1000; if (!d) return;
-    const unit = tagUnit(t);
-    const v = unit === 'pct' ? Math.round(d * 1000) / 10 + '%' : String(Math.round(d));
-    out.push({ tag: t, label: (tagDefs().find((x) => x.id === t) || {}).name || t, from: b[t], to: a[t], delta: d, unit,
-      text: (d > 0 ? '+' : '') + v + ' ' + TAG_PHRASE[t] + ' vs. ' + vsName });
-  });
-  return out;
-}
 E.compareLoadout = function (state, a, b) {
   const sa = slotsOf(state, a), sb = slotsOf(state, b);
-  const vs = b == null || b === 'equipped' ? 'equipped' : (typeof b === 'object' ? 'current' : ((E.loadout(state, b) || {}).name || 'equipped'));
   const boss = E.currentBoss(state); const pa = powersOf(statsFor(state, sa), boss), pb = powersOf(statsFor(state, sb), boss);
   const power = {}; ['guardian', 'mender', 'striker'].forEach((r) => { power[r] = { from: pb[r], to: pa[r], delta: pa[r] - pb[r] }; });
-  return { deltas: deltasBetween(state, sa, sb, vs), power };
-};
-E.compareGear = function (state, uid) {
-  const g = findGear(state, uid) || findVaultGear(state, uid); if (!g) return { slot: null, vsUid: null, deltas: [] };
-  const slot = (item(g.itemId) || {}).slot; const next = Object.assign({}, state.equipped); next[slot] = uid;
-  if (!findGear(state, uid)) return { slot, vsUid: state.equipped[slot] || null, deltas: [] };
-  return { slot, vsUid: state.equipped[slot] || null, deltas: deltasBetween(state, next, state.equipped, 'equipped') };
+  return { power };
 };

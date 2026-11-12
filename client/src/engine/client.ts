@@ -1,6 +1,6 @@
 // Main-thread RPC client. Holds the worker handle, correlates requests by id,
 // and pipes every incoming snapshot into the reactive engine store.
-import type { Req, FromWorker, OfflineSummary, GearDetail } from './protocol';
+import type { Req, FromWorker, OfflineSummary, GearDetail, EquipResult, RepairResult, RepairAllResult } from './protocol';
 import { engine } from './store.svelte';
 
 export type StoreAllResult = { ok: boolean; reason: string; qty: number; gold: number; grades: { grade: number; qty: number; gold: number }[] };
@@ -84,8 +84,17 @@ export const engineClient = {
     if (s) engine.offline = s;
     return s;
   },
-  equip: (uid: string) => rpc<void>({ id: nextId(), type: 'equip', uid }),
+  /** routes by section: fight slot (rings: given slot, else first empty, else the weaker ring), outfit set+piece, or tool slot */
+  equip: (uid: string, slot?: 'ring1' | 'ring2') => rpc<EquipResult>({ id: nextId(), type: 'equip', uid, ...(slot ? { slot } : {}) }),
+  /** fight slots only */
   unequip: (slot: string) => rpc<void>({ id: nextId(), type: 'unequip', slot }),
+  /** take a piece off wherever it is worn (fight, outfit or tool slot) */
+  unequipGear: (uid: string) => rpc<{ ok: boolean; reason: string }>({ id: nextId(), type: 'unequipGear', uid }),
+  /** fight gear: today's rule (max durability -20%); tools: back to 100% for 100g per 10% x tier factor */
+  repair: (uid: string) => rpc<RepairResult>({ id: nextId(), type: 'repair', uid }),
+  repairAllTools: () => rpc<RepairAllResult>({ id: nextId(), type: 'repairAllTools' }),
+  /** one Uncommon T1 tool from the always-on shelf (derived.extras.store.tools) into the bag */
+  storeBuyTool: (itemId: string) => rpc<StoreResult>({ id: nextId(), type: 'storeBuyTool', itemId }),
   saveLoadout: (name?: string) => rpc<void>({ id: nextId(), type: 'saveLoadout', name, fromEquipped: true }),
   deleteLoadout: (loadoutId: string) => rpc<void>({ id: nextId(), type: 'deleteLoadout', loadoutId }),
   equipLoadout: (loadoutId: string) => rpc<void>({ id: nextId(), type: 'equipLoadout', loadoutId }),

@@ -9,7 +9,8 @@ they lack one), tints, remaps every pixel to DawnBringer 32 and writes
   client/src/art/icons.json  manifest: { cell, cols, rows, items:{id:index}, generic:{kind:index},
                              named:{name:index}, pack:{id:packKey} }  (index -> col = i % cols, row = i // cols)
 
-usage: build.py [--preview out.png] [--check]
+usage: build.py [--preview out.png] [--check] [--inventory] [--map-only]
+  --inventory  list usable Seveneves icons per folder (needs the private pack)
   --check   fail if the mapping misses an engine item or CREDITS.md misses a pack that is used
 """
 import json, os, re, subprocess, sys
@@ -22,6 +23,11 @@ from remap import (DB32, remap_image, tint_image, desaturate_image, normalise_to
 ROOT = Path(__file__).resolve().parents[2]
 PACKS = Path(os.environ.get('ART_PACKS', Path.home() / 'work' / 'packs'))
 SRC = ROOT / 'art' / 'src'
+# Raw Seveneves pack: private, gitignored (licence forbids redistributing the assets on their own). Override with SEVENEVES_SRC.
+SEVENEVES = Path(os.environ.get('SEVENEVES_SRC', ROOT / 'art' / 'private-src' / 'seveneves'))
+SV_EXCLUDE_DIRS_PREFIX = ('weapon_',)       # 01-weapons/weapon_NN.png repeat icon_NN.png: use icon_NN only
+SV_NEAR_EMPTY = {'06/58', '06/59', '06/72'}  # fewer than 30 opaque pixels
+MATF = ROOT / 'art' / 'materials.json'
 MAPF = ROOT / 'art' / 'icon-map.json'
 OUT_PNG = ROOT / 'client' / 'src' / 'art' / 'icons.png'
 OUT_JSON = ROOT / 'client' / 'src' / 'art' / 'icons.json'
@@ -36,6 +42,8 @@ PACK = {
     'ia': ('idylwild-armory', 'idylwild-armory', 'idylwild.itch.io/idylwilds-armory'),
     'is': ('idylwild-arsenal', 'idylwild-arsenal', 'idylwild.itch.io/idylwilds-arsenal'),
     'ic': ('idylwild-arcanum', 'idylwild-arcanum', 'idylwild.itch.io/idylwilds-arcanum'),
+    'sv': ('seveneves', 'seveneves', 'sevenevesai.itch.io/1000-modern-rpg-icon-pack'),
+    'own': ('own', 'own', 'own work'),
     'ix': ('idylwild-alchemical-codex', 'idylwild-alchemical-codex', 'idylwild.itch.io/idylwilds-alchemical-codex'),
 }
 
@@ -43,6 +51,13 @@ PACK = {
 def crop_path(src):
     """src: 'sk:c,r' | 'ky:c,r' | 'nj:Items/Resource/Rock.png' | 'iv:name' ... -> committed crop file (made on demand)."""
     pre, ref = src.split(':', 1)
+    if pre == 'sv':
+        return sv_path(ref)
+    if pre == 'own':
+        f = SRC / 'own' / (ref if ref.endswith('.png') else ref + '.png')
+        if not f.exists():
+            raise SystemExit(f'own icon missing: {f}')
+        return f
     key = PACK[pre][0]
     safe = re.sub(r'[^A-Za-z0-9_.,-]+', '_', ref).replace(',', '_').replace('.png', '')
     f = SRC / key / f'{safe}.png'
@@ -67,11 +82,37 @@ def crop_path(src):
     return f
 
 
+def sv_path(ref):
+    """'sv:06/14' -> art/private-src/seveneves/06-*/icon_14.png (folder number / icon number)."""
+    if ref in SV_NEAR_EMPTY:
+        raise SystemExit(f'sv:{ref} is a near-empty icon, pick another')
+    if not SEVENEVES.is_dir():
+        raise SystemExit(
+            f'Seveneves pack not found at {SEVENEVES}.\n'
+            'The raw pack is private and never committed. Put the unzipped pack there (16 folders 01-weapons .. 16-runes-enchantments)\n'
+            'or set SEVENEVES_SRC. The committed atlas client/src/art/icons.png is still usable; nothing was changed.')
+    folder, num = ref.split('/')
+    d = next(iter(sorted(SEVENEVES.glob(f'{int(folder):02d}-*'))), None)
+    f = d / f'icon_{int(num):02d}.png' if d else None
+    if not f or not f.exists():
+        raise SystemExit(f'sv:{ref} not found under {SEVENEVES}')
+    return f
+
+
+def material_hex(name):
+    fam, _, tier = name.partition('.')
+    return json.loads(MATF.read_text())['families'][fam][tier]
+
+
 def parse_spec(spec, item_tint):
     """'iv:log tint@.8' -> (src, tint_hex|None, strength).  tint = item tint; tint=#hex = explicit; @n = strength."""
     toks = spec.split()
     src, tint, st = toks[0], None, 1.0
     for t in toks[1:]:
+        mm = re.match(r'mat=([a-z]+\.[a-z0-9_]+)(?:@([0-9.]+))?$', t)
+        if mm:  # material tint: mat=metal.iron@.8 (see art/materials.json)
+            tint, st = material_hex(mm.group(1)), float(mm.group(2) or 1.0)
+            continue
         m = re.match(r'tint(?:=(#[0-9a-fA-F]{6}))?(?:@([0-9.]+))?$', t)
         if not m:
             raise SystemExit(f'bad token {t!r} in {spec!r}')
@@ -84,7 +125,7 @@ def parse_spec(spec, item_tint):
 
 def make_icon(spec, item_tint=None, grey=False):
     src, tint, st = parse_spec(spec, item_tint)
-    im = normalise_to_32(Image.open(crop_path(src)), 'auto')
+    im = normalise_to_32(Image.open(crop_path(src)), False if src.split(':')[0] in ('sv', 'own') else 'auto')
     if tint:
         im = tint_image(im, tint, st)
     if grey:
@@ -93,8 +134,15 @@ def make_icon(spec, item_tint=None, grey=False):
 
 
 def engine_items():
-    out = subprocess.run(['node', str(ROOT / 'scripts' / 'art' / 'dump_items.mjs')], capture_output=True, text=True, check=True).stdout
-    return json.loads(out)
+    """Engine item list. The engine imports extensionless .ts files, so bundle the dump script with esbuild first."""
+    import tempfile
+    esb = ROOT / 'node_modules' / '.bin' / 'esbuild'
+    with tempfile.TemporaryDirectory() as td:
+        out = Path(td) / 'dump.mjs'
+        subprocess.run([str(esb), str(ROOT / 'scripts' / 'art' / 'dump_items.mjs'), '--bundle', '--platform=node', '--format=esm',
+                        f'--outfile={out}', '--log-level=error'], check=True)
+        res = subprocess.run(['node', str(out)], capture_output=True, text=True, check=True).stdout
+    return json.loads(res)
 
 
 def to_indexed(atlas):
@@ -118,10 +166,32 @@ def credits_check(packs_used):
     return missing
 
 
+def sv_inventory():
+    """Usable Seveneves icons per folder: no sheets, no weapon_NN repeats, no near-empty (<30 opaque px), no pixel duplicates."""
+    import hashlib
+    sv_path('01/00')  # fails with the clear message if the pack is missing
+    for d in sorted(p for p in SEVENEVES.iterdir() if p.is_dir()):
+        seen, skipped = {}, []
+        for f in sorted(d.glob('icon_*.png')):
+            im = Image.open(f).convert('RGBA')
+            if sum(1 for a in im.getchannel('A').tobytes() if a) < 30:
+                skipped.append(f.name + ' (near-empty)'); continue
+            k = hashlib.md5(im.tobytes()).hexdigest()
+            if k in seen:
+                skipped.append(f'{f.name} (= {seen[k]})'); continue
+            seen[k] = f.name
+        print(f'{d.name}: {len(seen)} usable', skipped or '')
+
+
 def main():
     args = sys.argv[1:]
+    if '--inventory' in args:
+        return sv_inventory()
     mp = json.loads(MAPF.read_text())
-    items = engine_items()
+    if '--map-only' in args:   # review builds before the engine data exists: every mapped id, no engine tints
+        items = [{'id': k, 'name': k, 'tint': None} for k in mp['items']]
+    else:
+        items = engine_items()
     ids = [i['id'] for i in items]
     miss = [i for i in ids if i not in mp['items']]
     extra = [i for i in mp['items'] if i not in ids]

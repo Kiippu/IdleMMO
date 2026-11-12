@@ -6,7 +6,8 @@ import { E, SLOTS, ROLES, arr, num, cfg, rarities, masteryTiers, skillDefs, item
 import { emitGain } from './gains';
 import { addXp } from './skills';
 import { addItem, consume, ownedOfKind } from './inventory';
-import { findGear, makeGear, autoEat } from './gear';
+import { findGear, makeGear, autoEat, workBonus, wearTool } from './gear';
+import { SKILL_GROUP, MASTERY_QUALITY } from './data/gear/model';
 import { invCount } from './v4-helpers';
 import { lockedNow } from './raid-rules';
 import { lootEvent, goldEvent, pushEvent } from './events';
@@ -20,15 +21,13 @@ export function roleStatOf(act, ps) {
   const s = act.skill;
   return s === 'guardian' ? ps.def : s === 'mender' ? ps.heal : ps.atk;
 }
-export let bonusCache = { key: '', map: {} };
-export function skillBonusCached(state, skillId) {
-  const key = SLOTS.map((s) => { const g = findGear(state, state.equipped[s]); return g ? g.uid + (g.dur > 0 ? '+' : '-') : '_'; }).join();
-  if (bonusCache.key !== key) bonusCache = { key, map: {} };
-  return bonusCache.map[skillId] || (bonusCache.map[skillId] = E.skillBonus(state, skillId));
-}
+/** the work bonus for an action's skill (tools + matching outfit set), or null for combat / non-profession skills */
+export function workBonusFor(state, act) { return act && SKILL_GROUP[act.skill] ? workBonus(state, act.skill) : null; }
+const ZERO_WB = { totals: { speed: 0, double: 0, save: 0, quality: 0, find: 0, rarity: 0 }, wear: 0 };
+export const wbOf = (state, act) => workBonusFor(state, act) || ZERO_WB;
 export function actionTimeWith(state, act, ps) {
   if (!act) return Infinity;
-  let t = Math.max(0.5, num(act.sec, 3)) * (1 - skillBonusCached(state, act.skill).speed);
+  let t = Math.max(0.5, num(act.sec, 3));
   if (act.kind === 'combat') {
     const power = num((act.enemy || {}).power, 1);
     t *= clamp(power / Math.max(1, roleStatOf(act, ps)), 0.5, 3);
@@ -37,14 +36,23 @@ export function actionTimeWith(state, act, ps) {
   // time-per-rep function: the action list, the active card and crew jobs must all read it
   // (E.activeInfo already does) so they never disagree.
   t *= Math.max(1, num(cfg().speedFactor, 1));
-  return Math.max(0.25, t * (1 - clamp(num(ps.speed, 0), 0, 50) / 100));
+  // gear overhaul: tool + work outfit speed (soft-capped, %) less the tool wear penalty (3/5/8%)
+  const wb = wbOf(state, act);
+  return Math.max(0.25, t / (1 + (num(wb.totals.speed, 0) - num(wb.wear, 0)) / 100));
 }
 E.actionTime = function (state, actionId) { return actionTimeWith(state, action(actionId), E.playerStats(state)); };
 // Gold per hour from repeating an action and selling its main outputs at Standard-grade value
 // after market tax (bonus drops ignored). Used for the spec switch price rule and economy tests.
-E.incomePerHour = function (state, actionId) {
+// Gear overhaul 2026-11-12: measured with NO tools or work outfit (H, the raid payout cap and the spec price
+// stay gearless); pass opts.withGear to include the player's tools and outfit.
+export function gearless(state, fn) {
+  if (!state) return fn();
+  const t = state.tools, w = state.workOutfit; state.tools = {}; state.workOutfit = {};
+  try { return fn(); } finally { state.tools = t; state.workOutfit = w; }
+}
+E.incomePerHour = function (state, actionId, opts?) {
   const act = action(actionId); if (!act) return 0;
-  const t = E.actionTime(state, actionId); if (!(t > 0) || !isFinite(t)) return 0;
+  const t = opts && opts.withGear ? E.actionTime(state, actionId) : gearless(state, () => E.actionTime(state, actionId)); if (!(t > 0) || !isFinite(t)) return 0;
   const val = Object.keys(act.outputs || {}).reduce((a, id) => a + E.itemValue(id, 1) * num(act.outputs[id], 0), 0) + (Array.isArray(act.gold) ? (act.gold[0] + act.gold[1]) / 2 : num(act.gold, 0));
   const tax = state && state.server ? E.marketTax(state) : num(cfg().marketTax, 0.05);
   return 3600 / t * val * (1 - tax);
@@ -101,22 +109,16 @@ export function normCount(count) {
   return isFinite(n) && n >= 1 ? Math.min(n, 1e6) : null;
 }
 E.start = function (state, actionId, count) {
-  const act = action(actionId); let loadoutId = null;
-  const bound = act && E.boundLoadout(state, act.skill);
-  if (bound && E.skillLevel(state, act.skill) >= num(act.level, 1) && SLOTS.some((s) => bound.slots[s] && bound.slots[s] !== state.equipped[s] && findGear(state, bound.slots[s]))) {
-    E.equipLoadout(state, bound.id); loadoutId = bound.id;
-  }
-  const c = E.canStart(state, actionId); if (!c.ok) return Object.assign(c, { loadoutId });
+  const c = E.canStart(state, actionId); if (!c.ok) return c;
   const n = normCount(count);
   if (state.active && state.active.actionId === actionId && !state.active.jobId) {
     // same action again: keep its progress, take the new count
     if (n) { state.active.left = n; state.active.count = n; state.active.got = 0; } else { delete state.active.left; delete state.active.count; delete state.active.got; }
     clearHold(state.active); // a verb that changes the job clears the hold
-    return { ok: true, reason: '', loadoutId };
+    return { ok: true, reason: '' };
   }
   state.active = n ? { actionId, progress: 0, left: n, count: n, got: 0 } : { actionId, progress: 0 };
-  if (loadoutId) E.log(state, 'info', `Equipped your ${bound.name} loadout for ${act.name}.`);
-  return { ok: true, reason: '', loadoutId };
+  return { ok: true, reason: '' };
 };
 /** main output of an action (first output item), or null */
 export function mainOutput(act) { return Object.keys((act && act.outputs) || {}).find((id) => item(id)) || null; }
@@ -203,7 +205,8 @@ export function procMods(state, act, dry?) {
     mastery: num(m.tier.mult, 1), quality: gradeProcMult(qGrade), focus: 1 + 0.2 * clamp(num(state.focus, 0), 0, 100) / 100,
     catalyst: cat ? cat.m : 1, core: 1
   };
-  mods.total = mods.mastery * mods.quality * mods.focus * mods.catalyst * mods.core;
+  mods.gear = 1 + num(wbOf(state, act).totals.rarity, 0) / 100; // Fortunate (tools + craft outfit), relative
+  mods.total = mods.mastery * mods.quality * mods.focus * mods.catalyst * mods.core * mods.gear;
   return { mods, m, cat, coreId };
 }
 E.procOdds = function (state, actionId) {
@@ -221,7 +224,7 @@ E.procOdds = function (state, actionId) {
 
 export function rollQualityGather(state, act) {
   const lvl = E.skillLevel(state, act.skill); const m = masteryInfo(state, act.id);
-  const base = 35 + 0.6 * (lvl - num(act.level, 1)) + m.bonus + skillBonusCached(state, act.skill).quality;
+  const base = 35 + 0.6 * (lvl - num(act.level, 1)) + m.bonus;
   return clamp(Math.round(clamp(base, 1, 100) + (rand() * 2 - 1) * 15), 1, 100);
 }
 
@@ -229,20 +232,23 @@ export function rollQualityGather(state, act) {
 export function completeOnce(state, act, events) {
   const c = cfg(); const xpMult = num(c.xpMult, 1);
   const stopWith = (reason) => { state.active = null; events.push({ type: 'stopped', reason }); logq(state, 'warn', `Stopped ${act.name}: ${lcFirst(reason)}`); };
+  const wb = wbOf(state, act);
   if (act.kind === 'gather') {
     const items = [];
     Object.keys(act.outputs || {}).forEach((id) => {
       if (!item(id)) return;
-      const g = gradeOf(rollQualityGather(state, act)); const q = Math.max(1, Math.round(num(act.outputs[id], 1))) + (rand() < skillBonusCached(state, act.skill).yield ? 1 : 0);
+      const g = gradeOf(rollQualityGather(state, act)); const q0 = Math.max(1, Math.round(num(act.outputs[id], 1)));
+      const q = q0 * (rand() < num(wb.totals.double, 0) / 100 ? 2 : 1); // Double output
       addItem(state, id, g, q); items.push({ itemId: id, grade: g, qty: q });
     });
     arr(act.bonus).forEach((b) => {
-      if (!b || !item(b.item) || rand() >= num(b.chance, 0)) return;
+      if (!b || !item(b.item) || rand() >= num(b.chance, 0) * (1 + num(wb.totals.find, 0) / 100)) return; // Bonus find
       const g = gradeOf(rollQualityGather(state, act)); const q = qtyRange(b.qty);
       addItem(state, b.item, g, q); items.push({ itemId: b.item, grade: g, qty: q });
     });
     if (!flags.quiet) items.forEach((i) => lootEvent(state, 'gather', i.itemId, i.qty, i.grade));
     emitGain('gather', items);
+    toolWear(state, act, events);
     state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
     const xp = num(act.xp, 0) * xpMult;
     events.push({ type: 'complete', actionId: act.id, kind: act.kind, items, xp });
@@ -256,7 +262,11 @@ export function completeOnce(state, act, events) {
     const gearCraft = isGearCraft(act);
     const pm = gearCraft ? procMods(state, act) : null; // before consuming (quality of what we're about to use)
     const avg = inputQuality(state, act, false);
-    const quality = clamp(Math.round(avg + rand() * 5 + skillBonusCached(state, act.skill).quality), 1, 100); const grade = gradeOf(quality);
+    const quality = act.kind === 'craft' ? craftQuality(state, act, avg, true) : clamp(Math.round(avg + rand() * 5), 1, 100); const grade = gradeOf(quality);
+    // Save input (Thrifty, refining tools, outfits): one unit of one input comes back
+    const ins = Object.keys(act.inputs || {}).filter((id) => item(id) && num(act.inputs[id], 0) > 0);
+    if (ins.length && rand() < num(wb.totals.save, 0) / 100) { const back = ins[Math.floor(rand() * ins.length)]; addItem(state, back, gradeOf(avg), 1); }
+    const dbl = rand() < num(wb.totals.double, 0) / 100; // Double output (stackable outputs only)
     const items = [];
     Object.keys(act.outputs || {}).forEach((id) => {
       const it = item(id); if (!it) return;
@@ -288,11 +298,13 @@ export function completeOnce(state, act, events) {
           if (!flags.quiet) pushEvent(state, 'loot', `Crafted ${article(rn)} ${rn} ${it.name}${forced ? ' (pity guarantee)' : ''}.`, { itemId: id, qty: 1, rarity: g.rarity });
         }
       } else {
-        addItem(state, id, grade, q); items.push({ itemId: id, grade, qty: q });
-        if (!flags.quiet) lootEvent(state, act.kind, id, q, grade);
+        const qq = dbl ? q * 2 : q;
+        addItem(state, id, grade, qq); items.push({ itemId: id, grade, qty: qq });
+        if (!flags.quiet) lootEvent(state, act.kind, id, qq, grade);
       }
     });
     emitGain(act.kind, items);
+    toolWear(state, act, events);
     state.mastery[act.id] = num(state.mastery[act.id], 0) + 1;
     const xp = num(act.xp, 0) * xpMult;
     events.push({ type: 'complete', actionId: act.id, kind: act.kind, items, xp });
@@ -321,7 +333,7 @@ export function completeOnce(state, act, events) {
     state.gold += gold;
     const drops = [];
     arr(act.drops).forEach((d) => {
-      if (!d || !item(d.item) || rand() >= num(d.chance, 0) * (1 + skillBonusCached(state, act.skill).drops)) return;
+      if (!d || !item(d.item) || rand() >= num(d.chance, 0)) return;
       const g = gradeOf(rollQualityGather(state, act)); const q = qtyRange(d.qty);
       addItem(state, d.item, g, q); drops.push({ itemId: d.item, grade: g, qty: q });
     });
@@ -345,4 +357,30 @@ export function drainDurability(state, amount, events) {
     g.dur = Math.max(0, Math.round((g.dur - amount) * 100) / 100);
     if (g.dur <= 0) { events.push({ type: 'broken', uid: g.uid }); logq(state, 'warn', `Your ${E.gearName(g)} broke. Repair it to restore its stats.`); }
   });
+}
+
+/**
+ * Crafted quality (gear spec 2026-11-12): 0.5 x avg input quality + 25 + clamp(level - recipe level, -10, +30)
+ * - 3 x (tier - 1) + mastery points (0/2/4/7/10) + tool/outfit quality points, +-4 at random. roll=false: the mean.
+ */
+export function craftQuality(state, act, avg, roll) {
+  const lvl = E.skillLevel(state, act.skill); const out = item(mainOutput(act)); const tier = Math.max(1, Math.floor(num(out && out.tier, 1)));
+  const m = masteryInfo(state, act.id);
+  const base = 0.5 * num(avg, 50) + 25 + clamp(lvl - num(act.level, 1), -10, 30) - 3 * (tier - 1) + num(MASTERY_QUALITY[m.idx], 0) + num(wbOf(state, act).totals.quality, 0);
+  return clamp(Math.round(base + (roll ? (rand() * 2 - 1) * 4 : 0)), 1, 100);
+}
+E.craftQuality = function (state, actionId) {
+  const act = action(actionId); if (!act || act.kind !== 'craft') return null;
+  const avg = inputQuality(state, act, true); const q = craftQuality(state, act, avg, false);
+  return { expected: q, min: clamp(q - 4, 1, 100), max: clamp(q + 4, 1, 100), grade: gradeOf(q) };
+};
+/** one rep of work wears the skill's tool (seconds of the rep); a drop below 50% logs once */
+export function toolWear(state, act, events?) {
+  if (!act || !SKILL_GROUP[act.skill]) return;
+  const t = E.actionTime(state, act.id);
+  if (wearTool(state, act.skill, isFinite(t) ? t : 0)) {
+    const g = findGear(state, state.tools[act.skill]);
+    logq(state, 'warn', `Your ${E.gearName(g)} is worn (${Math.round(g.cond)}%): −3% speed. Repair it in Stores.`);
+    if (events) events.push({ type: 'toolWorn', uid: g.uid, skill: act.skill });
+  }
 }

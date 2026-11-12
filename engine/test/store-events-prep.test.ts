@@ -76,21 +76,16 @@ describe('raid prep lock', () => {
     expect(E.setRaidPlan(s, { role: 'striker' }).ok).toBe(true);
   });
 
-  it('a gathering loadout bound to a skill auto-equips mid-raid', async () => {
+  it('starting a job never swaps fight gear (bound loadouts are gone; tools are used automatically)', async () => {
     const h = await freshEngine();
     const { E } = h;
     const s = E.newState();
-    s.gear.push({ uid: 'gpick', itemId: 'copper_pickaxe', rarity: 'common', quality: 50, affixes: [], dur: 100, maxDur: 100 });
-    const sv = E.saveLoadout(s, { name: 'Mining', slots: Object.assign({}, s.equipped, { weapon: 'gpick' }) });
-    E.bindLoadout(s, sv.loadout.id, 'mining');
-    E.lockIn(s);
-    const combatWeapon = s.raid.lock.slots.weapon;
-    resolveRaidByClock(h, s);
-    expect(E.raidPrep(s).locked).toBe(true);
+    expect(E.bindLoadout).toBeUndefined();
+    const weapon = s.equipped.weapon;
     const r = E.start(s, 'mine_copper');
-    expect(r.ok).toBe(true); expect(r.loadoutId).toBe(sv.loadout.id);
-    expect(s.equipped.weapon).toBe('gpick');
-    expect(s.raid.lock.slots.weapon).toBe(combatWeapon);
+    expect(r).toEqual({ ok: true, reason: '' });
+    expect(s.equipped.weapon).toBe(weapon);
+    expect(E.derivedExtras(s).activeWork).toMatchObject({ skill: 'mining', set: 'gather', toolUid: s.tools.mining });
   });
 
   it('a player sitting the raid out is not locked', async () => {
@@ -208,7 +203,7 @@ describe('player market parked', () => {
     expect(s.market.listings).toEqual([]);
 
     const m = E.migrate(JSON.parse(JSON.stringify(s)));
-    expect(m.v).toBe(7);
+    expect(m.v).toBe(8);
     expect(m.market.mine).toEqual([]); expect(m.market.listings).toEqual([]);
   });
 });
@@ -286,7 +281,7 @@ describe('market-tax week buff removed', () => {
     raw.server.pendingBuff = { kind: 'tax', value: 0.02, label: 'Market tax 2%', week: raw.week + 1 };
     const logLen = (raw.events || []).length;
     const s = E.migrate(raw);
-    expect(s.v).toBe(7);
+    expect(s.v).toBe(8);
     expect(s.server.weekBuff).toBeNull();
     expect(s.server.pendingBuff).toBeNull();
     expect(s.events.length).toBe(logLen);

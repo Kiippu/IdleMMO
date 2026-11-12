@@ -5,6 +5,12 @@ import { parseCredits, CREDITS } from './credits';
 import { ICONS } from './icons';
 import hero from '../scene/art/hero.json';
 
+// Worn weapon looks (w_<type>): the closest LPC layer per type (spear = rapier, halberd = pickaxe, warhammer = hammer, scepter = mace).
+const WEAPON_PATH: Record<string, string> = {
+  w_greatsword: 'weapon/sword/longsword', w_dagger: 'weapon/sword/dagger', w_pd: 'weapon/sword/dagger', w_spear: 'weapon/sword/rapier',
+  w_axe: 'tools/axe', w_halberd: 'tools/pickaxe', w_warhammer: 'tools/hammer', w_mace: 'weapon/blunt/mace', w_scepter: 'weapon/blunt/mace',
+  w_wand: 'weapon/magic/wand', w_staff: 'weapon/magic/simple', w_bow: 'weapon/ranged/bow/normal',
+};
 describe('credits', () => {
   it('parses a table with extra or missing columns', () => {
     const rows = parseCredits('| Asset | Author | Licence | Link | Share-alike |\n| - | - | - | - | - |\n| Pack A | Ann | CC0 | https://a.example/x | No |\n| Pack B | Bo | CC-BY-SA 4.0 | [b](https://b.example) | Yes |\n');
@@ -14,11 +20,20 @@ describe('credits', () => {
   });
   it('lists every pack used by the atlas, with author, licence and a link', () => {
     for (const key of new Set(Object.values(ICONS.pack))) {
+      if (key === 'own') continue; // our own drawn icons have their own row (checked below)
       const slug = key === 'shikashi' ? 'shikashis-fantasy-icons' : key === 'kyrise' ? 'kyrises-free-16x16' : key === 'ninja' ? 'ninja-adventure' : key.replace('idylwild-', 'idylwilds-');
       const row = CREDITS.find((r) => r.url.includes(slug));
       expect(row, key).toBeDefined();
       expect(row!.author && row!.licence && row!.url).toBeTruthy();
     }
+  });
+  it('credits Seveneves AI with both links, the licence wording and the how-made note', () => {
+    const r = CREDITS.find((x) => x.asset.includes('Seveneves AI'));
+    expect(r).toBeDefined();
+    expect(r!.url).toContain('sevenevesai.itch.io/1000-modern-rpg-icon-pack');
+    expect(r!.licence).toMatch(/no attribution required/);
+    expect(r!.licence).toMatch(/no reselling or redistributing/);
+    expect(r!.note).toMatch(/hand-crafted/);
   });
   it('lists the bundled fonts and the palette', () => {
     const names = CREDITS.map((r) => r.asset).join(' ');
@@ -39,11 +54,11 @@ describe('credits', () => {
       t_cloth: 'torso/clothes/longsleeve/longsleeve2', shirt: 'torso/clothes/longsleeve/longsleeve2', h_kettle: 'hat/helmet/kettle', h_mail: 'hat/helmet/mail', h_cap: 'hat/cloth/leather_cap', h_hood: 'hat/cloth/hood',
       sword: 'weapon/sword/arming', mace: 'weapon/blunt/mace', staff: 'weapon/magic/simple', bow: 'weapon/ranged/bow/normal',
       pickaxe: 'tools/pickaxe', axe: 'tools/axe', hammer: 'tools/hammer', rod: 'tools/fishing_rod',
-      sh_buckler: 'shield/spartan', sh_aegis: 'shield/spartan', sh_kite: 'shield/crusader', sh_tower: 'shield/plus',
+      sh_tome: 'shield/spartan', sh_buckler: 'shield/spartan', sh_aegis: 'shield/spartan', sh_kite: 'shield/crusader', sh_tower: 'shield/plus',
     };
     for (const key of Object.keys((hero as any).layers)) {
-      const base = key.replace(/^c_/, '').replace(/_(fg|bg)$/, '').replace(/_(bronze|iron|steel|gold)$/, '');
-      const p = path[base];
+      const base = key.replace(/^c_/, '').replace(/_(fg|bg)$/, '').replace(/_(bronze|iron|steel|gold|pine|oak|yew)$/, '');
+      const p = path[base] ?? WEAPON_PATH[base];
       expect(p, `no credit path for hero layer ${key}`).toBeDefined();
       expect(text, key).toContain(p);
     }

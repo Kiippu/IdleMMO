@@ -1,4 +1,9 @@
 // Draft descriptions for owner review (2026-11-11)
+// Gear (2026-11-13): one generated line per gear family + material (gearLore below), unless written here.
+import { FAMILIES } from './data/gear/families';
+import { MATERIALS } from './data/gear/materials';
+import { TIERS_LIVE } from './data/gear/model';
+import { OVERRIDES } from './data/gear/families';
 // One short line per item id, shown in the encyclopedia. No numbers that may change.
 
 export const ITEM_LORE: Record<string, string> = {
@@ -101,77 +106,18 @@ export const ITEM_LORE: Record<string, string> = {
   leviathan_core: "A teal core from the Abyssal Leviathan. Smells faintly of the deep.",
 
   // gear: strikers
-  training_sword: "A plain practice blade. Everyone's first, and good enough for the wolves at the town edge.",
-  pine_shortbow: "A light pine bow with a gentle pull. A friendly first weapon for new strikers.",
-  bronze_sword: "A neat bronze blade with a leather-wrapped grip. A solid step up from the training sword.",
-  leather_cap: "A snug leather cap with copper rivets. Helps strikers spot better drops, too.",
-  leather_jerkin: "A plain leather jerkin. Light, quiet, and good for scrambling about.",
-  leather_breeches: "Sturdy breeches stitched with linen thread. Comfortable for a long hunt.",
-  iron_longsword: "A long, honest iron blade. Reliable damage for anyone getting serious.",
-  oak_longbow: "A long oak bow strung with bone-tipped care. Good reach, good pull.",
-  studded_jerkin: "Tanned leather studded with rivets. Takes a knock and keeps going.",
-  studded_leggings: "Tough studded leggings made for hunters. Good for gathering better trophies.",
   frostbite_saber: "A pale steel saber with a chill to it. Strong against fire-wielding foes.",
   venomstring_bow: "A yew bow strung with silk and bloodmoss. Poisonous, and not for the squeamish.",
-  hardened_hood: "A close-fitting hood of boiled leather. Light, tough, and keen on hunting.",
-  hardened_brigandine: "Hardened leather reinforced with steel plates. A striker's armour, built to last.",
-  emberbrand: "A mithril blade glowing like a coal. Burns hot, and loves frost-skinned foes.",
-  dawnstring_greatbow: "A tall greatbow with a golden string. Holy light travels with every arrow.",
-  drakeskin_leggings: "Supple, scaled leggings that hold up to bites and brambles alike.",
-  drakeskin_coat: "A glossy green coat of drakeskin. The finest light armour in town.",
 
   // gear: guardians
-  pine_buckler: "A small round shield of pine. It'll stop a rat, and a few harder things.",
-  copper_helm: "A rivet-studded copper helm. Dented already, and loved all the same.",
-  bronze_mace: "A knobbly bronze mace. Light enough to swing, heavy enough to be noticed.",
-  bronze_chainmail: "Rows of tiny links stitched to leather. Tiring to make, comforting to wear.",
-  oak_kite_shield: "A tall oak shield bound with iron. Good for standing your ground.",
-  iron_greaves: "Iron leg guards. Clank a bit, but shrug off a lot.",
-  iron_warhammer: "A hefty iron hammer with an oak haft. Solid for a guardian who hits back.",
-  steel_greathelm: "A proper steel greathelm with a linen lining. Heavy, but heads stay put.",
-  steel_cuirass: "A gleaming steel breastplate. Takes a lot of metal, and a lot of hits.",
-  yew_tower_shield: "A big yew shield rimmed with steel. A wall you can carry.",
   stoneheart_maul: "A maul set with a golem's heart. Thuds like a falling hillside.",
-  mithril_greaves: "Light mithril leg guards. Quiet, strong and surprisingly comfortable.",
-  drakescale_aegis: "A shield of ironwood and drake scale. Dragon fire gives it a hard time.",
-  mithril_plate: "A breastplate of mithril and drake scale. The finest armour a guardian can wear.",
 
   // gear: menders
-  padded_tunic: "A soft padded tunic. Plain, warm, and kind to the backs of the tired.",
-  pine_staff: "A light pine staff with a spark of essence. A fine first staff for a mender.",
-  linen_hood: "A soft linen hood. Handy for foraging and keeping the sun off.",
-  linen_robe: "A simple linen robe. Plain, breathable and easy to wash.",
-  oak_staff: "A solid oak staff set with a glowing essence. A steady upgrade for healers.",
-  canvas_trousers: "Rugged nettle-canvas trousers. Fine for foraging through brambles.",
-  nettle_robe: "A hardy green robe of nettle canvas. Scratchy at first, devoted after a week.",
-  herbalist_cowl: "A green cowl with a pocket of bloodmoss. Good for a keen forager.",
   dawnward_staff: "A yew staff topped with storm essence and silver. Healing, with a holy glow.",
-  silk_cowl: "A light silk cowl. Soft, and good for steadier crafting hands.",
-  silk_trousers: "Smooth silk trousers reinforced at the knee. Elegant, and tougher than they look.",
-  silk_robe: "A flowing silk robe with a storm-essence trim. A proper mender's robe.",
-  moonweave_hood: "A hood of woven moonlight. Shimmers softly when the healing starts.",
-  moonweave_vestment: "A shimmering vestment of moonweave and drakeskin. The finest healer's garb in town.",
-  moonheart_staff: "An ironwood staff with a black pearl and moon essence. Healing, held in hand.",
 
   // gear: rings
-  copper_band: "A simple copper ring. Cheap and cheerful, and a little lucky for miners.",
-  gemstone_ring: "A bronze ring with a rough gem. Crude, but good for a steady hand.",
-  glowstone_ring: "A ring that glows faintly in the dark. Popular with foragers.",
-  iron_signet: "A heavy iron signet ring. Good for guardians who dig a bit on the side.",
-  pearl_ring: "A silver ring set with a river pearl. Calming to wear, and good luck for anglers.",
-  sapphire_signet: "A silver signet with a deep blue stone. Dignified and sturdy.",
-  ruby_warband: "A gold band with a blazing ruby. Strikers wear it with a grin.",
-  black_pearl_ring: "A mithril ring with a black pearl and a moon-lit shine. A healer's treasure.",
 
   // gear: tools and clothing
-  copper_pickaxe: "A copper-headed pickaxe. Speeds up your digging, and doubles as a poor weapon.",
-  bronze_hatchet: "A bronze hatchet for lumberjacks. Chops cleaner than your granddad's.",
-  iron_pickaxe: "A tough iron pickaxe. Seams give up their ore a little faster.",
-  iron_felling_axe: "A broad iron axe. Trees go down with fewer swings.",
-  foragers_satchel: "A linen satchel with plenty of pockets. Helps you find more along the way.",
-  anglers_hat: "A floppy linen hat full of old hooks. Fish seem to like it.",
-  artisans_apron: "A thick leather apron with many pockets. Neater work, fewer burnt fingers.",
-  trappers_leggings: "Tough leggings hung with bone charms. Helps hunters bring home more.",
 
   // food
   bread: "A warm loaf of wild-grain bread. Plain, filling, and always welcome.",
@@ -199,3 +145,78 @@ export const ITEM_LORE: Record<string, string> = {
   starlight_reagent: "A shimmering powder of moon and pearl. Gives crafts a better shot at greatness.",
   emberglass_lens: "A lens of glowing glass. Focuses a craft's luck like a spark into tinder."
 };
+
+// ---- generated gear lore (gear overhaul): "<what it is>. <material line>"
+const TYPE_LORE: Record<string, string> = {
+  sword: 'A balanced one-handed blade for strikers who like a guard to fall back on.',
+  axe: 'A one-handed war axe: no finesse, all bite.',
+  dagger: 'A quick, light blade that keeps its wielder nimble.',
+  spear: 'A long spear that keeps trouble at arm\'s length and then some.',
+  greatsword: 'A two-handed blade for strikers who never plan to block.',
+  bow: 'A two-handed bow; it carries an element further than any blade.',
+  mace: 'A one-handed mace, as good for holding a line as breaking one.',
+  warhammer: 'A two-handed hammer that guards and bruises in equal measure.',
+  halberd: 'An axe on a pole, for guardians who like to strike first.',
+  wand: 'A slim wand that channels mending without a word.',
+  scepter: 'A weighted scepter: half mending focus, half club.',
+  staff: 'A two-handed staff, the mender\'s oldest friend.',
+  parrying_dagger: 'A short off-hand blade for catching what the main hand misses.',
+  shield: 'A sturdy shield. Guardians hide behind it so others don\'t have to.',
+  tome: 'A thick book of mending rites, held in the off hand.',
+  helm: 'A plate helm. Heavy, hot and very reassuring.',
+  cuirass: 'A plate cuirass that turns blows and adds a lot of staying power.',
+  greaves: 'Plate greaves for standing your ground.',
+  cap: 'A fitted leather cap that keeps a striker light on their feet.',
+  jerkin: 'A leather jerkin, tough where it counts and loose where it moves.',
+  breeches: 'Reinforced leather breeches for long days in the wilds.',
+  hood: 'A soft hood that steadies a mender\'s mind.',
+  robe: 'A mender\'s robe, stitched with patience and a little luck.',
+  trousers: 'Cloth trousers lined for warmth and quiet steps.',
+  signet: 'A signet ring that lends a sharper edge to every strike.',
+  band: 'A plain, solid band. Guardians swear it helps.',
+  loop: 'A slender ring that makes mending come easier.',
+  pendant: 'A pendant worn by strikers for the bite it lends.',
+  torc: 'A heavy torc for a guardian\'s neck and nerve.',
+  locket: 'A locket a mender keeps close; it hums when someone is hurt.',
+  pickaxe: 'A miner\'s pickaxe. A better one gets through the rock faster.',
+  felling_axe: 'A woodcutter\'s felling axe. Keep it sharp and the trees come down quicker.',
+  sickle: 'A curved sickle for herbs and grain. Speeds up every harvest.',
+  fishing_rod: 'A fishing rod with a good bend. Bites come quicker.',
+  bellows: 'Smithy bellows that keep the furnace hot enough to waste less ore.',
+  saw: 'A carpenter\'s saw. Clean cuts mean fewer spoiled logs.',
+  fleshing_scraper: 'A scraper for working hides; less waste on every pelt.',
+  spindle: 'A drop spindle that spins thread evenly and wastes little fibre.',
+  smith_hammer: 'A smith\'s hammer. In steady hands the work comes out finer.',
+  chisel: 'A woodworker\'s chisel for fine, careful cuts.',
+  awl: 'A leatherworker\'s awl for neat, strong stitching.',
+  needle_set: 'A tailor\'s needle set. Finer stitches, finer work.',
+  gem_file: 'A jeweller\'s gem file for crisp facets.',
+  mortar: 'A mortar and pestle. Grind it right and a batch sometimes makes double.',
+  rolling_pin: 'A cook\'s rolling pin. Good dough stretches further than you think.',
+  field_cap: 'A field cap for long days gathering.', field_vest: 'A field vest with pockets for everything you find.',
+  field_gloves: 'Work gloves for picking, digging and hauling.', field_boots: 'Field boots for mud, moss and riverbanks.',
+  work_cap: 'A work cap that keeps sweat out of your eyes at the furnace and the vat.', work_smock: 'A heavy smock for refining work.',
+  work_gloves: 'Thick work gloves for hot bars and rough hides.', work_boots: 'Work boots with good soles for a long shift.',
+  craft_cap: 'A craft cap that keeps hair out of the work.', craft_apron: 'A craftsman\'s apron with a loop for every tool.',
+  craft_gloves: 'Thin craft gloves for steady, careful hands.', craft_boots: 'Comfortable craft boots for long hours at the bench.'
+};
+const MAT_LORE: Record<string, string> = {
+  bronze: 'Bronze: the first proper metal of the guild town.', iron: 'Iron: plain, heavy and dependable.', steel: 'Steel with a silver trim, made to last.',
+  mithril: 'Mithril, light as a rumour.', wyrmforged: 'Wyrmforged from mithril and a boss\'s spoils.',
+  pine: 'Pine: light, cheap and easy to work.', oak: 'Oak: stout and steady.', yew: 'Yew: dark, springy and prized.', ironwood: 'Ironwood, nearly as hard as metal.', heartwood: 'Heartwood, grown around something that should not be there.',
+  leather: 'Rough leather, cut and stitched at home.', studded: 'Tanned leather studded with rivets.', hardened: 'Hardened leather, boiled and shaped.', drakeskin: 'Drakeskin, warm to the touch.', wyrmhide: 'Wyrmhide with ember scales set in.',
+  hessian: 'Hessian: coarse, cheap and honest.', linen: 'Linen and canvas, neat and hard-wearing.', silk: 'Silk, smooth and surprisingly tough.', finesilk: 'Fine silk, light as air.', moonweave: 'Moonweave that glows faintly at night.',
+  copper: 'Copper set with a rough stone.', glowstone: 'Set with a glowstone that never quite goes dark.', sapphire: 'Silver set with a sapphire or a river pearl.', ruby: 'Gold set with a ruby.', rime: 'Set with a rime shard that is always cold.'
+};
+const NAMED_LORE: Record<string, string> = {
+  anglers_hat: 'A wide-brimmed hat that smells faintly of the river. Part of a gathering outfit.',
+  foragers_satchel: 'A satchel with too many pockets, all of them full. Part of a gathering outfit.',
+  artisans_apron: 'A scorched, well-loved apron. Part of a crafting outfit.'
+};
+for (const tier of [1, 2, 3, 4, 5]) for (const f of FAMILIES as any[]) {
+  const m = MATERIALS[f.mat][tier]; if (!m) continue;
+  const gen = `${m.key}_${f.type}`; const id = (OVERRIDES[gen] && OVERRIDES[gen].id) || gen;
+  if (ITEM_LORE[id]) continue;
+  ITEM_LORE[id] = NAMED_LORE[id] || `${TYPE_LORE[f.type] || ''} ${MAT_LORE[m.key] || ''}`.trim();
+}
+void TIERS_LIVE;

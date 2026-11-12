@@ -9,6 +9,7 @@
   type Props = { onClose: () => void; onLog: () => void; onSave: () => void };
   let { onClose, onLog, onSave }: Props = $props();
 
+  const hostOf = (u: string) => u.replace(/^https?:\/\//, '').replace(/\/$/, '');
   let view = $state<'menu' | 'credits' | 'settings'>('menu');
   let dlg = $state<HTMLElement | null>(null);
   $effect(() => { view; dlg?.focus(); });
@@ -80,10 +81,12 @@
         <ul class="crl">
           {#each CREDITS as c (c.asset)}
             <li>
-              {#if c.url}<a class="nm" href={c.url} target="_blank" rel="noopener noreferrer">{c.asset}</a>{:else}<b>{c.asset}</b>{/if}
+              {#if c.url}<a class="nm" href={c.url} target="_blank" rel="noopener noreferrer">{c.asset}</a>{:else}<b class="own">{c.asset}</b>{/if}
               <span>{c.author} · {c.licence}{c.shareAlike ? ' · share-alike' : ''}</span>
               {#if c.note}<small>{c.note}</small>{/if}
-              {#if c.url}<small class="host">{c.url.replace(/^https?:\/\//, '').split('/')[0]}</small>{/if}
+              {#if c.urls.length > 1 && c.urls.length <= 3}
+                <span class="links">{#each c.urls as u (u)}<a href={u} target="_blank" rel="noopener noreferrer">{hostOf(u)}</a>{/each}</span>
+              {:else if c.url}<small class="host">{hostOf(c.url)}</small>{/if}
             </li>
           {/each}
         </ul>
@@ -129,6 +132,8 @@
   .crl { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
   .crl li { display: grid; gap: 2px; padding: 8px 10px; background: var(--sunk); border: 1px solid var(--rule); }
   .crl b { color: var(--ink); font-weight: 700; }
+  .crl .links { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .crl .links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--woad); font-size: var(--t-xs); text-decoration: underline; overflow-wrap: anywhere; }
   .crl small { color: var(--ink-3); font-size: var(--t-xs); }
   .crl a.nm { display: flex; align-items: center; min-height: 44px; color: var(--woad); font-weight: 700; text-decoration: underline; overflow-wrap: anywhere; }
 </style>

@@ -5,7 +5,8 @@
 import { ctx } from './context';
 import { E, SLOTS, LOG_CAP, D, arr, num, cfg, skillDefs, item, action, clamp, zeros5, gradeOf, rarityDef, grades } from './core';
 import { addItem } from './inventory';
-import { makeGear, clampHp } from './gear';
+import { makeGear, clampHp, emptyOutfit, emptyTools, sectionOf, maxDurOf, affixDef } from './gear';
+import { OUTFIT_SETS, OUTFIT_PIECES, TOOL_SKILLS, ROLL_MIN, ROLL_MAX } from './data/gear/model';
 import { isGearCraft } from './actions';
 import { makeCrew, loadCrew } from './crew-assist';
 import { SCHEMA } from './v4-helpers';
@@ -27,7 +28,9 @@ E.newState = function () {
     v: SCHEMA, createdAt: now, lastSeen: now, gold: num(c.startingGold, 150), week: 1, hp: 1, focus: 0,
     spec: { skillId: null, lastSwitchAt: null },
     skills: {}, mastery: {}, pity: {}, inv: {}, gear: [],
-    equipped: { weapon: null, offhand: null, head: null, chest: null, legs: null, ring: null },
+    equipped: { weapon: null, offhand: null, head: null, chest: null, legs: null, ring1: null, ring2: null, amulet: null },
+    // gear overhaul (v8): work outfit sets and one tool per work skill, used automatically
+    workOutfit: emptyOutfit(), tools: emptyTools(),
     active: null, settings: { matPriority: 'best', useCatalyst: false, useCore: false },
     market: { listings: [], mine: [], refreshedAt: now, age: 0 },
     raid: { ladder: 0, bossHp: 0, rules: { eatAt: 0.5, stance: 'balanced', tactic: 'focus' }, last: null, resolvedWeek: 0, satOutWeek: 0 },
@@ -47,9 +50,14 @@ E.newState = function () {
   });
   arr(st.gear).forEach((g) => {
     const id = typeof g === 'string' ? g : g && g.itemId; if (!item(id)) return;
-    const ge = makeGear(s, id, 0, 50);
-    const slot = item(id).slot;
-    if ((typeof g === 'string' || g.equip !== false) && SLOTS.includes(slot) && !s.equipped[slot]) s.equipped[slot] = ge.uid;
+    const ge = makeGear(s, id, 0, typeof g === 'object' && g.quality != null ? g.quality : 50);
+    if (typeof g === 'string' || g.equip !== false) E.equip(s, ge.uid);
+  });
+  // a free Common tool (Standard) of the starter tier in every tool slot
+  const toolTier = num(st.toolTier, 1);
+  TOOL_SKILLS.forEach((skill) => {
+    const id = Object.keys(D().items || {}).find((k) => { const it = item(k); return it && it.section === 'tool' && it.toolSkill === skill && num(it.tier, 1) === toolTier; });
+    if (id) { const g = makeGear(s, id, 0, 50); g.starter = true; s.tools[skill] = g.uid; } // a loaner: can't be sold or salvaged
   });
   s.hp = E.playerStats(s).maxHp;
   const b = E.currentBoss(s); s.raid.bossHp = b ? Math.max(1, num(b.hp, 1)) : 0;
@@ -104,12 +112,17 @@ export function migrate(raw) {
     const v = zeros5().map((_, i) => Math.max(0, Math.floor(num(g[i], 0))));
     if (v.some((x) => x > 0)) out.inv[id] = v;
   });
-  out.gear = arr(raw.gear).filter((g) => g && g.uid && item(g.itemId)).map((g) => ({
-    uid: String(g.uid), itemId: g.itemId, rarity: rarityDef(g.rarity).id, quality: clamp(num(g.quality, 50), 1, 100),
-    affixes: arr(g.affixes).filter((a) => a && a.id), maxDur: Math.max(1, num(g.maxDur, 100)), dur: Math.max(0, num(g.dur, num(g.maxDur, 100)))
-  }));
+  out.gear = arr(raw.gear).filter((g) => g && g.uid && item(g.itemId) && item(g.itemId).kind === 'gear').map((g) => normGearPiece(g));
+  const has = (u, pred) => !!u && out.gear.some((g) => g.uid === u && pred(item(g.itemId)));
+  const used = new Set();
+  const take = (u, pred) => { if (!has(u, pred) || used.has(u)) return null; used.add(u); return u; };
   out.equipped = {};
-  SLOTS.forEach((sl) => { const u = raw.equipped && raw.equipped[sl]; out.equipped[sl] = u && out.gear.some((g) => g.uid === u) ? u : null; });
+  SLOTS.forEach((sl) => { const u = raw.equipped && raw.equipped[sl]; out.equipped[sl] = take(u, (it) => sectionOf(it) === 'fight' && (it.slot === sl || (it.slot === 'ring' && (sl === 'ring1' || sl === 'ring2')))); });
+  out.workOutfit = emptyOutfit();
+  OUTFIT_SETS.forEach((set) => OUTFIT_PIECES.forEach((p) => { const u = raw.workOutfit && raw.workOutfit[set] && raw.workOutfit[set][p];
+    out.workOutfit[set][p] = take(u, (it) => sectionOf(it) === 'outfit' && it.outfitSet === set && it.slot === p); }));
+  out.tools = emptyTools();
+  TOOL_SKILLS.forEach((k) => { const u = raw.tools && raw.tools[k]; out.tools[k] = take(u, (it) => sectionOf(it) === 'tool' && it.toolSkill === k); });
   loadCrew(out, raw.crew);
   out.active = raw.active && action(raw.active.actionId) ? { actionId: raw.active.actionId, progress: Math.max(0, num(raw.active.progress, 0)) } : null;
   if (out.active && raw.active.jobId) {
@@ -129,7 +142,11 @@ export function migrate(raw) {
   ensureEvents(out);
   out.store = normStore(raw.store);
   const rr = raw.raid || {};
-  out.clock = raw.clock; out.server = raw.server; out.economy = raw.economy; out.loadouts = raw.loadouts;
+  out.clock = raw.clock; out.server = raw.server; out.economy = raw.economy;
+  out.loadouts = arr(raw.loadouts).filter((l) => l && l.id).slice(0, 12).map((l) => {
+    const slots = {}; SLOTS.forEach((sl) => { const u = l.slots && l.slots[sl]; slots[sl] = typeof u === 'string' && u ? u : null; });
+    return { id: String(l.id), name: String(l.name || 'Loadout').slice(0, 24), slots, goal: l.goal || null, createdAt: num(l.createdAt, ctx.now()) };
+  });
   out.raid = Object.assign({}, rr, { rules: normRules(out, rr.rules) });
   out.log = arr(raw.log).filter((l) => l && l.text).slice(0, LOG_CAP);
   ensureV5(out);
@@ -140,6 +157,16 @@ export function migrate(raw) {
   // has already unlocked as seen, so only unlocks gained from now on show up
   out.seenUnlocks = raw.seenUnlocks && typeof raw.seenUnlocks === 'object' && !Array.isArray(raw.seenUnlocks)
     ? normSeenUnlocks(raw.seenUnlocks) : seedSeenUnlocks(out);
+  return out;
+}
+/** a v8 gear piece, normalised: fight gear keeps dur/maxDur, tools cond (1..100), outfit pieces neither */
+export function normGearPiece(g) {
+  const it = item(g.itemId); const sec = sectionOf(it); const rarity = rarityDef(g.rarity).id;
+  const affixes = arr(g.affixes).filter((a) => a && affixDef(a.id)).map((a) => ({ id: a.id, roll: a.id === 'primary' ? 1 : clamp(num(a.roll, 1), ROLL_MIN, ROLL_MAX) }));
+  const out: any = { uid: String(g.uid), itemId: g.itemId, rarity, quality: clamp(num(g.quality, 50), 1, 100), affixes };
+  if (sec === 'fight') { out.maxDur = Math.max(1, num(g.maxDur, maxDurOf(rarity, affixes))); out.dur = clamp(num(g.dur, out.maxDur), 0, out.maxDur); }
+  else if (sec === 'tool') out.cond = clamp(num(g.cond, 100), 1, 100);
+  if (g.starter === true) out.starter = true;
   return out;
 }
 export const hasLS = () => ctx.storage != null;
