@@ -51,12 +51,11 @@
   let slots = $derived<any[]>(store?.slots ?? []);
   let resources = $derived(slots.filter((s) => s.kind !== 'gear'));
   let gearSlots = $derived(slots.filter((s) => s.kind === 'gear'));
-  // "New stock" cue: when the hour rolls over while the Shop is open, tag tiles whose item changed.
+  // "New stock" cue: when the hour rolls over while the Shop is open, tag tiles whose item changed. The tags last until the Shop tab unmounts (leaving the tab); item sheets overlay it, so they don't count.
   let prevHour: number | null = null;
   let prevItems: Record<number, string> = {};
   let fresh = $state<Record<number, boolean>>({});
   let flash = $state(false);
-  let freshTimer: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {
     if (!store) return;
     const hour = store.hour as number;
@@ -66,12 +65,9 @@
       const f: Record<number, boolean> = {};
       for (const k of Object.keys(items)) if (prevItems[+k] !== items[+k]) f[+k] = true;
       fresh = f; flash = !reducedMotion();
-      clearTimeout(freshTimer);
-      freshTimer = setTimeout(() => { fresh = {}; flash = false; }, 90_000);
     }
     prevHour = hour; prevItems = items;
   });
-  onMount(() => () => clearTimeout(freshTimer));
   let anyFresh = $derived(Object.keys(fresh).length > 0);
   let sellMult = $derived<number>(store?.sellMult ?? 0.4);
 

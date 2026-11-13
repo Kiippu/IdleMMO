@@ -637,7 +637,8 @@ E.gearDetail = function (state, uid) {
     // gear card (2026-11-13)
     score: gearScore(g), levelReq: num(it.level, 1), maker: makerView(g), lore: loreFor(g.itemId), statRows: statRows(g),
     specials: [], // option C placeholder: always [] this release (item data may carry `specials?: string[]` ids later, unused)
-    sellPrice: Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))),
+    // starter tools (owner 2026-11-14): sell for 0g and salvage to nothing ([] = allowed, yields nothing; null = no salvage info)
+    sellPrice: g.starter ? 0 : Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))),
     salvage: inBag ? salvageYield(g).map((y) => ({ itemId: y.itemId, grade: y.grade, qtyMin: Math.floor(y.exact), qtyMax: Math.ceil(y.exact) })) : null
   };
   // the player's last tool for a skill: can't be sold, salvaged or deposited (sellPrice/salvage still say what it is worth)
@@ -703,7 +704,7 @@ E.gearInfo = function (state) {
     const grade = gradeOf(g.quality); const worn = wornAt(state, g.uid); const inLoadout = inLo.has(g.uid);
     const fresh = sec === 'tool' ? num(g.cond, 100) >= 100 : sec === 'fight' ? num(g.dur, 0) >= num(g.maxDur, 0) && num(g.maxDur, 0) >= maxDurOf(g.rarity, g.affixes) : true;
     const stack = g.rarity === common && !worn && !inLoadout && fresh && !arr(g.affixes).length;
-    const info: any = { section: sec, worn, grade, equipped: !!worn, inLoadout, stackKey: stack ? `${g.itemId}|${grade}` : null };
+    const info: any = { section: sec, worn, grade, equipped: !!worn, inLoadout, stackKey: stack && !g.starter ? `${g.itemId}|${grade}` : null }; // starters (worth 0g) never stack with paid copies
     if (g.starter) info.starter = true;
     const keep = keepReasonOf(state, g); if (keep) info.keepReason = keep;
     if (sec === 'tool') Object.assign(info, { cond: Math.max(1, Math.round(num(g.cond, 100))), wear: wearPct(g.cond), repairGold: toolRepairGold(g), low: num(g.cond, 100) < 50 });
@@ -751,6 +752,7 @@ export function salvageBlock(state, g, allowProtected) {
 }
 /** expected mats from one gear piece: [{ itemId, grade, exact }] */
 export function salvageYield(g) {
+  if (g && g.starter) return []; // starter tools salvage to nothing (owner 2026-11-14)
   const rec = g && recipeFor(g.itemId); if (!rec || !rec.inputs) return [];
   const outQty = Math.max(1, num(rec.outputs[g.itemId], 1)); const pct = salvagePctOf(g.rarity); const grade = gradeOf(g.quality);
   return Object.keys(rec.inputs).filter((id) => item(id)).map((id) => ({ itemId: id, grade, exact: num(rec.inputs[id], 0) / outQty * pct })).filter((x) => x.exact > 0);

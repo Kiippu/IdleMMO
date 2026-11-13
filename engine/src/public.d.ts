@@ -475,7 +475,9 @@ export const Engine: any;
 // Last tool (owner 2026-11-14): the player can't sell (storeSellGear), salvage (single or mass) or deposit
 //   (vaultDepositGear) their LAST tool for a skill (worn + bag; vault doesn't count): "Your last Mining tool: keep it."
 //   Mass salvage skips it (SalvageResult.blocked, best-scoring piece kept). GearDetail.keepReason / GearInfo.keepReason
-//   carry the reason so the UI can grey Sell / Salvage / Deposit. Starter tools are ordinary Common T1 tools for this.
+//   carry the reason so the UI can grey Sell / Salvage / Deposit. Starter tools (g.starter): selling pays 0g (no gold event, a
+//   'loot' line "Handed your starter X to the general store (no pay)."), salvage yields nothing (GearDetail.salvage = []); both
+//   still subject to the last-tool rule.
 // Verbs: E.equip(state, uid, slot?) → EquipResult; E.unequip(state, fightSlot); E.unequipGear(state, uid) → UnequipGearResult;
 //   E.repair(state, uid) → RepairResult (fight or tool); E.repairAllTools(state); E.toolRepairAll(state) → { count, gold };
 //   E.workBonus(state, skillId) → WorkBonus; E.activeWork(state); E.workDeltas(state); E.outfitTotals(state);
@@ -520,7 +522,7 @@ export interface GearPiece {
   affixes: Array<{ id: string; roll: number }>;
   /** fight gear only */ dur?: number; maxDur?: number;
   /** tools only: 1..100 (float; round for display) */ cond?: number;
-  /** a new save's free tools (data only, for the "Starter kit" maker line): sold and salvaged like any Common T1 tool */ starter?: true;
+  /** a new save's free tools ("Starter kit" maker line): can be sold (pays 0g) and salvaged (yields nothing); the last-tool rule still applies */ starter?: true;
 }
 export interface UnequipGearResult { ok: boolean; reason: string; /** set when emptying a tool slot ended the running job: "No tool in the Mining slot." */ stopped?: string }
 export interface EquipResult { ok: boolean; reason: string; section: GearSection | null; at: WornAt | null; replaced: string | null }
@@ -600,9 +602,10 @@ export interface GearDetail {
   statRows: GearStatRow[];
   /** option C placeholder: always [] this release */
   specials: GearSpecial[];
-  /** what the shop pays (its value even when keepReason blocks the sale) */
+  /** what the shop pays: 0 for starter tools (selling one is allowed and just removes it); the real value even when keepReason blocks the sale */
   sellPrice: number;
-  /** salvage yield of this piece (recipe inputs x rarity share; null for vault pieces and previews) */
+  /** salvage yield of this piece (recipe inputs x rarity share); [] for starter tools (salvage allowed, yields nothing);
+   *  null for vault pieces and previews (no salvage) */
   salvage: Array<{ itemId: string; grade: number; qtyMin: number; qtyMax: number }> | null;
   /** set on the player's LAST tool for a skill: it can't be sold, salvaged or deposited. "Your last Mining tool: keep it." */
   keepReason?: string;
@@ -620,7 +623,7 @@ export interface GearInfo {
   cond?: number; wear?: 0 | 3 | 5 | 8;
   /** tools: what repair(uid) charges now (0 at 100%) */
   repairGold?: number;
-  /** a new save's free tool (data only; sold and salvaged like any other tool) */
+  /** a new save's free tool: sells for 0g, salvages to nothing; stackKey is always null (never stacks with paid copies) */
   starter?: true;
   /** = GearDetail.keepReason: the player's last tool for its skill (no sell / salvage / deposit) */
   keepReason?: string;

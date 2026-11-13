@@ -95,7 +95,7 @@ Game design
     100g per 10% condition x tier factor (x1/2/4/7/12). Work outfits don't wear. Fight gear wear/repair/salvage unchanged.
   - Shop sells no tools (every new save gets a free Common T1 set) and only T1 fight gear plus resources; every Shop item
     is Rough grade (owner playtest 2026-11-13). Shop is a grid of tiles (icon, name, price); details and Buy live in the item sheet. Item cards opened as an item (not from a
-    Workshop tile) show no Refine/Craft panel, just a "Made by:" line (owner 2026-11-14). Craft reveal card uses a rarity-scaled loot frame (`ui-art/reveal/LootFrame.svelte`). Other
+    Workshop tile) show no Refine/Craft panel, and stackables show no maker line; gear keeps its engine maker line, e.g. "Made by Kory" (owner 2026-11-14). Shop "New" tags stay until the player leaves the Shop. Craft reveal card uses a rarity-scaled loot frame (`ui-art/reveal/LootFrame.svelte`). Other
     tools: crafting, or raid boss drops (T3+, Rare+).
   - Crafted quality uses crafter level and tier: 0.5 x avg input quality + 25 + clamp(crafter level - recipe level, -10, +30)
     - 3 x (tier - 1) + mastery + tool/outfit quality points +-4. A new save gets a free Common T1 starter tool in all 15 slots.
@@ -104,7 +104,7 @@ Game design
     rarity odds 25%; soft cap is linear to half the cap, then curves. Role power: striker atk x2.16 x element factor,
     guardian def x1.16 + max HP x0.05, mender heal x2.05 (full Common kit = 1.0–1.15x its tier boss). Rarity bonus raises
     every base stat; higher rarity beats one lower at any grade (tested over all items). Crafted tool recipes scaled to
-    pay back in 20–50 h. Starter tools sell and salvage like any Common T1 tool, but the player can never sell, salvage
+    pay back in 20–50 h. Starter tools can be sold (0g) and salvaged (yields nothing) so they can be cleared out, but the player can never sell, salvage
     or deposit their LAST tool for a skill (worn + bag; vault doesn't count; `keepReason`). An empty tool slot blocks starting
     that skill's job (and assisting it), and emptying the slot stops the running job (owner 2026-11-14). One effect formatter (engine fmtEffect): >=1 one decimal,
     <1 two decimals, never +0.0.

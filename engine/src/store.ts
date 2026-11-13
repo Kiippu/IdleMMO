@@ -133,7 +133,7 @@ export function storeSellPrice(itemId, grade) {
   if (!item(itemId)) return 0;
   return storeSellLadder(itemId)[gIdx(grade)];
 }
-export function storeGearSellPrice(g) { return g ? Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))) : 0; }
+export function storeGearSellPrice(g) { return g && !g.starter ? Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))) : 0; }
 E.storeBuyPrice = storeBuyPrice;
 E.storeSellPrice = storeSellPrice;
 
@@ -222,6 +222,10 @@ E.storeSellGear = function (state, uid) {
   if (lockedNow(state) && state.raid.lock && SLOTS.some((s) => state.raid.lock.slots[s] === uid)) return fail('It is locked in for this week\'s raid.');
   const gold = storeGearSellPrice(g); const name = E.gearName(g);
   state.gear = state.gear.filter((x) => x !== g); state.gold = num(state.gold, 0) + gold;
+  if (g.starter) { // a starter tool pays 0g (owner 2026-11-14): no gold line, just a note that it is gone
+    pushEvent(state, 'loot', `Handed your starter ${name} to the general store (no pay).`, { itemId: g.itemId, qty: 1, rarity: g.rarity });
+    return { ok: true, reason: '', qty: 1, gold: 0 };
+  }
   pushEvent(state, 'gold', `Sold your ${name} to the general store for ${fmtGold(gold)}.`, { itemId: g.itemId, qty: 1, gold, rarity: g.rarity });
   return { ok: true, reason: '', qty: 1, gold };
 };

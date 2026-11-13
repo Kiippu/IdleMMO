@@ -1,6 +1,6 @@
 // Tool slots and the last-tool rule (owner 2026-11-14):
 //  - a gather/refine/craft job (or assist) in a tool skill needs a tool in that skill's slot; emptying the slot ends the job
-//  - starter tools sell and salvage like any Common T1 tool
+//  - starter tools can be sold (pays 0g) and salvaged (yields nothing), and never stack with paid copies
 //  - the player's LAST tool for a skill (worn + bag; vault doesn't count) can't be sold, salvaged or deposited
 import { describe, expect, it } from 'vitest';
 import { freshEngine } from './engine-helpers';
@@ -86,34 +86,53 @@ describe('tool slot gates work', () => {
 });
 
 describe('starter tools and the last-tool rule', () => {
-  it('starter tools sell and salvage like any Common T1 tool when a spare exists', async () => {
+  it('starter tools: selling pays 0g and just removes it (no gold event); salvage is allowed and yields nothing', async () => {
     const { E, mod } = await freshEngine();
     const s = E.newState(); const pick = s.tools.mining;
     add(s, 'spare', 'bronze_pickaxe', mod);
     E.equip(s, 'spare');
     const d = E.gearDetail(s, pick);
     expect(d.keepReason).toBeUndefined();
-    expect(d.sellPrice).toBeGreaterThan(0); expect(d.salvage.length).toBeGreaterThan(0);
+    expect(d.sellPrice).toBe(0); expect(d.salvage).toEqual([]); // [] = allowed, yields nothing
     expect(E.gearInfo(s)[pick].keepReason).toBeUndefined();
-    expect(E.storeView(s).gearSellPrices[pick]).toBe(d.sellPrice);
-    const g0 = s.gold;
-    expect(E.storeSellGear(s, pick)).toMatchObject({ ok: true, gold: d.sellPrice });
-    expect(s.gold).toBe(g0 + d.sellPrice);
-    // a second starter (woodcutting) salvages once a spare axe is worn
+    expect(E.storeView(s).gearSellPrices[pick]).toBe(0);
+    expect(E.gearDetail(s, 'spare').sellPrice).toBeGreaterThan(0); // a paid copy keeps its price
+    const g0 = s.gold; const ev0 = E.events(s, 200).length;
+    expect(E.storeSellGear(s, pick)).toEqual({ ok: true, reason: '', qty: 1, gold: 0 });
+    expect(s.gold).toBe(g0);
+    expect(s.gear.some((g: any) => g.uid === pick)).toBe(false);
+    const evs = E.events(s, 200);
+    expect(evs.length).toBe(ev0 + 1);
+    expect(evs.some((e: any) => e.cat === 'gold' && /starter/.test(e.text))).toBe(false);
+    expect(evs.some((e: any) => /^Handed your starter .+ to the general store \(no pay\)\.$/.test(e.text))).toBe(true);
+    // a second starter (woodcutting) salvages to nothing once a spare axe is worn
     const axe = s.tools.woodcutting; const axeItem = s.gear.find((g: any) => g.uid === axe).itemId;
     add(s, 'axe2', axeItem, mod); E.equip(s, 'axe2');
+    expect(E.salvagePreview(s, [axe], {})).toMatchObject({ gearCount: 1, items: [], blocked: [] });
     const sv = E.salvage(s, [axe]);
-    expect(sv).toMatchObject({ ok: true, salvaged: 1, blocked: [] });
+    expect(sv).toMatchObject({ ok: true, salvaged: 1, items: [], blocked: [] });
+    expect(s.gear.some((g: any) => g.uid === axe)).toBe(false);
   });
 
-  it('starter tools stack with identical Common tools in the bag', async () => {
+  it('starter tools never stack with identical paid tools', async () => {
     const { E, mod } = await freshEngine();
     const s = E.newState(); const pick = s.tools.mining; const g = s.gear.find((x: any) => x.uid === pick);
-    add(s, 'spare', g.itemId, mod, g.quality);
+    add(s, 'spare', g.itemId, mod, g.quality); add(s, 'spare2', g.itemId, mod, g.quality);
     E.unequipGear(s, pick);
     const info = E.gearInfo(s);
-    expect(info[pick].stackKey).toBeTruthy();
-    expect(info[pick].stackKey).toBe(info.spare.stackKey);
+    expect(info[pick].stackKey).toBeNull();
+    expect(info.spare.stackKey).toBeTruthy(); expect(info.spare.stackKey).toBe(info.spare2.stackKey);
+  });
+
+  it('mass salvage includes starters (yield nothing) unless one is the last tool for its skill', async () => {
+    const { E, mod } = await freshEngine();
+    const s = E.newState(); const pick = s.tools.mining; const axe = s.tools.woodcutting;
+    E.unequipGear(s, pick); E.unequipGear(s, axe);
+    add(s, 'p2', 'bronze_pickaxe', mod); E.equip(s, 'p2'); // mining has a worn spare; woodcutting has only its starter
+    const r = E.salvage(s, [pick, axe]);
+    expect(r).toMatchObject({ ok: true, salvaged: 1, items: [], blocked: [{ uid: axe, reason: 'Your last Woodcutting tool: keep it.' }] });
+    expect(s.gear.some((g: any) => g.uid === pick)).toBe(false);
+    expect(s.gear.some((g: any) => g.uid === axe)).toBe(true);
   });
 
   it('the last tool for a skill can\'t be sold, salvaged or deposited; the detail says why', async () => {

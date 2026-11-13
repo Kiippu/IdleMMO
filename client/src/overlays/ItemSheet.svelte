@@ -107,7 +107,7 @@
     stats: StatLine[]; effects: EffectLine[];
     final?: { now: Record<string, number>; ifWorn: Record<string, number> };
     affixes: Array<{ id: string; name: string; key: string; value: number; unit: 'pct' | 'pts'; label: string }>;
-    keepReason?: string;
+    keepReason?: string; salvage?: Array<unknown> | null;
     repair: null | { gold: number; can: boolean; reason: string; newMaxDur?: number };
     compare: null | { uid: string; name: string; rarity: string; grade: number; at: WornAt; stats: StatLine[]; effects: EffectLine[];
       diff: Array<{ key: string; label: string; unit: 'pts' | 'pct'; mine: number; theirs: number; delta: number }>;
@@ -204,9 +204,8 @@
   let runningId = $derived<string | null>(snap?.active?.actionId ?? null);
   let runningName = $derived(runningId ? actions.find((a) => a.id === runningId)?.name ?? null : null);
   // An owned piece shows its own card, not the recipe that makes it.
-  // The recipe panel (time, XP, bonuses, inputs, Start) only shows when opened from a Workshop tile; as a plain item it is one 'Made by' line.
+  // The recipe panel (time, XP, bonuses, inputs, Start) only shows when opened from a Workshop tile; as a plain item it shows no recipe at all (gear shows its maker on the card).
   let panelActs = $derived<Action[]>(act && act.kind !== 'combat' ? [act] : []);
-  let madeBy = $derived<Action[]>(!act && !ref?.uid && !offer ? recipes : []);
   const KIND_LABEL: Record<string, string> = { gather: 'Gather', refine: 'Refine', craft: 'Craft', combat: 'Fight' };
   // Rough damage per kill from the engine's own formula: dmg x ~1.2, less 30% of defence.
   const hitDmg = (a: Action) => Math.max(0.2, ((a.enemy as any)?.dmg ?? 1) * 1.2 - (view?.playerStats?.def ?? 0) * 0.3);
@@ -378,7 +377,6 @@
           {@render startCtl(a)}
         </section>
       {/each}
-      {#if madeBy.length}<p class="meta">Made by: {madeBy.map((a) => `${a.name} (${skillName(a.skill)} Lv ${a.level ?? 1})`).join(', ')}</p>{/if}
       {#if gatheredBy.length}<p class="meta">Gathered by: {gatheredBy.map((a) => `${a.name} (${skillName(a.skill)} Lv ${a.level ?? 1})`).join(', ')}</p>{/if}
       {#if dropsFrom.length}<p class="meta">Drops from: {dropsFrom.map((a) => a.name).join(', ')}</p>{/if}
       {#if usedIn.length}<p class="meta">Used in: {usedIn.slice(0, 5).map((a) => a.name).join(', ')}{usedIn.length > 5 ? ` and ${usedIn.length - 5} more` : ''}</p>{/if}
@@ -386,7 +384,7 @@
       {#if shopSlot && !offer}<p class="meta">Shop: {shopSlot.grade != null ? `${gradeName(shopSlot.grade)} · ` : ''}<span class="num brass">{fmtG(shopSlot.price)}</span> each, <span class="num">{shopSlot.qty}</span> left this hour.</p>{:else if shopSlot}<p class="meta"><span class="num">{shopSlot.qty}</span> left this hour.</p>{/if}
       {#if grades && store?.sellPrices?.[ref.itemId]}<p class="meta">Store pays <span class="num">{fmtG(store.sellPrices[ref.itemId][Math.max(0, grades.findIndex((q) => q > 0))] ?? 0)}</span> each.</p>{/if}
 
-      {#if salvageYield && !(it?.kind === 'gear' && detail)}<p class="meta">Salvage yields {salvageYield}.</p>{:else if g && isEq}<p class="meta">In use. Take it off first.</p>{/if}
+      {#if salvageYield && !(it?.kind === 'gear' && detail)}<p class="meta">Salvage yields {salvageYield}.</p>{:else if g && inBag && !isEq && !keep && Array.isArray(detail?.salvage) && detail.salvage.length === 0}<p class="meta">Salvage yields nothing.</p>{:else if g && isEq}<p class="meta">In use. Take it off first.</p>{/if}
       {#if demand > 0}<p class="meta">Open contracts still want <span class="num">{fmtN(demand)}</span>.</p>{/if}
       {/if}
 
