@@ -605,7 +605,7 @@ export const DATA: any;
  *  fmtEffect(1, 'pct') → "+1.0%"; fmtEffect(0.25) → "+0.25%"; fmtEffect(2, 'pts') → "+2.0". */
 /** Health display (owner 2026-11-13): current HP rounded up (never "0" while alive); max HP and totals whole;
  *  small amounts one decimal under 10, whole from 10 up; never "+0". */
-export function fmtHpNow(value: number): string;
+export function fmtHpNow(value: number, max?: number): string;
 export function fmtHpTotal(value: number): string;
 export function fmtHpAmount(value: number): string;
 export function fmtHpDelta(value: number): string;
