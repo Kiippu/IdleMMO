@@ -115,6 +115,7 @@
     <div class="rays a" aria-hidden="true"></div>
     <div class="rays b" aria-hidden="true"></div>
     <div class="halo" aria-hidden="true"></div>
+    {#if rank >= 4}<div class="burst" aria-hidden="true"></div>{/if}
     {#if rank >= 3 && !reduced()}<div class="sparks" aria-hidden="true">{#each Array(rank * 3) as _, i}<i style:--i={i}></i>{/each}</div>{/if}
 
     <div class="stage">
@@ -125,7 +126,7 @@
         <p class="kick">{cap(cur.rarity)} craft{craftReward.total > 1 ? ` · ${step} of ${craftReward.total}` : ''}</p>
         {#if kind}<p class="meta kind">{kind}</p>{/if}
         {#if detail}
-          <GearCard detail={detail as any} />
+          <GearCard detail={detail as any} framed={false} />
           {#if !detail.compare && !detail.equipped}<p class="ch">{emptyAt}</p>
           {:else if detail.compare}<p class="ch">Compared to <span style:color={`var(--r-${detail.compare.rarity})`}>{detail.compare.name}</span>{cmpAt ? ` (${cmpAt})` : ''}</p>{/if}
           {#if finals.length}<ul class="fin">{#each finals as f (f.key)}<li class:up={f.to > f.now} class:dn={f.to < f.now}><span>{effName(f.key)} (skill total)</span><b class="num">{f.to}{f.key === 'quality' ? '' : '%'} <small>(now {f.now}{f.key === 'quality' ? '' : '%'})</small></b></li>{/each}</ul>{/if}
@@ -157,13 +158,17 @@
     animation: spin 28s linear infinite; }
   .rays.b { opacity: .5; transform: scale(1.4) rotate(12deg); animation: spin 42s linear infinite reverse; }
   @keyframes spin { to { rotate: 360deg; } }
+  .burst { position: absolute; left: 50%; top: 50%; width: 170vmax; height: 170vmax; margin: -85vmax 0 0 -85vmax; pointer-events: none; opacity: .9;
+    background: repeating-conic-gradient(from 0deg, color-mix(in srgb, #fff 55%, var(--ink-r)) 0 4deg, transparent 4deg 18deg);
+    -webkit-mask-image: radial-gradient(circle, #000 0, #000 8%, transparent 20%); mask-image: radial-gradient(circle, #000 0, #000 8%, transparent 20%); animation: spin 70s linear infinite; }
+  .still .burst { animation: none; }
   .halo { position: absolute; left: 50%; top: 50%; width: min(86vw, 400px); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--ink-r) 45%, transparent), transparent 65%); pointer-events: none; animation: breathe 2.6s ease-in-out infinite; }
   @keyframes breathe { 50% { opacity: .65; scale: 1.08; } }
   .sparks i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; background: var(--ink-r); pointer-events: none;
     animation: spark 2.4s ease-out infinite; animation-delay: calc(var(--i) * -0.19s); --a: calc(var(--i) * 47deg); }
   @keyframes spark { 0% { transform: rotate(var(--a)) translateY(0) scale(.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(-32vmin) scale(1); opacity: 0; } }
   .still .rays, .still .halo { animation: none; }
-  @media (prefers-reduced-motion: reduce) { .rays, .halo, .sparks i { animation: none; } .cr { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .rays, .halo, .burst, .sparks i { animation: none; } .cr { animation: none; } }
 
   .stage { position: relative; width: 100%; max-width: 340px; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); max-height: 100%; overflow-y: auto; perspective: 900px; }
   .card { display: grid; gap: 6px; justify-items: center; text-align: center; backface-visibility: hidden; align-content: start; min-height: 260px; }
