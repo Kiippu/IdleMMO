@@ -67,7 +67,7 @@ Game design
 - Player market PARKED until the shared world (phase 5). The Shop is an NPC general store: 6 resources + 3 gear
   (Tier 1 fight gear only since the gear overhaul) each game hour, weighted to the player's levels, and also sells Uncommon
   Tier 1 tools (~600g each); sells at 1.5x (resources) / 2x (gear) value, buys
-  anything at 0.4x. Old open listings return to the bag on load. Bond-token-for-gold exchange needs a home by launch.
+  anything at 0.4x. The Shop shows a big "New stock in mm:ss" timer, tags new tiles "New", and sold-out tiles say when they come back (owner 2026-11-14). Old open listings return to the bag on load. Bond-token-for-gold exchange needs a home by launch.
 - Weekly market-tax buff removed (old saves get the repairs buff).
 - Fun-testing tuning (2026-11-11, revisit before launch): XP per level x5 (`config.xpCurveMult`; old saves have stored
   XP rescaled once via `state.xpScale`, levels kept); level 70 ≈ 27 h active per skill. Offline catch-up runs at 1x
@@ -94,7 +94,8 @@ Game design
   - Tools wear but never break: condition 100 to 1, -3% / -5% / -8% action speed below 50 / 25 / 10%. Repair is gold only,
     100g per 10% condition x tier factor (x1/2/4/7/12). Work outfits don't wear. Fight gear wear/repair/salvage unchanged.
   - Shop sells no tools (every new save gets a free Common T1 set) and only T1 fight gear plus resources; every Shop item
-    is Rough grade (owner playtest 2026-11-13). Shop is a grid of tiles (icon, name, price); details and Buy live in the item sheet. Other
+    is Rough grade (owner playtest 2026-11-13). Shop is a grid of tiles (icon, name, price); details and Buy live in the item sheet. Item cards opened as an item (not from a
+    Workshop tile) show no Refine/Craft panel, just a "Made by:" line (owner 2026-11-14). Craft reveal card uses a rarity-scaled loot frame (`ui-art/reveal/LootFrame.svelte`). Other
     tools: crafting, or raid boss drops (T3+, Rare+).
   - Crafted quality uses crafter level and tier: 0.5 x avg input quality + 25 + clamp(crafter level - recipe level, -10, +30)
     - 3 x (tier - 1) + mastery + tool/outfit quality points +-4. A new save gets a free Common T1 starter tool in all 15 slots.
@@ -103,7 +104,9 @@ Game design
     rarity odds 25%; soft cap is linear to half the cap, then curves. Role power: striker atk x2.16 x element factor,
     guardian def x1.16 + max HP x0.05, mender heal x2.05 (full Common kit = 1.0–1.15x its tier boss). Rarity bonus raises
     every base stat; higher rarity beats one lower at any grade (tested over all items). Crafted tool recipes scaled to
-    pay back in 20–50 h; starter tools can't be sold or salvaged. One effect formatter (engine fmtEffect): >=1 one decimal,
+    pay back in 20–50 h. Starter tools sell and salvage like any Common T1 tool, but the player can never sell, salvage
+    or deposit their LAST tool for a skill (worn + bag; vault doesn't count; `keepReason`). An empty tool slot blocks starting
+    that skill's job (and assisting it), and emptying the slot stops the running job (owner 2026-11-14). One effect formatter (engine fmtEffect): >=1 one decimal,
     <1 two decimals, never +0.0.
 - Name stays Guildwright.
 Tech
