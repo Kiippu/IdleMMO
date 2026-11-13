@@ -6,8 +6,10 @@
   import { fmtAgo, fmtG, fmtN } from '../format';
   import { openItem } from './itemRef.svelte';
 
+  import { pushBack } from './backStack.svelte';
   type Props = { onClose: () => void };
   let { onClose }: Props = $props();
+  $effect(() => pushBack(() => onClose()));
 
   const FILTERS = [
     { id: 'all', label: 'All' }, { id: 'loot', label: 'Loot' }, { id: 'gold', label: 'Gold' },

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pushBack } from './backStack.svelte';
   import { fmtHpAmount } from '../engine/format';
   import { untrack } from 'svelte';
   import ItemIcon from '../art/ItemIcon.svelte';
@@ -199,6 +200,7 @@
   function toShop() { closeItem(); ui.goTab = 'Shop'; }
 
   let dlg = $state<HTMLElement | null>(null);
+  $effect(() => { if (ref) return pushBack(() => closeItem()); });
   $effect(() => { if (ref) queueMicrotask(() => dlg?.querySelector<HTMLElement>('button')?.focus()); });
   function onKey(ev: KeyboardEvent) {
     if (!ref) return;

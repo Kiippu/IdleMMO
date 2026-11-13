@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pushBack } from './backStack.svelte';
   import ItemIcon from '../art/ItemIcon.svelte';
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
@@ -36,6 +37,7 @@
       closeQuantity();
     } catch (e: any) { err = String(e?.message ?? e); }
   }
+  $effect(() => { if (a) return pushBack(() => closeQuantity()); });
   function onKey(ev: KeyboardEvent) { if (a && ev.key === 'Escape') { ev.stopPropagation(); closeQuantity(); } }
 </script>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pushBack } from './backStack.svelte';
   import { GRADE_NAMES } from '../engine/grades';
   import ItemIcon from '../art/ItemIcon.svelte';
   // Salvage gear into materials. Preview first; protected pieces (equipped, in a loadout, rare+) are skipped unless opted in.
@@ -44,6 +45,7 @@
     } catch (e) { console.error(e); } finally { busy = false; }
   }
   let dlg = $state<HTMLElement | null>(null);
+  $effect(() => { if (uids) return pushBack(() => closeSalvage()); });
   $effect(() => { if (uids) queueMicrotask(() => dlg?.querySelector<HTMLElement>('input, button')?.focus()); });
   function onKey(ev: KeyboardEvent) {
     if (!uids) return;

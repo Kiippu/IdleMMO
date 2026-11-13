@@ -6,8 +6,10 @@
   import { engineClient } from '../engine/client';
   import { sheet, confirmSheet } from './confirm.svelte';
 
+  import { pushBack } from './backStack.svelte';
   type Props = { onClose: () => void };
   let { onClose }: Props = $props();
+  $effect(() => pushBack(() => onClose()));
 
   let exportedCode = $state<string | null>(null);
   let copied = $state(false);

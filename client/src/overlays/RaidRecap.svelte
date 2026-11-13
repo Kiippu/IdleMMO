@@ -8,8 +8,10 @@
   import { openItem } from './itemRef.svelte';
   import type { RecapView } from '@guildwright/engine';
 
+  import { pushBack } from './backStack.svelte';
   type Props = { recap: any; view?: RecapView | null; onClose: () => void };
   let { recap, view = null, onClose }: Props = $props();
+  $effect(() => pushBack(() => onClose()));
 
   const itemsMap: Record<string, { name?: string }> = (DATA as any).items;
   const itemName = (id: string) => itemsMap[id]?.name ?? id;

@@ -6,11 +6,14 @@
   const toggleCard = (r: CraftRarity) => setSetting('craftCards', { ...settings.craftCards, [r]: !settings.craftCards[r] });
   import { CREDITS } from '../art/credits';
 
+  import { pushBack } from './backStack.svelte';
   type Props = { onClose: () => void; onLog: () => void; onSave: () => void };
   let { onClose, onLog, onSave }: Props = $props();
 
   const hostOf = (u: string) => u.replace(/^https?:\/\//, '').replace(/\/$/, '');
   let view = $state<'menu' | 'credits' | 'settings'>('menu');
+  // Back = Escape: up one level inside Settings/Credits, then close.
+  $effect(() => pushBack(() => { if (view === 'menu') onClose(); else view = 'menu'; }));
   let dlg = $state<HTMLElement | null>(null);
   $effect(() => { view; dlg?.focus(); });
 

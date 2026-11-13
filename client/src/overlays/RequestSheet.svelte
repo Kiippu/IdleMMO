@@ -5,8 +5,10 @@
   import { engineClient } from '../engine/client';
   import { fmtG } from '../format';
 
+  import { pushBack } from './backStack.svelte';
   type Props = { gold: number; onClose: () => void; onDone: (text: string) => void };
   let { gold, onClose, onDone }: Props = $props();
+  $effect(() => pushBack(() => onClose()));
 
   const itemsMap: Record<string, { id?: string; name?: string; kind?: string }> = (DATA as any).items;
   const sellable = Object.values(itemsMap).filter((i) => i.kind !== 'gear' && i.id).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
