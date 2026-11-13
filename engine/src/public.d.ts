@@ -406,9 +406,10 @@ export interface StoreSellAllResult { ok: boolean; reason: string; qty: number; 
 // Disabled reasons: E.disabledReasons(state) → DisabledReasons (also DerivedExtras.disabledReasons). One plain
 //   sentence per control that can't be used now; ids that are usable are absent.
 export interface DisabledReasons {
-  /** Workshop Start, by action id (E.canStart): level, missing inputs, sealed raid pouch, no weapon, too hurt */
+  /** Workshop Start, by action id (E.canStart): level, no tool in the skill's slot ("Needs a tool in the Mining slot."),
+   *  missing inputs, sealed raid pouch, no weapon, too hurt */
   actions: Record<string, string>;
-  /** Assist, by crew job id (E.canAssist) */
+  /** Assist, by crew job id (E.canAssist): level, or no tool in the job skill's slot (assisting uses your own tool) */
   jobs: Record<string, string>;
   /** Hand in, by contract id: filled / closed / cancelled / your own request / out of gold / nothing at the grade */
   contracts: Record<string, string>;
@@ -466,7 +467,18 @@ export const Engine: any;
 // (state.tools[skillId]), the last two used automatically by the action's kind / skill. Attack, defence, healing, role power and
 // boss needs are x10; HEALTH is on its own x2 scale (owner 2026-11-13): max HP, state.hp, gear HP, food/potion heal, enemy damage
 // (HP values can carry one decimal, steps of 0.2; show them with fmtN or statText('hp', v)).
-// Verbs: E.equip(state, uid, slot?) → EquipResult; E.unequip(state, fightSlot); E.unequipGear(state, uid);
+// Tool slots (owner 2026-11-14): a gather/refine/craft job (or assist) in one of the 15 tool skills needs a tool in that
+//   skill's slot. E.canStart / E.canAssist refuse with "Needs a tool in the Mining slot." (+ noTool: true). Emptying the
+//   slot of the running job's skill (E.unequipGear, E.vaultDepositGear of the worn tool) ends the job at once: the verb's
+//   result carries `stopped: "No tool in the Mining slot."` and a { type: 'stopped', reason } event rides the response
+//   (E.takeEvents). E.tick and E.applyOffline end such a job too (summary.stoppedReason).
+// Last tool (owner 2026-11-14): the player can't sell (storeSellGear), salvage (single or mass) or deposit
+//   (vaultDepositGear) their LAST tool for a skill (worn + bag; vault doesn't count): "Your last Mining tool: keep it."
+//   Mass salvage skips it (SalvageResult.blocked, best-scoring piece kept). GearDetail.keepReason / GearInfo.keepReason
+//   carry the reason so the UI can grey Sell / Salvage / Deposit. Starter tools (g.starter): selling pays 0g (no gold event, a
+//   'loot' line "Handed your starter X to the general store (no pay)."), salvage yields nothing (GearDetail.salvage = []); both
+//   still subject to the last-tool rule.
+// Verbs: E.equip(state, uid, slot?) → EquipResult; E.unequip(state, fightSlot); E.unequipGear(state, uid) → UnequipGearResult;
 //   E.repair(state, uid) → RepairResult (fight or tool); E.repairAllTools(state); E.toolRepairAll(state) → { count, gold };
 //   E.workBonus(state, skillId) → WorkBonus; E.activeWork(state); E.workDeltas(state); E.outfitTotals(state);
 //   E.storeBuyTool / E.storeTools: kept, but the shop sells no tools (always refused / []); E.craftQuality(state, actionId).
@@ -510,8 +522,9 @@ export interface GearPiece {
   affixes: Array<{ id: string; roll: number }>;
   /** fight gear only */ dur?: number; maxDur?: number;
   /** tools only: 1..100 (float; round for display) */ cond?: number;
-  /** a new save's free tools: never sold or salvaged */ starter?: true;
+  /** a new save's free tools ("Starter kit" maker line): can be sold (pays 0g) and salvaged (yields nothing); the last-tool rule still applies */ starter?: true;
 }
+export interface UnequipGearResult { ok: boolean; reason: string; /** set when emptying a tool slot ended the running job: "No tool in the Mining slot." */ stopped?: string }
 export interface EquipResult { ok: boolean; reason: string; section: GearSection | null; at: WornAt | null; replaced: string | null }
 export interface RepairResult { ok: boolean; reason: string; gold: number; cond?: number; maxDur?: number }
 export interface RepairAllResult { ok: boolean; reason: string; gold: number; count: number }
@@ -589,10 +602,13 @@ export interface GearDetail {
   statRows: GearStatRow[];
   /** option C placeholder: always [] this release */
   specials: GearSpecial[];
-  /** what the shop pays (0 for starter tools) */
+  /** what the shop pays: 0 for starter tools (selling one is allowed and just removes it); the real value even when keepReason blocks the sale */
   sellPrice: number;
-  /** salvage yield of this piece (recipe inputs x rarity share; null for starter tools, vault pieces and previews) */
+  /** salvage yield of this piece (recipe inputs x rarity share); [] for starter tools (salvage allowed, yields nothing);
+   *  null for vault pieces and previews (no salvage) */
   salvage: Array<{ itemId: string; grade: number; qtyMin: number; qtyMax: number }> | null;
+  /** set on the player's LAST tool for a skill: it can't be sold, salvaged or deposited. "Your last Mining tool: keep it." */
+  keepReason?: string;
 }
 export interface GearInfo {
   section: GearSection; worn: WornAt | null; grade: number;
@@ -607,8 +623,10 @@ export interface GearInfo {
   cond?: number; wear?: 0 | 3 | 5 | 8;
   /** tools: what repair(uid) charges now (0 at 100%) */
   repairGold?: number;
-  /** a new save's free tool: store and salvage refuse it */
+  /** a new save's free tool: sells for 0g, salvages to nothing; stackKey is always null (never stacks with paid copies) */
   starter?: true;
+  /** = GearDetail.keepReason: the player's last tool for its skill (no sell / salvage / deposit) */
+  keepReason?: string;
   /** gear card: E.gearScore (same number as GearDetail.score) */
   score: number;
 }

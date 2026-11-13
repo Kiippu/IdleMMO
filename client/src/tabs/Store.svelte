@@ -10,6 +10,8 @@
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
   import { openItem } from '../overlays/itemRef.svelte';
+  import { reducedMotion } from '../settings.svelte';
+  import { onMount } from 'svelte';
 
   type Props = { onContracts: () => void };
   let { onContracts }: Props = $props();
@@ -22,7 +24,24 @@
 
   let snap = $derived(engine.snapshot);
   let store = $derived<any>(engine.derived?.extras?.store ?? null);
-  let now = $derived<number>(engine.derived?.now ?? Date.now());
+  // Ticks every second. Game clock = last engine clock + wall time since it arrived, so the countdown never stalls between engine updates.
+  let wall = $state(Date.now());
+  onMount(() => { const t = setInterval(() => (wall = Date.now()), 1000); return () => clearInterval(t); });
+  let anchor = $state({ eng: engine.derived?.now ?? 0, wall: Date.now() });
+  let engNow = $derived<number | null>(engine.derived?.now ?? null);
+  $effect(() => { if (engNow != null) anchor = { eng: engNow, wall: Date.now() }; });
+  let now = $derived<number>(engNow == null || !anchor.eng ? wall : anchor.eng + Math.max(0, wall - anchor.wall));
+  let rawLeft = $derived(store ? Math.ceil((store.refreshesAt - now) / 1000) : NaN);
+  // Never show a countdown that can't be right (clock not synced yet): stock rolls hourly, so valid is 0..1h.
+  let clockOk = $derived(Number.isFinite(rawLeft) && rawLeft > -5 && rawLeft <= 3605);
+  let leftSec = $derived(clockOk ? Math.max(0, rawLeft) : 0);
+  const fmtClock = (sec: number) => {
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    const p = (n: number) => String(n).padStart(2, '0');
+    return h ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
+  };
+  const speakLeft = (sec: number) => (sec >= 3600 ? `${Math.floor(sec / 3600)} hours ` : '') + (sec >= 60 ? `${Math.floor((sec % 3600) / 60)} minutes` : `${sec} seconds`);
+  const backIn = (sec: number) => (!clockOk ? 'soon' : sec >= 60 ? `${Math.ceil(sec / 60)}m` : `${Math.max(1, sec)}s`);
   let gold = $derived(Math.floor(snap?.gold ?? 0));
   let inv = $derived<Record<string, number[]>>(snap?.inv ?? {});
   let gear = $derived<any[]>(snap?.gear ?? []);
@@ -35,6 +54,24 @@
   let slots = $derived<any[]>(store?.slots ?? []);
   let resources = $derived(slots.filter((s) => s.kind !== 'gear'));
   let gearSlots = $derived(slots.filter((s) => s.kind === 'gear'));
+  // "New stock" cue: when the hour rolls over while the Shop is open, tag tiles whose item changed. The tags last until the Shop tab unmounts (leaving the tab); item sheets overlay it, so they don't count.
+  let prevHour: number | null = null;
+  let prevItems: Record<number, string> = {};
+  let fresh = $state<Record<number, boolean>>({});
+  let flash = $state(false);
+  $effect(() => {
+    if (!store) return;
+    const hour = store.hour as number;
+    const items: Record<number, string> = {};
+    for (const s of store.slots as any[]) items[s.slot] = s.itemId;
+    if (prevHour != null && hour !== prevHour) {
+      const f: Record<number, boolean> = {};
+      for (const k of Object.keys(items)) if (prevItems[+k] !== items[+k]) f[+k] = true;
+      fresh = f; flash = !reducedMotion();
+    }
+    prevHour = hour; prevItems = items;
+  });
+  let anyFresh = $derived(Object.keys(fresh).length > 0);
   let sellMult = $derived<number>(store?.sellMult ?? 0.4);
 
   // One entry per item; each holds its grades so the list stays short.
@@ -112,7 +149,12 @@
 {#if !store}
   <p class="muted">The shutters are down. Check back shortly.</p>
 {:else}
-  <p class="fresh"><span>Fresh stock in <span class="num">{fmtDuration((store.refreshesAt - now) / 1000)}</span></span> <span class="have">You have <span class="num brass">{fmtG(gold)}</span></span></p>
+  <div class="restock card" role="timer" aria-label={clockOk ? `New stock in ${speakLeft(leftSec)}` : 'New stock timer'}>
+    <svg class="clk" viewBox="0 0 16 16" width="22" height="22" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.2V8l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg>
+    <span class="rtxt"><span class="rl">New stock in</span><span class="rt num">{clockOk ? fmtClock(leftSec) : '--:--'}</span></span>
+    <span class="have">You have <span class="num brass">{fmtG(gold)}</span></span>
+  </div>
+  {#if anyFresh}<p class="newcue" role="status">New stock has arrived. Look for the tags.</p>{/if}
 
   <div class="seg" role="group" aria-label="Shop mode">
     <button type="button" class="btn" aria-pressed={view === 'buy'} onclick={() => (view = 'buy')}>Buy</button>
@@ -121,26 +163,27 @@
   <p class="fb" class:bad={msgBad} role="status" aria-live="polite">{msg}</p>
 
   {#if view === 'buy'}
-  {#snippet tileBtn(itemId: string, name: string, rarity: string, price: number, out: boolean)}
+  {#snippet tileBtn(itemId: string, name: string, rarity: string, price: number, out: boolean, isNew = false)}
     <li>
-      <button type="button" class="tile card" class:out onclick={() => openItem({ itemId })} aria-label="{name}, {out ? 'sold out' : fmtG(price)}">
+      <button type="button" class="tile card" class:out class:isnew={isNew} class:flash={isNew && flash} onclick={() => openItem({ itemId })} aria-label="{name}, {out ? `sold out, back in ${backIn(leftSec)}` : fmtG(price)}{isNew ? ', new' : ''}">
+        {#if isNew && !out}<span class="newtag">New</span>{/if}
         <span class="sq" style:color={`var(--r-${rarity})`} style:border-color={`var(--r-${rarity})`} aria-hidden="true"><ItemIcon id={itemId} {rarity} /></span>
         <span class="nm">{name}</span>
-        <span class="price num">{out ? 'Sold out' : fmtG(price)}</span>
+        {#if out}<span class="soldout"><span>Sold out</span><span class="back num">{clockOk ? 'Back in ' : 'Back '}{backIn(leftSec)}</span></span>{:else}<span class="price num">{fmtG(price)}</span>{/if}
       </button>
     </li>
   {/snippet}
   <section class="group">
     <h3>Resources <span class="sub">rotating stock</span></h3>
     <ul class="tiles">
-      {#each resources as s (s.slot)}{@render tileBtn(s.itemId, s.name, s.rarity, s.price, s.qty < 1)}{/each}
+      {#each resources as s (s.slot)}{@render tileBtn(s.itemId, s.name, s.rarity, s.price, s.qty < 1, !!fresh[s.slot])}{/each}
     </ul>
   </section>
 
   <section class="group">
     <h3>Gear <span class="sub">rotating stock</span></h3>
     <ul class="tiles">
-      {#each gearSlots as s (s.slot)}{@render tileBtn(s.itemId, s.name, s.rarity, s.price, s.qty < 1)}{/each}
+      {#each gearSlots as s (s.slot)}{@render tileBtn(s.itemId, s.name, s.rarity, s.price, s.qty < 1, !!fresh[s.slot])}{/each}
     </ul>
   </section>
 
@@ -193,7 +236,20 @@
 
 <style>
   .title { margin: 0 0 4px; font: 600 var(--t-xl)/1.2 var(--f-display); }
-  .fresh { margin: 0 0 16px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--ink-2); font-weight: 700; font-size: var(--t-sm); }
+  .restock.card { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--woad); }
+  .clk { color: var(--woad); flex: none; }
+  .rtxt { display: grid; gap: 2px; }
+  .rl { font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+  .rt { font: 700 var(--t-xl)/1 var(--f-num); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .restock .have { margin-left: auto; font-size: var(--t-sm); }
+  .newcue { margin: 0 0 10px; color: var(--woad); font-weight: 700; font-size: var(--t-sm); }
+  .tile.card { position: relative; }
+  .newtag { position: absolute; top: -1px; right: -1px; padding: 2px 5px; background: var(--woad); color: #fff; font: 400 10px/1 var(--f-label); letter-spacing: .04em; text-transform: uppercase; }
+  .tile.isnew { border-color: var(--woad); }
+  .tile.flash { animation: newflash 1.6s ease-out 2; }
+  @keyframes newflash { 0%, 100% { background-color: var(--paper); } 30% { background-color: var(--woad-soft); } }
+  .soldout { display: grid; gap: 1px; justify-items: center; color: var(--ink-2); font: 700 var(--t-xs)/1.1 var(--f-body); }
+  .back { color: var(--ink-3); font-weight: 400; font-size: 11px; }
   .have { color: var(--ink-3); font-weight: 400; }
   .brass { color: var(--brass); font-weight: 700; }
   .group + .group { margin-top: 16px; }
@@ -210,7 +266,8 @@
   .tiles > li { min-width: 0; display: flex; }
   .tile.card { width: 100%; min-height: 44px; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; gap: 3px; text-align: center; padding: 4px; color: var(--ink); background-color: var(--paper); }
   .tile.card:hover:not(.out) { background-color: var(--woad-soft); }
-  .tile.out { opacity: .5; }
+  .tile.out { opacity: .7; }
+  .tile.out .sq { opacity: .5; }
   .sq { width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid; background: var(--sunk); }
   .nm { width: 100%; font: 700 var(--t-xs)/1.2 var(--f-body); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; min-height: 2.4em; }
   .price { color: var(--brass); font-weight: 700; font-size: var(--t-md); line-height: 1; }

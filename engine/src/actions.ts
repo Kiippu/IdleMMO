@@ -6,7 +6,7 @@ import { E, SLOTS, ROLES, arr, num, cfg, rarities, masteryTiers, skillDefs, item
 import { emitGain } from './gains';
 import { addXp } from './skills';
 import { addItem, consume, ownedOfKind } from './inventory';
-import { findGear, makeGear, autoEat, workBonus, wearTool } from './gear';
+import { findGear, makeGear, autoEat, workBonus, wearTool, noToolReason } from './gear';
 import { SKILL_GROUP, MASTERY_QUALITY, HP_DIV } from './data/gear/model';
 import { invCount } from './v4-helpers';
 import { lockedNow } from './raid-rules';
@@ -80,6 +80,7 @@ E.canStart = function (state, actionId) {
     const def = skillDefs().find((d) => d.id === act.skill);
     return { ok: false, reason: `Requires ${def ? def.name : act.skill} level ${act.level}.` };
   }
+  const nt = noToolReason(state, act.skill); if (nt) return { ok: false, reason: nt, noTool: true }; // owner 2026-11-14
   if ((act.kind === 'refine' || act.kind === 'craft') && E.maxRepeats(state, actionId) < 1) return { ok: false, reason: missingReason(state, act) };
   const pb = pouchBlock(state, act); if (pb) return { ok: false, reason: pb, pouchBlocked: true };
   if (act.kind === 'combat') {

@@ -11,6 +11,7 @@
   import { craftCardOn } from '../settings-core';
   import { play } from '../sound';
   import GearCard from './GearCard.svelte';
+  import LootFrame from '../ui-art/reveal/LootFrame.svelte';
   import { DATA } from '@guildwright/engine';
   import { gradeName } from '../engine/grades';
   import { craftReward, enqueueRewards, nextReward, skipRewards } from './rewardQueue.svelte';
@@ -114,16 +115,18 @@
     <div class="rays a" aria-hidden="true"></div>
     <div class="rays b" aria-hidden="true"></div>
     <div class="halo" aria-hidden="true"></div>
+    {#if rank >= 4}<div class="burst" aria-hidden="true"></div>{/if}
     {#if rank >= 3 && !reduced()}<div class="sparks" aria-hidden="true">{#each Array(rank * 3) as _, i}<i style:--i={i}></i>{/each}</div>{/if}
 
     <div class="stage">
       <div class="flipper" class:up={reduced() || !!loadedFor} class:anim={!reduced()}>
-      {#if !reduced()}<div class="back" aria-hidden="true"><svg viewBox="0 0 32 32" width="64" height="64" shape-rendering="crispEdges"><path d="M16 3 L19 13 L29 16 L19 19 L16 29 L13 19 L3 16 L13 13 Z" fill="currentColor"/><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>{/if}
+      {#if !reduced()}<div class="back" aria-hidden="true"><LootFrame {rank} back still={false}><svg viewBox="0 0 32 32" width="64" height="64" shape-rendering="crispEdges"><path d="M16 3 L19 13 L29 16 L19 19 L16 29 L13 19 L3 16 L13 13 Z" fill="currentColor"/><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="1"/></svg></LootFrame></div>{/if}
+      <LootFrame {rank} still={reduced()}>
       <div class="card">
         <p class="kick">{cap(cur.rarity)} craft{craftReward.total > 1 ? ` · ${step} of ${craftReward.total}` : ''}</p>
         {#if kind}<p class="meta kind">{kind}</p>{/if}
         {#if detail}
-          <GearCard detail={detail as any} />
+          <GearCard detail={detail as any} framed={false} />
           {#if !detail.compare && !detail.equipped}<p class="ch">{emptyAt}</p>
           {:else if detail.compare}<p class="ch">Compared to <span style:color={`var(--r-${detail.compare.rarity})`}>{detail.compare.name}</span>{cmpAt ? ` (${cmpAt})` : ''}</p>{/if}
           {#if finals.length}<ul class="fin">{#each finals as f (f.key)}<li class:up={f.to > f.now} class:dn={f.to < f.now}><span>{effName(f.key)} (skill total)</span><b class="num">{f.to}{f.key === 'quality' ? '' : '%'} <small>(now {f.now}{f.key === 'quality' ? '' : '%'})</small></b></li>{/each}</ul>{/if}
@@ -140,6 +143,7 @@
           <button type="button" class="btn" onclick={nextReward}>Nice</button>
         </div>
       </div>
+      </LootFrame>
       </div>
     </div>
   </div>
@@ -154,22 +158,25 @@
     animation: spin 28s linear infinite; }
   .rays.b { opacity: .5; transform: scale(1.4) rotate(12deg); animation: spin 42s linear infinite reverse; }
   @keyframes spin { to { rotate: 360deg; } }
+  .burst { position: absolute; left: 50%; top: 50%; width: 170vmax; height: 170vmax; margin: -85vmax 0 0 -85vmax; pointer-events: none; opacity: .9;
+    background: repeating-conic-gradient(from 0deg, color-mix(in srgb, #fff 55%, var(--ink-r)) 0 4deg, transparent 4deg 18deg);
+    -webkit-mask-image: radial-gradient(circle, #000 0, #000 8%, transparent 20%); mask-image: radial-gradient(circle, #000 0, #000 8%, transparent 20%); animation: spin 70s linear infinite; }
+  .still .burst { animation: none; }
   .halo { position: absolute; left: 50%; top: 50%; width: min(86vw, 400px); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--ink-r) 45%, transparent), transparent 65%); pointer-events: none; animation: breathe 2.6s ease-in-out infinite; }
   @keyframes breathe { 50% { opacity: .65; scale: 1.08; } }
   .sparks i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; background: var(--ink-r); pointer-events: none;
     animation: spark 2.4s ease-out infinite; animation-delay: calc(var(--i) * -0.19s); --a: calc(var(--i) * 47deg); }
   @keyframes spark { 0% { transform: rotate(var(--a)) translateY(0) scale(.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(-32vmin) scale(1); opacity: 0; } }
   .still .rays, .still .halo { animation: none; }
-  @media (prefers-reduced-motion: reduce) { .rays, .halo, .sparks i { animation: none; } .cr { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .rays, .halo, .burst, .sparks i { animation: none; } .cr { animation: none; } }
 
   .stage { position: relative; width: 100%; max-width: 340px; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); max-height: 100%; overflow-y: auto; perspective: 900px; }
-  .card { display: grid; gap: 6px; justify-items: center; text-align: center; backface-visibility: hidden; align-content: start; min-height: 280px; }
+  .card { display: grid; gap: 6px; justify-items: center; text-align: center; backface-visibility: hidden; align-content: start; min-height: 260px; }
   .flipper { position: relative; transform-style: preserve-3d; transform: rotateY(180deg); }
   .flipper.up { transform: none; }
   .flipper.anim.up { animation: flip 600ms ease-out; }
   @keyframes flip { from { transform: rotateY(180deg) scale(.94); } 80% { transform: rotateY(0) scale(1.05); } to { transform: rotateY(0) scale(1); } }
-  .back { position: absolute; inset: 0; display: grid; place-items: center; transform: rotateY(180deg); backface-visibility: hidden; color: var(--paper); border-radius: var(--rad-lg);
-    background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--ink-r) 82%, #000) 0 6px, var(--ink-r) 6px 12px); border: 3px solid color-mix(in srgb, var(--ink-r) 60%, #fff); box-shadow: 0 0 var(--glow) color-mix(in srgb, var(--ink-r) 60%, transparent); }
+  .back { position: absolute; inset: 0; transform: rotateY(180deg); backface-visibility: hidden; }
   .kick { margin: 0; font: 700 var(--t-xs)/1 var(--f-label, var(--f-body)); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-r); }
   .meta { margin: 0; color: var(--ink-2); font-size: var(--t-sm); }
   ul.fin { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 4px; }

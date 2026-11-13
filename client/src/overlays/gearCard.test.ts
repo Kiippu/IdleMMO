@@ -26,7 +26,7 @@ describe('gear card helpers', () => {
     expect(arrowText(103)).toBe('▲ 103'); expect(arrowText(-0.5)).toBe('▼ 0.5'); expect(arrowText(0)).toBe('=');
     expect(makerText({ kind: 'crafted', name: 'Ada' })).toBe('Made by Ada'); expect(makerText({ kind: 'raid' })).toBe('Found in a raid');
     expect(makerText({ kind: 'crafted', text: 'Made by You' })).toBe('Made by You'); expect(makerText({ kind: 'unknown', text: null })).toBeNull();
-    expect(footerText({ ...base, sellPrice: 0 }).note).toMatch(/Starter kit/); expect(footerText({ ...base, sellPrice: 40, salvage: [] })).toEqual({ gold: 40, salvage: null, note: null });
+    expect(footerText({ ...base, sellPrice: 40, salvage: [] })).toEqual({ gold: 40, salvage: null, note: null });
     expect(footerText({ ...base, sellPrice: 40, salvage: [{ itemId: 'bronze_bar', grade: 1, qtyMin: 2, qtyMax: 4 }] }, () => 'Bronze bar').salvage).toBe('Salvage: 2–4 bronze bars');
     expect(makerText({ kind: 'unknown' })).toBeNull(); expect(makerText(undefined)).toBeNull();
     expect(isGilt('rare')).toBe(false); expect(isGilt('epic')).toBe(true);

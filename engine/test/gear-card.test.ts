@@ -47,7 +47,9 @@ describe('gear card', () => {
     expect(sw.salvage.length).toBeGreaterThan(0);
     const pick = E.gearDetail(s, s.tools.mining);
     expect(pick.statRows).toEqual([{ key: 'speed', label: 'Speed', icon: 'fx_speed', value: 1, valueText: '+1.0%', unit: 'pct' }]);
-    expect(pick.sellPrice).toBe(0); expect(pick.salvage).toBeNull(); // starter tool
+    // starter tools sell for 0g and salvage to nothing (owner 2026-11-14); it is the only mining tool, so it is kept
+    expect(pick.sellPrice).toBe(0); expect(pick.salvage).toEqual([]);
+    expect(pick.keepReason).toBe('Your last Mining tool: keep it.');
     // element and ward rows
     s.gear.push({ uid: 'fb', itemId: 'frostbite_saber', rarity: 'rare', quality: 50, affixes: [{ id: 'primary', roll: 1 }, { id: 'warded_fire', roll: 1 }], dur: 160, maxDur: 160 });
     s.gear.push({ uid: 'fb2', itemId: 'frostbite_saber', rarity: 'rare', quality: 50, affixes: [{ id: 'primary', roll: 1 }], dur: 160, maxDur: 160 });

@@ -50,14 +50,9 @@ describe('equip routing', () => {
     add(s, 'p2', 'bronze_pickaxe', mod);
     const r = E.salvage(s, ['p2']);
     expect(r.ok).toBe(true); expect(r.salvaged).toBe(1);
-    // the free starter tools are loaners: never sold or salvaged, even once taken off
-    E.unequipGear(s, pick);
-    expect(E.storeSellGear(s, pick).reason).toBe("A starter tool: it can't be sold or salvaged.");
-    expect(E.salvage(s, [pick], { allowProtected: true }).blocked[0].reason).toBe("A starter tool: it can't be sold or salvaged.");
-    expect(E.storeView(s).gearSellPrices[pick]).toBe(0);
-    expect(E.gearInfo(s)[pick]).toMatchObject({ starter: true, stackKey: null });
-    E.equip(s, pick);
-    E.vaultDepositGear(s, pick);
+    // the vault takes a worn tool off (a spare pickaxe stays, so it is not the last mining tool)
+    add(s, 'p3', 'bronze_pickaxe', mod);
+    expect(E.vaultDepositGear(s, pick)).toMatchObject({ ok: true });
     expect(s.tools.mining).toBeNull();
   });
 });

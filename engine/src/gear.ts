@@ -3,11 +3,11 @@
 // effects lives here; constants in data/gear/model.ts, item families in data/gear/families.ts.
 // Save shape per piece: { uid, itemId, rarity, quality, affixes: [{ id, roll }], dur/maxDur (fight) | cond (tools) }.
 /* eslint-disable */
-import { E, SLOTS, arr, num, rarities, grades, elements, item, allActions, rand, clamp, shuffle, article, itemName, nextId, gradeOf, gradeMult, rarityDef, rarityIdx, fmtGold, qtyName, lcFirst } from './core';
+import { E, SLOTS, arr, num, rarities, grades, elements, item, allActions, action, skillDefs, logq, rand, clamp, shuffle, article, itemName, nextId, gradeOf, gradeMult, rarityDef, rarityIdx, fmtGold, qtyName, lcFirst } from './core';
 import { addItem, consume, lowestGrade, markSeen } from './inventory';
 import { ECON } from './data';
 import { pushEvent } from './events';
-import { emitGain } from './gains';
+import { emitGain, emitEvent } from './gains';
 import { statsFor, powersOf } from './stats';
 import {
   TIER_BUDGET, GEAR_GRADE_MULT, PRIMARY_STEP, SECONDARY_SHARE, HP_PER_POINT, ROLL_MIN, ROLL_MAX, ENDURING_PCT, DURABILITY,
@@ -39,6 +39,57 @@ export function wornAt(state, uid) {
   return null;
 }
 export function isEquipped(state, uid) { return !!wornAt(state, uid); }
+
+// ---------------------------------------------------------------- tool slots (owner 2026-11-14)
+// Work in a tool skill needs a tool in that skill's slot: starting (or assisting) without one is refused, and
+// emptying the slot ends the running job at once (slot stays empty, no auto-resume). The player can't sell,
+// salvage or deposit their LAST tool for a skill (worn + bag; the crew vault does not count).
+export const skillLabel = (id) => { const d = skillDefs().find((x) => x.id === id); return d ? d.name : String(id); };
+/** the skill a tool piece serves, or null for anything else */
+export function toolSkillOf(g) { const it = g && item(g.itemId); return it && sectionOf(it) === 'tool' ? it.toolSkill || null : null; }
+/** '' when the skill needs no tool or has one in its slot; else "Needs a tool in the Mining slot." */
+export function noToolReason(state, skill) {
+  if (!SKILL_GROUP[skill]) return '';
+  return findGear(state, state && state.tools && state.tools[skill]) ? '' : `Needs a tool in the ${skillLabel(skill)} slot.`;
+}
+/** tools the player owns for a skill (worn + bag) */
+export function toolsOwned(state, skill) { return arr(state && state.gear).filter((g) => toolSkillOf(g) === skill).length; }
+export const lastToolReason = (skill) => `Your last ${skillLabel(skill)} tool: keep it.`;
+/** '' or the reason this one piece can't leave the player (it is their last tool for its skill) */
+export function keepReasonOf(state, g) {
+  const k = toolSkillOf(g); if (!k || !findGear(state, g.uid)) return '';
+  return toolsOwned(state, k) <= 1 ? lastToolReason(k) : '';
+}
+/**
+ * Pieces about to leave together (mass salvage): uid → keep reason for the ones that must stay so every skill keeps
+ * at least one tool. Per skill, when the set would take every tool the player owns, the best one (score, then grade)
+ * stays.
+ */
+export function keepAmong(state, pieces) {
+  const out = new Map(); const by = {};
+  arr(pieces).forEach((g) => { const k = toolSkillOf(g); if (k) (by[k] = by[k] || []).push(g); });
+  Object.keys(by).forEach((k) => {
+    if (toolsOwned(state, k) - by[k].length >= 1) return;
+    const keep = by[k].slice().sort((a, b) => gearScore(b) - gearScore(a) || num(b.quality, 0) - num(a.quality, 0))[0];
+    out.set(keep.uid, lastToolReason(k));
+  });
+  return out;
+}
+/**
+ * Ends the running job (solo or assist) when its skill's tool slot is empty. events given (tick, catch-up): the
+ * 'stopped' event goes there; otherwise it is queued for the verb's response (E.takeEvents). Returns the reason or ''.
+ */
+export function stopIfNoTool(state, events?) {
+  const a = state && state.active; if (!a) return '';
+  const act = action(a.actionId); if (!act || !SKILL_GROUP[act.skill]) return '';
+  if (findGear(state, state.tools && state.tools[act.skill])) return '';
+  const reason = `No tool in the ${skillLabel(act.skill)} slot.`;
+  state.active = null;
+  const ev: any = { type: 'stopped', reason, actionId: act.id }; if (a.jobId) ev.jobId = a.jobId;
+  if (events) events.push(ev); else emitEvent(ev);
+  logq(state, 'warn', `${reason} ${act.name} stopped.`);
+  return reason;
+}
 export const emptyElements = () => { const o = {}; elements().forEach((e) => { o[e] = 0; }); return o; };
 const ELEMENT_LABEL = { fire: 'Fire', frost: 'Frost', venom: 'Poison', holy: 'Holy' };
 export const elementLabel = (e) => ELEMENT_LABEL[e] || (e ? e[0].toUpperCase() + e.slice(1) : '');
@@ -447,7 +498,9 @@ E.unequip = function (state, slot) {
 E.unequipGear = function (state, uid) {
   const at = wornAt(state, uid); if (!at) return { ok: false, reason: findGear(state, uid) ? 'It is not being worn.' : 'That item is no longer in your bag.' };
   const max0 = E.playerStats(state).maxHp; setAt(state, at, null); gearHp(state, max0);
-  return { ok: true, reason: '' };
+  // an empty tool slot ends the job that needs it, right away (owner 2026-11-14)
+  const stopped = at.section === 'tool' ? stopIfNoTool(state) : '';
+  return stopped ? { ok: true, reason: '', stopped } : { ok: true, reason: '' };
 };
 export function clampHp(state) { const max = E.playerStats(state).maxHp; state.hp = clamp(num(state.hp, max), 0, max); }
 /**
@@ -584,9 +637,12 @@ E.gearDetail = function (state, uid) {
     // gear card (2026-11-13)
     score: gearScore(g), levelReq: num(it.level, 1), maker: makerView(g), lore: loreFor(g.itemId), statRows: statRows(g),
     specials: [], // option C placeholder: always [] this release (item data may carry `specials?: string[]` ids later, unused)
+    // starter tools (owner 2026-11-14): sell for 0g and salvage to nothing ([] = allowed, yields nothing; null = no salvage info)
     sellPrice: g.starter ? 0 : Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))),
-    salvage: inBag && !g.starter ? salvageYield(g).map((y) => ({ itemId: y.itemId, grade: y.grade, qtyMin: Math.floor(y.exact), qtyMax: Math.ceil(y.exact) })) : null
+    salvage: inBag ? salvageYield(g).map((y) => ({ itemId: y.itemId, grade: y.grade, qtyMin: Math.floor(y.exact), qtyMax: Math.ceil(y.exact) })) : null
   };
+  // the player's last tool for a skill: can't be sold, salvaged or deposited (sellPrice/salvage still say what it is worth)
+  const keep = inBag ? keepReasonOf(state, g) : ''; if (keep) d.keepReason = keep;
   if (sec === 'fight') Object.assign(d, { role: it.role, hands: it.hands, dur: num(g.dur, 0), maxDur: num(g.maxDur, 0), broken: !(num(g.dur, 0) > 0) });
   if (sec === 'tool') Object.assign(d, { toolSkill: it.toolSkill, cond: Math.max(1, Math.round(num(g.cond, 100))), wear: wearPct(g.cond) });
   if (sec === 'outfit') d.outfitSet = it.outfitSet;
@@ -635,7 +691,7 @@ E.gearPreview = function (state, itemId, rarity, quality) {
   const g: any = { uid: '__preview', itemId, rarity: r, quality: clamp(Math.round(num(quality, 30)), 1, 100), affixes: ri > 0 ? [{ id: 'primary', roll: 1 }] : [], maker: { kind: 'shop' } };
   if (sectionOf(it) === 'fight') { g.maxDur = maxDurOf(r, g.affixes); g.dur = g.maxDur; } else if (sectionOf(it) === 'tool') g.cond = 100;
   state.gear.push(g);
-  try { const d = E.gearDetail(state, g.uid); return Object.assign(d, { uid: '', repair: null, salvage: null }); }
+  try { const d = E.gearDetail(state, g.uid); delete d.keepReason; return Object.assign(d, { uid: '', repair: null, salvage: null }); }
   finally { state.gear = state.gear.filter((x) => x !== g); }
 };
 /** E.gearInfo(state) → Record<uid, GearInfo> for every bag gear piece */
@@ -648,8 +704,9 @@ E.gearInfo = function (state) {
     const grade = gradeOf(g.quality); const worn = wornAt(state, g.uid); const inLoadout = inLo.has(g.uid);
     const fresh = sec === 'tool' ? num(g.cond, 100) >= 100 : sec === 'fight' ? num(g.dur, 0) >= num(g.maxDur, 0) && num(g.maxDur, 0) >= maxDurOf(g.rarity, g.affixes) : true;
     const stack = g.rarity === common && !worn && !inLoadout && fresh && !arr(g.affixes).length;
-    const info: any = { section: sec, worn, grade, equipped: !!worn, inLoadout, stackKey: stack && !g.starter ? `${g.itemId}|${grade}` : null };
+    const info: any = { section: sec, worn, grade, equipped: !!worn, inLoadout, stackKey: stack && !g.starter ? `${g.itemId}|${grade}` : null }; // starters (worth 0g) never stack with paid copies
     if (g.starter) info.starter = true;
+    const keep = keepReasonOf(state, g); if (keep) info.keepReason = keep;
     if (sec === 'tool') Object.assign(info, { cond: Math.max(1, Math.round(num(g.cond, 100))), wear: wearPct(g.cond), repairGold: toolRepairGold(g), low: num(g.cond, 100) < 50 });
     if (sec === 'fight') info.low = num(g.dur, 0) / Math.max(1, num(g.maxDur, 1)) < 0.25;
     if (sec !== 'fight') info.effectLines = pieceEffectLines(g);
@@ -684,11 +741,10 @@ export function recipeFor(itemId) {
 // pieces in a saved loadout and Rare+ only with opts.allowProtected.
 export const salvagePctOf = (rarity) => num((ECON.salvagePct || {})[rarity], num((ECON.salvagePct || {}).common, 0.2));
 export const IN_USE_REASON = 'In use. Take it off first.';
-export const STARTER_REASON = 'A starter tool: it can\'t be sold or salvaged.';
 export function salvageBlock(state, g, allowProtected) {
   if (!g) return 'That item is no longer in your bag.';
   if (isEquipped(state, g.uid)) return IN_USE_REASON;
-  if (g.starter) return STARTER_REASON;
+  const keep = keepReasonOf(state, g); if (keep) return keep; // the last tool for a skill (never overridden)
   if (allowProtected) return '';
   if (inAnyLoadout(state, g.uid)) return 'Part of a saved loadout.';
   if (rarityIdx(g.rarity) >= 2) return `${rarityDef(g.rarity).name} or better: protected.`;
@@ -696,15 +752,22 @@ export function salvageBlock(state, g, allowProtected) {
 }
 /** expected mats from one gear piece: [{ itemId, grade, exact }] */
 export function salvageYield(g) {
+  if (g && g.starter) return []; // starter tools salvage to nothing (owner 2026-11-14)
   const rec = g && recipeFor(g.itemId); if (!rec || !rec.inputs) return [];
   const outQty = Math.max(1, num(rec.outputs[g.itemId], 1)); const pct = salvagePctOf(g.rarity); const grade = gradeOf(g.quality);
   return Object.keys(rec.inputs).filter((id) => item(id)).map((id) => ({ itemId: id, grade, exact: num(rec.inputs[id], 0) / outQty * pct })).filter((x) => x.exact > 0);
 }
 const uidList = (uids) => Array.from(new Set((Array.isArray(uids) ? uids : uids != null ? [uids] : []).map(String))); // deduped
+/** salvage blocks for a set of uids: per-piece checks, then the last-tool rule across the whole set */
+function salvageChecks(state, uids, allow) {
+  const rows = uidList(uids).map((uid) => { const g = findGear(state, uid); return { uid, g, why: salvageBlock(state, g, allow) }; });
+  const keep = keepAmong(state, rows.filter((r) => !r.why).map((r) => r.g));
+  rows.forEach((r) => { if (!r.why && keep.has(r.uid)) r.why = keep.get(r.uid); });
+  return rows;
+}
 E.salvagePreview = function (state, uids, opts) {
   const allow = !!(opts && opts.allowProtected); const agg = {}; const blocked = []; let gearCount = 0;
-  uidList(uids).forEach((uid) => {
-    const g = findGear(state, uid); const why = salvageBlock(state, g, allow);
+  salvageChecks(state, uids, allow).forEach(({ uid, g, why }) => {
     if (why) { blocked.push({ uid, reason: why }); return; }
     gearCount++;
     salvageYield(g).forEach((y) => {
@@ -717,8 +780,7 @@ E.salvagePreview = function (state, uids, opts) {
 };
 E.salvage = function (state, uids, opts) {
   const allow = !!(opts && opts.allowProtected); const blocked = []; const got = {}; let n = 0; const gone = new Set();
-  uidList(uids).forEach((uid) => {
-    const g = findGear(state, uid); const why = salvageBlock(state, g, allow);
+  salvageChecks(state, uids, allow).forEach(({ uid, g, why }) => {
     if (why) { blocked.push({ uid, reason: why }); return; }
     salvageYield(g).forEach((y) => {
       const q = Math.floor(y.exact) + (rand() < y.exact % 1 ? 1 : 0);

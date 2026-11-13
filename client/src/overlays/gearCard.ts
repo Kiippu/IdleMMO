@@ -71,7 +71,6 @@ export const isGilt = (rarity: string) => ['epic', 'legendary', 'mythic'].includ
 /** Footer: "Sells for 120g" on the left, "Salvage: 2–4 bronze bars" on the right (nothing when there is no salvage info). */
 export function footerText(d: CardDetail, itemName: (id: string) => string = (id) => id): { gold: number | null; salvage: string | null; note: string | null } {
   const gold = d.sellPrice ?? d.value ?? null;
-  if (d.sellPrice === 0) return { gold: null, salvage: null, note: "Starter kit: can't be sold or salvaged" };
   const parts = (d.salvage ?? []).slice(0, 2).map((s) => `${s.qtyMin === s.qtyMax ? s.qtyMin : s.qtyMin <= 0 ? `up to ${s.qtyMax}` : `${s.qtyMin}–${s.qtyMax}`} ${plural(itemName(s.itemId), s.qtyMax).toLowerCase()}`);
   return { gold, salvage: parts.length ? `Salvage: ${parts.join(', ')}` : null, note: null };
 }

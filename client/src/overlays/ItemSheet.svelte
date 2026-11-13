@@ -107,6 +107,7 @@
     stats: StatLine[]; effects: EffectLine[];
     final?: { now: Record<string, number>; ifWorn: Record<string, number> };
     affixes: Array<{ id: string; name: string; key: string; value: number; unit: 'pct' | 'pts'; label: string }>;
+    keepReason?: string; salvage?: Array<unknown> | null;
     repair: null | { gold: number; can: boolean; reason: string; newMaxDur?: number };
     compare: null | { uid: string; name: string; rarity: string; grade: number; at: WornAt; stats: StatLine[]; effects: EffectLine[];
       diff: Array<{ key: string; label: string; unit: 'pts' | 'pct'; mine: number; theirs: number; delta: number }>;
@@ -114,6 +115,8 @@
   };
   let detail = $state<GearDetail | null>(null);
   let info = $derived<any>(g ? view?.extras?.gearInfo?.[g.uid] ?? null : null);
+  // The player's last tool for a skill can't be sold or salvaged (engine keepReason).
+  let keep = $derived<string>(detail?.keepReason ?? info?.keepReason ?? '');
   let isEq = $derived(!!g && (!!detail?.worn || !!info?.worn || !!detail?.equipped || Object.values(equipped).includes(g.uid) || Object.values(snap?.tools ?? {}).includes(g.uid)
     || Object.values(snap?.workOutfit ?? {}).some((set: any) => Object.values(set ?? {}).includes(g.uid))));
   let section = $derived<'fight' | 'outfit' | 'tool'>(it?.section ?? 'fight');
@@ -164,7 +167,7 @@
     if (section === 'fight' && status?.prepLocked) { await noticeSheet('Gear is locked', status.prepReason || 'Gear cannot change while the raid runs.'); return; }
     try {
       const res = await engineClient.unequipGear(g.uid);
-      if (res && res.ok === false) note = res.reason || 'Could not take it off.'; else closeItem();
+      if (res && res.ok === false) note = res.reason || 'Could not take it off.'; else if ((res as any)?.stopped) note = (res as any).stopped; else closeItem();
     } catch (e) { console.error(e); }
   }
   async function repairIt() {
@@ -201,7 +204,8 @@
   let runningId = $derived<string | null>(snap?.active?.actionId ?? null);
   let runningName = $derived(runningId ? actions.find((a) => a.id === runningId)?.name ?? null : null);
   // An owned piece shows its own card, not the recipe that makes it.
-  let panelActs = $derived<Action[]>(act && act.kind !== 'combat' ? [act] : ref?.uid || offer ? [] : recipes);
+  // The recipe panel (time, XP, bonuses, inputs, Start) only shows when opened from a Workshop tile; as a plain item it shows no recipe at all (gear shows its maker on the card).
+  let panelActs = $derived<Action[]>(act && act.kind !== 'combat' ? [act] : []);
   const KIND_LABEL: Record<string, string> = { gather: 'Gather', refine: 'Refine', craft: 'Craft', combat: 'Fight' };
   // Rough damage per kill from the engine's own formula: dmg x ~1.2, less 30% of defence.
   const hitDmg = (a: Action) => Math.max(0.2, ((a.enemy as any)?.dmg ?? 1) * 1.2 - (view?.playerStats?.def ?? 0) * 0.3);
@@ -228,16 +232,18 @@
 
 {#snippet startCtl(a: Action)}
   {@const short = Object.entries(a.inputs ?? {}).some(([id, n]) => have(id) < n)}
+  {@const why = view?.extras?.disabledReasons?.actions?.[a.id] ?? ''}
+  {@const blocked = short || !!why}
   {@const lockd = levelOf(a.skill) < (a.level ?? 1)}
   {#if lockd}<p class="meta">Needs {skillName(a.skill)} Lv <span class="num">{a.level}</span>.</p>
   {:else if !ref?.readOnly}
     {#if runningId === a.id}
       <button type="button" class="btn" onclick={stopJob}>Running · Stop</button>
     {:else}
-      <button type="button" class="btn primary start" disabled={short} onclick={() => begin(a)}>{runningName ? `Start · stops ${runningName}` : 'Start'}</button>
-      {#if runningName && !short}<p class="meta">This stops {runningName}.</p>{/if}
+      <button type="button" class="btn primary start" disabled={blocked} onclick={() => begin(a)}>{runningName ? `Start · stops ${runningName}` : 'Start'}</button>
+      {#if runningName && !blocked}<p class="meta">This stops {runningName}.</p>{/if}
     {/if}
-    {#if short}<p class="meta">{view?.extras?.disabledReasons?.actions?.[a.id] ?? 'Missing materials. Check the have / need lines above.'}</p>{/if}
+    {#if blocked}<p class="meta" role="status">{why || 'Missing materials. Check the have / need lines above.'}</p>{/if}
   {/if}
 {/snippet}
 
@@ -378,12 +384,13 @@
       {#if shopSlot && !offer}<p class="meta">Shop: {shopSlot.grade != null ? `${gradeName(shopSlot.grade)} · ` : ''}<span class="num brass">{fmtG(shopSlot.price)}</span> each, <span class="num">{shopSlot.qty}</span> left this hour.</p>{:else if shopSlot}<p class="meta"><span class="num">{shopSlot.qty}</span> left this hour.</p>{/if}
       {#if grades && store?.sellPrices?.[ref.itemId]}<p class="meta">Store pays <span class="num">{fmtG(store.sellPrices[ref.itemId][Math.max(0, grades.findIndex((q) => q > 0))] ?? 0)}</span> each.</p>{/if}
 
-      {#if salvageYield && !(it?.kind === 'gear' && detail)}<p class="meta">Salvage yields {salvageYield}.</p>{:else if g && isEq}<p class="meta">In use. Take it off first.</p>{/if}
+      {#if salvageYield && !(it?.kind === 'gear' && detail)}<p class="meta">Salvage yields {salvageYield}.</p>{:else if g && inBag && !isEq && !keep && Array.isArray(detail?.salvage) && detail.salvage.length === 0}<p class="meta">Salvage yields nothing.</p>{:else if g && isEq}<p class="meta">In use. Take it off first.</p>{/if}
       {#if demand > 0}<p class="meta">Open contracts still want <span class="num">{fmtN(demand)}</span>.</p>{/if}
       {/if}
 
       {#if note}<p class="meta" role="status">{note}</p>{/if}
       {#if detail?.repair && !detail.repair.can && detail.repair.reason && !hint && g && !ref.readOnly}<p class="meta">{detail.repair.reason}</p>{/if}
+      {#if keep && !hint && g && inBag && !isEq && !ref.readOnly}<p class="meta" role="status">{keep}</p>{/if}
       <div class="actions">
         <button type="button" class="btn ghost" onclick={closeItem}>Close</button>
         {#if !hint && shopSlot && !ref.readOnly}<button type="button" class="btn primary" onclick={async () => { if (await buyFromShop(shopSlot)) note = `Bought ${lastBuy.qty} for ${fmtG(lastBuy.gold)}.`; }}>Buy <span class="num">{fmtG(shopSlot.price)}</span></button>{/if}
@@ -394,13 +401,13 @@
           {#if isEq}
             <button type="button" class="btn" onclick={unequip}>{section === 'tool' ? 'Put away' : 'Take off'}</button>
           {:else}
-            <button type="button" class="btn" onclick={sellGear}>Sell <span class="num">{fmtG(store?.gearSellPrices?.[g.uid] ?? 0)}</span></button>
+            <button type="button" class="btn" disabled={!!keep} onclick={sellGear}>Sell <span class="num">{fmtG(store?.gearSellPrices?.[g.uid] ?? 0)}</span></button>
             {#if it.slot}<button type="button" class="btn primary" data-guide="equip" onclick={equip}>{section === 'tool' ? 'Use tool' : section === 'outfit' ? 'Wear' : 'Equip'}</button>{/if}
           {/if}
         {/if}
       </div>
       {#if !hint && g && inBag && !isEq && !ref.readOnly}
-        <div class="apart"><button type="button" class="btn ghost salv" onclick={() => openSalvage([g.uid], gname())}>Salvage…</button></div>
+        <div class="apart"><button type="button" class="btn ghost salv" disabled={!!keep} onclick={() => openSalvage([g.uid], gname())}>Salvage…</button></div>
       {/if}
     </div>
   </div>
@@ -411,6 +418,8 @@
 <style>
   .scrim { position: fixed; inset: 0; z-index: 48; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
   .sheet { width: 100%; max-width: var(--col); max-height: 88dvh; overflow-y: auto; display: grid; gap: 10px; align-content: start; padding: 16px var(--gut-r) calc(16px + env(safe-area-inset-bottom, 0px)) var(--gut-l); background: var(--paper); border: 1px solid var(--rule); border-bottom: 0; box-shadow: 0 -8px 24px var(--shadow); }
+  /* the frame art is transparent under its thin line: let the paper run under the whole border so nothing shows through */
+  div.sheet[role='dialog'].sheet { background-clip: border-box; }
   header { display: flex; gap: 12px; align-items: center; }
   .cnt { font-size: var(--t-sm); color: var(--ink-3); font-weight: 400; }
   h2 { margin: 0; font: 600 var(--t-lg)/1.2 var(--f-display); }

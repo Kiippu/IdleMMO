@@ -9,8 +9,9 @@
   import { fmtG } from '../format';
   import { cardRows, elementLines, arrow, arrowText, makerText, makerIcon, footerText, isGilt, tierInk, splitAffix, affixDetail, isPrimaryAffix, type CardDetail, type RollAffix } from './gearCard';
 
-  type Props = { detail: CardDetail; compare?: boolean; salvageHint?: string | null };
-  let { detail, compare = true, salvageHint = null }: Props = $props();
+  // framed (default true): the pixel frame, glow and gilt corners. framed={false}: only a 1px rarity-ink line (an outer frame carries the look).
+  type Props = { detail: CardDetail; compare?: boolean; salvageHint?: string | null; framed?: boolean };
+  let { detail, compare = true, salvageHint = null, framed = true }: Props = $props();
 
   const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
   let rows = $derived(cardRows(compare ? detail : { ...detail, compare: null }));
@@ -23,7 +24,7 @@
   let foot = $derived(footerText(detail, (id) => (DATA as any).items?.[id]?.name ?? id));
   let openRow = $state<Record<string, boolean>>({});
   const toggle = (id: string) => { openRow[id] = !openRow[id]; };
-  let gilt = $derived(isGilt(detail.rarity));
+  let gilt = $derived(framed && isGilt(detail.rarity));
   // Stat icons are 16px art from the atlas (art agent); until a key exists in the atlas a plain dot stands in.
   const hasIcon = (k: string) => { try { return !resolveNamed(k).fallback; } catch { return false; } };
 </script>
@@ -32,8 +33,8 @@
   <span class="si" aria-hidden="true">{#if hasIcon(k)}<ItemIcon named={k} size={32} />{:else}<i class="dot"></i>{/if}</span>
 {/snippet}
 
-<article class="gc" class:gilt style:--ink-r={`var(--r-${detail.rarity})`} data-rarity={detail.rarity}>
-  <span class="tint" aria-hidden="true"></span>
+<article class="gc" class:gilt class:flat={!framed} style:--ink-r={`var(--r-${detail.rarity})`} data-rarity={detail.rarity}>
+  {#if framed}<span class="tint" aria-hidden="true"></span>{/if}
   {#if gilt}<span class="gl tl" aria-hidden="true"></span><span class="gl tr" aria-hidden="true"></span><span class="gl bl" aria-hidden="true"></span><span class="gl br" aria-hidden="true"></span>{/if}
 
   <header class="top">
@@ -105,6 +106,8 @@
   :global(:root[data-theme='light']) .tint { -webkit-mask-box-image: url('../ui-art/frames/light/card.png') 6 / 6px stretch; mask-border: url('../ui-art/frames/light/card.png') 6 / 6px stretch; mix-blend-mode: normal; opacity: .6; }
   /* rarity reads clearly without new art: a 2px ink line just inside the frame and a soft glow behind the card */
   .gc { box-shadow: inset 0 0 0 2px var(--ink-r), 0 0 0 1px color-mix(in srgb, var(--ink-r) 70%, transparent), 0 0 22px color-mix(in srgb, var(--ink-r) 50%, transparent); }
+  /* unframed: no thick border, tint, glow or corners; a hairline in the rarity ink */
+  .gc.flat, :global(:root[data-theme='light']) .gc.flat { border: 1px solid var(--ink-r); border-image: none; background-clip: border-box; box-shadow: none; padding: 8px 10px 10px; }
   .gl { position: absolute; width: 14px; height: 14px; z-index: 3; pointer-events: none; --g: var(--brass-fill); }
   .gl.tl { left: -7px; top: -7px; border-top: 3px solid var(--g); border-left: 3px solid var(--g); }
   .gl.tr { right: -7px; top: -7px; border-top: 3px solid var(--g); border-right: 3px solid var(--g); }

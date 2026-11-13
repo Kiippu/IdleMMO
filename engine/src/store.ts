@@ -12,7 +12,7 @@ import { mulberry32 } from './context';
 import { E, SLOTS, arr, num, item, itemsMap, allActions, bosses, clamp, itemName, isStackable, zeros5, fmtGold, lcFirst, grades, gradeOf, qtyName, plural } from './core';
 import { ECON } from './data';
 import { addItem, cleanInv } from './inventory';
-import { findGear, makeGear, isEquipped, sectionOf, IN_USE_REASON, STARTER_REASON, outfitTotals, workBonus } from './gear';
+import { findGear, makeGear, isEquipped, sectionOf, IN_USE_REASON, keepReasonOf, outfitTotals, workBonus } from './gear';
 import { TOOL_SKILLS } from './data/gear/model';
 import { nowOf } from './clock';
 import { lockedNow } from './raid-rules';
@@ -218,10 +218,14 @@ E.storeSellGear = function (state, uid) {
   const g = findGear(state, uid); const fail = (reason) => ({ ok: false, reason, qty: 0, gold: 0 });
   if (!g) return fail('That item is no longer in your bag.');
   if (isEquipped(state, uid)) return fail(IN_USE_REASON);
-  if (g.starter) return fail(STARTER_REASON);
+  const keep = keepReasonOf(state, g); if (keep) return fail(keep); // the last tool for a skill stays
   if (lockedNow(state) && state.raid.lock && SLOTS.some((s) => state.raid.lock.slots[s] === uid)) return fail('It is locked in for this week\'s raid.');
   const gold = storeGearSellPrice(g); const name = E.gearName(g);
   state.gear = state.gear.filter((x) => x !== g); state.gold = num(state.gold, 0) + gold;
+  if (g.starter) { // a starter tool pays 0g (owner 2026-11-14): no gold line, just a note that it is gone
+    pushEvent(state, 'loot', `Handed your starter ${name} to the general store (no pay).`, { itemId: g.itemId, qty: 1, rarity: g.rarity });
+    return { ok: true, reason: '', qty: 1, gold: 0 };
+  }
   pushEvent(state, 'gold', `Sold your ${name} to the general store for ${fmtGold(gold)}.`, { itemId: g.itemId, qty: 1, gold, rarity: g.rarity });
   return { ok: true, reason: '', qty: 1, gold };
 };

@@ -44,6 +44,13 @@ function addOffline(src, list) {
     else { const o = Object.assign({}, i); if (!key.startsWith('uid|')) delete o.uid; b.map[key] = o; b.order.push(key); }
   });
 }
+/** queue a non-gain event made by a verb (e.g. { type: 'stopped', reason } when taking off a tool ends the job); it rides
+ *  the verb's response (E.takeEvents) or the next E.tick, like a gain. Never aggregated by the offline catch-up. */
+export function emitEvent(ev) {
+  if (!ev || typeof ev !== 'object' || !ev.type) return;
+  queue.push(ev);
+  if (queue.length > QUEUE_CAP) queue.splice(0, queue.length - QUEUE_CAP);
+}
 /** start aggregating (E.applyOffline); nested calls keep the outer aggregation */
 export function beginOfflineGains() { if (offline) return false; offline = {}; return true; }
 /** queue the aggregated catch-up gains, one event per source, flagged offline */

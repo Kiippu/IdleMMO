@@ -89,7 +89,7 @@ export const engineClient = {
   /** fight slots only */
   unequip: (slot: string) => rpc<void>({ id: nextId(), type: 'unequip', slot }),
   /** take a piece off wherever it is worn (fight, outfit or tool slot) */
-  unequipGear: (uid: string) => rpc<{ ok: boolean; reason: string }>({ id: nextId(), type: 'unequipGear', uid }),
+  unequipGear: (uid: string) => rpc<{ ok: boolean; reason: string; /** set when emptying a tool slot ended the running job */ stopped?: string }>({ id: nextId(), type: 'unequipGear', uid }),
   /** fight gear: today's rule (max durability -20%); tools: back to 100% for 100g per 10% x tier factor */
   repair: (uid: string) => rpc<RepairResult>({ id: nextId(), type: 'repair', uid }),
   repairAllTools: () => rpc<RepairAllResult>({ id: nextId(), type: 'repairAllTools' }),
