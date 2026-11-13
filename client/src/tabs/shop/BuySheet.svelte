@@ -3,8 +3,10 @@
   import { engineClient } from '../../engine/client';
   import { fmtG } from '../../format';
 
+  import { pushBack } from '../../overlays/backStack.svelte';
   type Props = { s: any; gold: number; detail: string; onClose: () => void; onBought: (qty: number, spent: number) => void };
   let { s, gold, detail, onClose, onBought }: Props = $props();
+  $effect(() => pushBack(() => onClose()));
 
   let max = $derived(Math.max(1, Math.min(s.qty, s.price > 0 ? Math.floor(gold / s.price) : s.qty)));
   let n = $state(1);

@@ -186,6 +186,9 @@ Client: `npm run typecheck -w @guildwright/client` clean; `npm run test -w @guil
 **Phase 2 gate per roadmap** (`installs on Android and iOS; v4 saves import; phone width, light and dark`):
 - v4 saves import — shipped in slice A (silent localStorage → IDB migration on first boot; engine `migrate()`
   handles v4 → v5).
+- Phone Back (owner 2026-11-13): closes the top pop-up one per press (overlays register with overlays/backStack.svelte.ts,
+  same path as Escape), then returns to Workshop, then does nothing. A history sentinel (state only, URL unchanged) is
+  re-armed on popstate and on the next user gesture (Chrome skips gesture-less entries). Every new overlay must register.
 - Phone width — everything clamped to `max-width: 460px`; Playwright smoke-tests in that column.
 - Installable — manifest + SW active, SW state verified as `activated` in Playwright with the full shell
   precached on second load.

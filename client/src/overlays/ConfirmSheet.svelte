@@ -1,6 +1,7 @@
 <script lang="ts">
   // The one bottom sheet for confirmations, quantity picks, name prompts and notices.
   import { sheet, closeSheet } from './confirm.svelte';
+  import { pushBack } from './backStack.svelte';
 
   let opts = $derived(sheet.opts);
   let num = $state(1);
@@ -34,6 +35,7 @@
     else closeSheet({ value: null });
   }
   function cancel() { closeSheet(null); }
+  $effect(() => { if (sheet.opts) return pushBack(() => cancel()); });
 
   function onKey(ev: KeyboardEvent) {
     if (!opts) return;

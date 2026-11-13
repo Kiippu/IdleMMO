@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pushBack } from './backStack.svelte';
   // Full-screen celebration for a live quality craft (gear above common). Spiralling rays in the rarity ink,
   // the card flips in, stats compared against the piece worn in that slot. Several in one batch queue up.
   // Tapping outside never closes it. Reduced motion: static rays, no spin, no flip.
@@ -72,6 +73,9 @@
   }
   let btn = $state<HTMLButtonElement | null>(null);
   $effect(() => { if (cur && btn) btn.focus(); });
+  // Back = Nice / next card (the hold release follows `cur` going null, as for Escape).
+  let isOpen = $derived(cur !== null);
+  $effect(() => { if (isOpen) return pushBack(() => nextReward()); });
   function onKey(ev: KeyboardEvent) { if (cur && ev.key === 'Escape') nextReward(); }
   const sign = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '');
   const fmt = (n: number) => String(Math.round(Math.abs(n) * 100) / 100);

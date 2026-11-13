@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pushBack } from './backStack.svelte';
   import { gradeName } from '../engine/grades';
   import ItemIcon from '../art/ItemIcon.svelte';
   import { celebrate } from '../fx/bus';
@@ -93,6 +94,9 @@
     celebrate({ gains, coins: sm.gold > 0 ? sm.gold : 0, big: true });
   }
   function skip() { skipped = true; }
+  // Back = Escape: skip the count-up, then Collect.
+  let isOpen = $derived(!!summary && !!(rows.length || summary.stoppedReason || summary.weeks));
+  $effect(() => { if (isOpen) return pushBack(() => { if (finished) collect(); else skip(); }); });
   function collect() { engine.offline = null; }
   // The haul bursts the moment the reveal opens (once per summary), not on Collect.
   let hauled: unknown = null;

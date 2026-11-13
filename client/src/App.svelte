@@ -22,6 +22,7 @@
   import ItemSheet from './overlays/ItemSheet.svelte';
   import SalvageSheet from './overlays/SalvageSheet.svelte';
   import CraftReward from './overlays/CraftReward.svelte';
+  import { installBackButton } from './overlays/backStack.svelte';
 
   import icoWorkshop from './ui-art/tab-workshop.png';
   import icoStores from './ui-art/tab-stores.png';
@@ -45,6 +46,8 @@
   $effect(() => { const t = active; if (t !== prevTab) { prevTab = t; window.scrollTo(0, 0); } });
 
   $effect(() => initSound());
+  // Phone Back: close the top pop-up, else go to the Workshop, else stay (see overlays/backStack.svelte.ts).
+  $effect(() => installBackButton(() => active, () => { active = 'Workshop'; }));
 
   // Level-up chime: a skill level rises during live play (not on boot or offline catch-up).
   let lastLevels: Record<string, number> | null = null;
