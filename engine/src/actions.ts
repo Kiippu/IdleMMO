@@ -181,19 +181,23 @@ export function inputQuality(state, act, dry?) { // average grade midpoint of wh
   Object.keys(ins).forEach((id) => { const r = consume(state, id, num(ins[id], 0), state.settings.matPriority, dry); n += r.taken; q += r.qsum; });
   return n > 0 ? q / n : gradeMid(1);
 }
+/**
+ * Rarity odds (owner 2026-11-13): base Common 85 / Uncommon 11 / Rare 3.25 / Epic 0.65 / Legendary 0.1% (Mythic 0.4% only with a
+ * boss core). The modifier total (mastery x input grade x focus x catalyst x Fortunate) multiplies EVERY non-common chance;
+ * Common is the remainder. Non-common is capped at cfg.rarityNonCommonCap (60%), scaled proportionally.
+ */
 export function rarityOdds(total, coreActive) {
   const R = rarities(); const odds = R.map(() => 0);
-  let rarePlus = 0;
-  for (let i = 2; i < R.length; i++) {
+  const t = Math.max(0, num(total, 1));
+  let nonCommon = 0;
+  for (let i = 1; i < R.length; i++) {
     let base = num(R[i].baseChance, 0);
     if (R[i].id === 'mythic' || (i === R.length - 1 && base === 0)) base = coreActive ? 0.004 : 0;
-    odds[i] = base * total; rarePlus += odds[i];
+    odds[i] = base * t; nonCommon += odds[i];
   }
-  if (rarePlus > 1) { for (let i = 2; i < R.length; i++) odds[i] /= rarePlus; rarePlus = 1; }
-  const commonBase = num(R[0].baseChance, 0.7);
-  if (R.length < 2) { odds[0] = 1 - rarePlus; return odds; }
-  if (rarePlus <= 1 - commonBase) { odds[0] = commonBase; odds[1] = 1 - commonBase - rarePlus; }
-  else { odds[0] = Math.max(0, 1 - rarePlus); odds[1] = 0; }
+  const cap = clamp(num(cfg().rarityNonCommonCap, 0.6), 0, 1);
+  if (nonCommon > cap) { const k = cap / nonCommon; for (let i = 1; i < R.length; i++) odds[i] *= k; nonCommon = cap; }
+  odds[0] = Math.max(0, 1 - nonCommon);
   return odds;
 }
 export function procMods(state, act, dry?) {

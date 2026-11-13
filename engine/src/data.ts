@@ -127,10 +127,11 @@ potion('clarity_draught', 'Clarity draught', 3, '#b4a8f5', { buff: { stat: 'heal
 potion('sunpetal_elixir', 'Sunpetal elixir', 4, '#f6d55c', { heal: 240, buff: { stat: 'heal', pct: 0.2 } });
 potion('rimeheart_draught', 'Rimeheart draught', 5, '#bfe8ff', { heal: 80, buff: { stat: 'def', pct: 0.25 } });
 // catalysts
-catalyst('quickening_salts', 'Quickening salts', 2, '#e8c46a', 1.5);
-catalyst('cut_prism', 'Cut prism', 3, '#7aa0f0', 1.75);
-catalyst('starlight_reagent', 'Starlight reagent', 4, '#e6ecff', 2.0);
-catalyst('emberglass_lens', 'Emberglass lens', 5, '#f08a4a', 2.5);
+// catalysts multiply every non-common chance (rarity odds 2026-11-13); gentler than before (1.5/1.75/2/2.5) now that Uncommon counts too
+catalyst('quickening_salts', 'Quickening salts', 2, '#e8c46a', 1.15);
+catalyst('cut_prism', 'Cut prism', 3, '#7aa0f0', 1.3);
+catalyst('starlight_reagent', 'Starlight reagent', 4, '#e6ecff', 1.45);
+catalyst('emberglass_lens', 'Emberglass lens', 5, '#f08a4a', 1.6);
 
 // ---------- actions ----------
 const actions = [];
@@ -401,6 +402,8 @@ export const DATA: any = {
     // cancels the player's open listings (items back to the bag).
     playerMarket: false,
     pityThreshold: 40,
+    // owner 2026-11-13: modifiers multiply every non-common chance; non-common (Uncommon+) capped at this share
+    rarityNonCommonCap: 0.6,
     speedFactor: SPEED,           // phase 2.5: match the prototype's pace (owner's call, 2026-11-08)
     baseHp: 120,                  // health is on its own x2 scale (owner 2026-11-13; 600 on the x10 scale)
     hpPerCombatLevel: 8,
@@ -442,11 +445,11 @@ export const DATA: any = {
   },
 
   rarities: [
-    { id: 'common', name: 'Common', baseChance: 0.70, affixSlots: 0, statMult: 1.00, durability: 100, valueMult: 1 },
-    { id: 'uncommon', name: 'Uncommon', baseChance: 0.22, affixSlots: 1, statMult: 1.15, durability: 130, valueMult: 2.5 },
-    { id: 'rare', name: 'Rare', baseChance: 0.065, affixSlots: 2, statMult: 1.30, durability: 160, valueMult: 8 },
-    { id: 'epic', name: 'Epic', baseChance: 0.013, affixSlots: 3, statMult: 1.50, durability: 200, valueMult: 30 },
-    { id: 'legendary', name: 'Legendary', baseChance: 0.002, affixSlots: 4, statMult: 1.75, durability: 300, valueMult: 120 },
+    { id: 'common', name: 'Common', baseChance: 0.85, affixSlots: 0, statMult: 1.00, durability: 100, valueMult: 1 },
+    { id: 'uncommon', name: 'Uncommon', baseChance: 0.11, affixSlots: 1, statMult: 1.15, durability: 130, valueMult: 2.5 },
+    { id: 'rare', name: 'Rare', baseChance: 0.0325, affixSlots: 2, statMult: 1.30, durability: 160, valueMult: 8 },
+    { id: 'epic', name: 'Epic', baseChance: 0.0065, affixSlots: 3, statMult: 1.50, durability: 200, valueMult: 30 },
+    { id: 'legendary', name: 'Legendary', baseChance: 0.001, affixSlots: 4, statMult: 1.75, durability: 300, valueMult: 120 },
     { id: 'mythic', name: 'Mythic', baseChance: 0, affixSlots: 5, statMult: 2.10, durability: 400, valueMult: 500 }
   ],
 
