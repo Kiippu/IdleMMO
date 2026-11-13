@@ -95,7 +95,7 @@ describe('E.gearInfo (common stacking)', () => {
     piece(s, 'g', 'bronze_sword');
     s.loadouts.push({ id: 'L1', name: 'x', slots: { weapon: 'g' } });
     const info = E.gearInfo(s);
-    expect(info.a).toEqual({ section: 'fight', worn: null, grade: 1, equipped: false, inLoadout: false, stackKey: 'bronze_sword|1', low: false });
+    expect(info.a).toEqual({ section: 'fight', worn: null, grade: 1, equipped: false, inLoadout: false, stackKey: 'bronze_sword|1', low: false, score: E.gearScore(s.gear.find((g: any) => g.uid === 'a')) });
     expect(info.b.stackKey).toBe('bronze_sword|1');
     expect(info.c.stackKey).toBe('bronze_sword|2');
     expect(info.d.stackKey).toBeNull();

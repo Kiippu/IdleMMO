@@ -460,6 +460,7 @@ export const Engine: any;
 // E.salvage(state, uids[], opts): any number of uids in one call; deduped; one gain event; one log line.
 // Craft gains: { type: 'gain', source: 'craft', items: [{ itemId, qty: 1, grade, rarity, uid }] } per rep
 //   (offline catch-up: aggregated, offline: true).
+// Gear card (2026-11-13): E.gearPreview(state, itemId, rarity?, quality?) → GearDetail (uid '') for an item not owned (shop offer).
 // ---- Gear overhaul 2026-11-12 (save schema v8; gear-overhaul-contract.md "Engine interface").
 // Three sections: fight gear (state.equipped, 8 slots), work outfit (state.workOutfit[set][piece]) and tools
 // (state.tools[skillId]), the last two used automatically by the action's kind / skill. Attack, defence, healing, role power and
@@ -493,9 +494,19 @@ export interface GearItem {
   element?: ElementId | null; elementShare?: number;
   toolSkill?: string; toolGroup?: SkillGroup; outfitSet?: OutfitSet;
   effects?: Array<{ id: EffectId; value: number; group?: 'gearcraft' | 'consumables' }>;
+  /** option C (later): named special effect ids; unused this release */
+  specials?: string[];
 }
+/** who made a piece (save field, additive): crafted (name = the player's display name or 'You'), raid drop, starter kit, shop */
+export type GearMaker = { kind: 'crafted'; name: string } | { kind: 'raid' | 'starter' | 'shop' };
+/** GearDetail.maker: what the card's maker badge shows; kind 'unknown' (text null) for pieces made before the field existed */
+export interface GearMakerView { kind: 'crafted' | 'raid' | 'starter' | 'shop' | 'unknown'; name?: string; /** "Made by Ana", "Found in a raid", "Starter kit", "Shop" */ text: string | null }
+/** one card stat row; icon = 16px stat icon key (stat_atk stat_def stat_heal stat_hp el_fire el_frost el_venom el_holy ward fx_speed fx_double fx_save fx_quality fx_find fx_rarity) */
+export interface GearStatRow { key: string; label: string; icon: string; value: number; /** "+47", "+3.3%", "+1.0%" (engine formatters) */ valueText: string; unit: 'pts' | 'pct' }
+export interface GearSpecial { id: string; name: string; text: string }
 export interface GearPiece {
   uid: string; itemId: string; rarity: RarityId; quality: number;
+  /** additive (gear card 2026-11-13); absent on older pieces */ maker?: GearMaker;
   affixes: Array<{ id: string; roll: number }>;
   /** fight gear only */ dur?: number; maxDur?: number;
   /** tools only: 1..100 (float; round for display) */ cond?: number;
@@ -518,6 +529,8 @@ export interface GearCompare {
   /** fight only: role power now vs if worn (x10, vs the current boss) */
   power?: Record<'guardian' | 'mender' | 'striker', { from: number; to: number; delta: number }>;
   broken?: boolean; cond?: number;
+  /** gear card: the worn piece's score and this piece's score minus it */
+  score: number; scoreDelta: number; statRows: GearStatRow[];
 }
 export interface GearDetail {
   uid: string; itemId: string; name: string; section: GearSection;
@@ -541,6 +554,23 @@ export interface GearDetail {
   repair: { gold: number; can: boolean; reason: string; newMaxDur?: number } | null;
   /** vs what equip(uid) would replace; null when that slot is empty or this piece is worn */
   compare: GearCompare | null;
+  // ---- gear card (2026-11-13), additive
+  /** item score, one integer, the same everywhere (E.gearScore / GearInfo.score). Rises with tier, rarity (at any grade) and grade.
+   *  fight: round(10 x (atk x 2.16 + def x 1.16 + heal x 2.05 + maxHP x 0.25 + 0.4 x (element % + ward %)));
+   *  tools/outfit: round(200 x (2 speed + 2 double + 1 save + 1 quality + 0.2 find + 0.3 rarity)). Unrounded formula values. */
+  score: number;
+  /** the item's recipe level (its tier band); informational, gear has no level requirement to equip */
+  levelReq: number;
+  maker: GearMakerView;
+  lore: string | null;
+  /** fight: atk/def/heal/hp, element shares, wards; tools/outfit: their effect rows */
+  statRows: GearStatRow[];
+  /** option C placeholder: always [] this release */
+  specials: GearSpecial[];
+  /** what the shop pays (0 for starter tools) */
+  sellPrice: number;
+  /** salvage yield of this piece (recipe inputs x rarity share; null for starter tools, vault pieces and previews) */
+  salvage: Array<{ itemId: string; grade: number; qtyMin: number; qtyMax: number }> | null;
 }
 export interface GearInfo {
   section: GearSection; worn: WornAt | null; grade: number;
@@ -557,6 +587,8 @@ export interface GearInfo {
   repairGold?: number;
   /** a new save's free tool: store and salvage refuse it */
   starter?: true;
+  /** gear card: E.gearScore (same number as GearDetail.score) */
+  score: number;
 }
 export interface WorkBonus {
   skill: string; set: OutfitSet; group: SkillGroup;
@@ -605,6 +637,8 @@ export const DATA: any;
  *  fmtEffect(1, 'pct') → "+1.0%"; fmtEffect(0.25) → "+0.25%"; fmtEffect(2, 'pts') → "+2.0". */
 /** Health display (owner 2026-11-13): current HP rounded up (never "0" while alive); max HP and totals whole;
  *  small amounts one decimal under 10, whole from 10 up; never "+0". */
+/** English plural for an item name: plural('Bronze bar', 3) → 'Bronze bars'; mass nouns stay. */
+export function plural(name: string, qty?: number): string;
 export function fmtHpNow(value: number, max?: number): string;
 export function fmtHpTotal(value: number): string;
 export function fmtHpAmount(value: number): string;

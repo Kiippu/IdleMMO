@@ -35,3 +35,7 @@ export function skillKey(idOrName: string, skills: { id: string; name: string }[
   const k = skills.find((s) => s.id === idOrName || s.name.toLowerCase() === idOrName.toLowerCase());
   return k && ICONS.named[`skill:${k.id}`] !== undefined ? `skill:${k.id}` : null;
 }
+
+/** Named keys of the 16px stat, element, effect and maker-badge icons (see StatIcon.svelte). */
+export const STAT_ICON_KEYS = ['stat_atk', 'stat_def', 'stat_heal', 'stat_hp', 'el_fire', 'el_frost', 'el_venom', 'el_holy', 'ward',
+  'fx_speed', 'fx_double', 'fx_save', 'fx_quality', 'fx_find', 'fx_rarity', 'badge_crafted', 'badge_raid', 'badge_starter', 'badge_shop'] as const;

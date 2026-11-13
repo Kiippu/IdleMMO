@@ -11,11 +11,12 @@
   import { itemSheet, openItem, closeItem } from './itemRef.svelte';
   import { askNumber, confirmSheet, noticeSheet } from './confirm.svelte';
   import QuantitySheet from './QuantitySheet.svelte';
+  import GearCard from './GearCard.svelte';
   import { askQuantity } from './quantity.svelte';
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
   import { openSalvage } from './salvage.svelte';
-  import { buyFromShop, lastBuy, buyDetail } from './shopActions';
+  import { buyFromShop, lastBuy } from './shopActions';
   import { gradeName } from '../engine/grades';
   import { fmtEffectValue } from '../tabs/war/gearUi';
 
@@ -83,7 +84,15 @@
   // A gear offer you do not own yet: base stats from the data (shop gear is Common, Rough grade).
   let offer = $derived(!!ref && !ref.uid && !ref.actionId && it?.kind === 'gear' && !!shopSlot);
   let offerRarity = $derived<string>(shopSlot?.rarity ?? 'common');
-  let offerCmp = $derived.by(() => (offer ? buyDetail({ kind: 'gear', itemId: ref!.itemId, rarity: offerRarity }).replace(/^[^.]*\.\s*/, '') : ''));
+  // The card for a shop offer comes from the engine's preview (never changes state).
+  let preview = $state<any>(null);
+  $effect(() => {
+    const id = offer ? ref!.itemId : '', r = offerRarity;
+    if (!id) { preview = null; return; }
+    let live = true; preview = null;
+    Promise.resolve(engineClient.gearPreview(id, r, 30)).then((d: any) => { if (live) preview = d ?? null; }).catch(() => { if (live) preview = null; });
+    return () => { live = false; };
+  });
   let rarity = $derived<string>(hint ? 'common' : g?.rarity ?? (offer ? offerRarity : null) ?? (ref ? itemRarity[ref.itemId] : null) ?? 'common');
 
   const statLine = (id: string) => Object.entries(itemsMap[id]?.stats ?? {}).filter(([, v]) => v).map(([k, v]) => `+${k === 'hp' ? fmtHpAmount(Number(v)) : v} ${STAT_NAME[k] ?? k}`).join(', ');
@@ -142,6 +151,7 @@
   const WEAR_AT: Record<number, number> = { 3: 50, 5: 25, 8: 10 };
   const gname = () => (g ? (view?.gearNames?.[g.uid] ?? itemName(g.itemId)) : ref ? itemName(ref.itemId) : '');
   let note = $state('');
+  let salvageHint = $derived(salvageYield ? `Salvage: ${salvageYield}` : null);
   $effect(() => { void ref; note = ''; });
 
   async function equip() {
@@ -272,7 +282,7 @@
           {#if hint}<p class="meta">{hintLine}</p>{:else}<p class="meta">{cap(rarity)} · {it.kind === 'gear' ? `${SECTION_LABEL[it.section] ?? 'Gear'}${it.section === 'outfit' && it.outfitSet ? `, ${SET_LABEL[it.outfitSet] ?? it.outfitSet}` : ''}${it.section === 'tool' ? '' : ` · ${SLOT_LABEL[it.slot] ?? cap(it.slot ?? 'gear')}`}` : cap(it.kind ?? 'item')}{it.tier ? ` · tier ${it.tier}` : ''}</p>{/if}
         </div>
       </header>
-      {#if !hint && cat?.lore}<p class="body lore">{cat.lore}</p>{/if}
+      {#if !hint && cat?.lore && !(it?.kind === 'gear' && (detail || preview))}<p class="body lore">{cat.lore}</p>{/if}
 
       {#if hint}
         {#each recipes as a (a.id)}
@@ -291,32 +301,9 @@
 
       {#if it.kind === 'gear'}
         {#if detail && g}
-          <section class="gear" aria-label="Gear stats">
-            <p class="meta">
-              <span style:color={`var(--r-${detail.rarity})`}>{cap(detail.rarity)}</span> · {detail.gradeName}
-              {#if detail.equipped} · <b>{detail.section === 'tool' ? 'In use' : 'Worn'}</b>{/if}
-              {#if detail.inLoadout && detail.section === 'fight'} · In a loadout{/if}
-            </p>
-            {#if detail.stats.length}
-              <dl class="facts">
-                {#each detail.stats as s (s.key)}<div><dt>{s.label}</dt><dd class="num">{fmtStat(s)}</dd></div>{/each}
-              </dl>
-            {/if}
-            {#if detail.effects?.length}
-              <h3>Effects</h3>
-              <ul class="aff">{#each detail.effects as e (e.key + e.label)}<li><span>{effLine(e)}</span></li>{/each}</ul>
-            {/if}
-            {#if detail.affixes.length}
-              <ul class="aff affx" style:color={`var(--r-${detail.rarity})`}>
-                {#each detail.affixes as a, i (a.id)}
-                  {#if i === 0 && a.label && a.value}
-                    <li class="prim"><span class="tag">Primary bonus</span><span>{affBody(a)}</span></li>
-                  {:else if i > 0 && a.label}
-                    <li><span>{a.id === 'primary' || !a.name ? '' : `${a.name}: `}{affBody(a)}</span></li>
-                  {/if}
-                {/each}
-              </ul>
-            {/if}
+          <GearCard detail={detail as any} compare={!detail.equipped} {salvageHint} />
+          <section class="gear" aria-label="Condition and use">
+            <p class="meta">{#if detail.equipped}<b>{detail.section === 'tool' ? 'In use' : 'Worn'}</b>{:else}In your bag{/if}{#if detail.inLoadout && detail.section === 'fight'} · In a loadout{/if}</p>
             {#if detail.section === 'tool' && detail.final}
               {@const ks = Object.keys(detail.final.ifWorn).filter((k) => (detail!.final!.ifWorn[k] ?? 0) !== 0 || (detail!.final!.now[k] ?? 0) !== 0)}
               {#if ks.length}
@@ -340,28 +327,10 @@
                 {#if detail.broken}<p class="meta">Broken: it gives no stats until repaired.</p>{/if}
               </div>
             {/if}
-            <p class="meta">Worth <span class="num brass">{fmtG(detail.value)}</span></p>
           </section>
-          {#if detail.compare && !detail.equipped}
-            <section class="cmp" aria-label="Compared with worn">
-              <h3>Versus worn · {detail.compare.name}</h3>
-              {#if detail.compare.diff.some((d) => d.delta !== 0)}
-                <ul class="dl">
-                  {#each detail.compare.diff.filter((d) => d.delta !== 0) as d (d.key)}
-                    <li class={d.delta > 0 ? 'up' : 'down'}><span>{d.label}</span><b class="num"><span aria-hidden="true">{d.delta > 0 ? '▲' : '▼'}</span> {fmtU(d.delta, d.unit, d.key)}<span class="sr"> {d.delta > 0 ? 'better' : 'worse'}</span></b></li>
-                  {/each}
-                </ul>
-              {:else}<p class="meta">Same as your worn piece.</p>{/if}
-              {#if detail.compare.power}
-                {@const pw = Object.entries(detail.compare.power).filter(([, p]) => p.delta !== 0)}
-                {#if pw.length}
-                  <ul class="dl">{#each pw as [r, p] (r)}
-                    <li class={p.delta > 0 ? 'up' : 'down'}><span>{cap(r)} power</span><b class="num"><span aria-hidden="true">{p.delta > 0 ? '▲' : '▼'}</span> {sign(p.delta)}<span class="sr"> {p.delta > 0 ? 'better' : 'worse'}</span></b></li>
-                  {/each}</ul>
-                {/if}
-              {/if}
-            </section>
-          {:else if !detail.equipped && !detail.compare}<p class="meta">Nothing worn there yet: all of it is new.</p>{/if}
+        {:else if offer}
+          {#if preview}<GearCard detail={preview as any} compare={true} />{:else}<p class="meta" role="status">Loading stats…</p>{/if}
+          <p class="meta">Price <span class="num brass">{fmtG(shopSlot.price)}</span></p>
         {:else if loadedKey !== detailKey}
           <p class="meta" role="status">Loading stats…</p>
         {:else}
@@ -369,21 +338,6 @@
         {/if}
       {/if}
 
-      {#if offer && it}
-        <section class="gear" aria-label="Shop offer">
-          <p class="meta"><span style:color={`var(--r-${offerRarity})`}>{cap(offerRarity)}</span> · Rough · for sale</p>
-          {#if statLine(ref.itemId)}
-            <dl class="facts">{#each Object.entries(it.stats ?? {}).filter(([, v]) => v) as [k, v] (k)}<div><dt>{cap(STAT_NAME[k] ?? k)}</dt><dd class="num">+{k === 'hp' ? fmtHpAmount(Number(v)) : v}</dd></div>{/each}</dl>
-          {/if}
-          {#if it.effects?.length}
-            <h3>Effects</h3>
-            <ul class="aff">{#each it.effects as e (e.id + (e.group ?? ''))}<li><span>{effectNames[e.id] ?? e.id} {fmtEffectValue(e.id, e.value)}</span></li>{/each}</ul>
-          {/if}
-          {#if offerRarity !== 'common'}<p class="meta">{cap(offerRarity)}: bonus affixes on top of these base values.</p>{/if}
-          <p class="meta">Price <span class="num brass">{fmtG(shopSlot.price)}</span></p>
-        </section>
-        <p class="meta">{offerCmp}</p>
-      {/if}
 
       {#if grades}
         <ul class="gr">{#each grades as q, i}{#if q > 0}<li><span>{gradeName(i)}</span><b class="num">×{fmtN(q)}</b>
@@ -425,7 +379,7 @@
       {#if shopSlot && !offer}<p class="meta">Shop: {shopSlot.grade != null ? `${gradeName(shopSlot.grade)} · ` : ''}<span class="num brass">{fmtG(shopSlot.price)}</span> each, <span class="num">{shopSlot.qty}</span> left this hour.</p>{:else if shopSlot}<p class="meta"><span class="num">{shopSlot.qty}</span> left this hour.</p>{/if}
       {#if grades && store?.sellPrices?.[ref.itemId]}<p class="meta">Store pays <span class="num">{fmtG(store.sellPrices[ref.itemId][Math.max(0, grades.findIndex((q) => q > 0))] ?? 0)}</span> each.</p>{/if}
 
-      {#if salvageYield}<p class="meta">Salvage yields {salvageYield}.</p>{:else if g && isEq}<p class="meta">In use. Take it off first.</p>{/if}
+      {#if salvageYield && !(it?.kind === 'gear' && detail)}<p class="meta">Salvage yields {salvageYield}.</p>{:else if g && isEq}<p class="meta">In use. Take it off first.</p>{/if}
       {#if demand > 0}<p class="meta">Open contracts still want <span class="num">{fmtN(demand)}</span>.</p>{/if}
       {/if}
 
@@ -478,14 +432,10 @@
   .facts { margin: 0; display: grid; gap: 2px; width: 100%; }
   .facts div { display: flex; justify-content: space-between; gap: 8px; font-size: var(--t-sm); }
   .facts dt { color: var(--ink-3); } .facts dd { margin: 0; text-align: right; }
-  .gear, .cmp { width: 100%; box-sizing: border-box; }
-  .aff, .dl { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; width: 100%; }
-  .aff li, .dl li { display: flex; justify-content: space-between; gap: 8px; font-size: var(--t-sm); }
-  .dl .up b { color: var(--ok); } .dl .down b { color: var(--bad); }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .gear { width: 100%; box-sizing: border-box; }
+  .aff { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; width: 100%; }
+  .aff li { display: flex; justify-content: space-between; gap: 8px; font-size: var(--t-sm); }
   .apart { padding-top: 8px; border-top: 1px solid var(--rule); display: flex; justify-content: flex-start; }
-  .affx { gap: 6px; } .prim { display: grid !important; gap: 1px; }
-  .tag { font-size: var(--t-xs); color: var(--ink-3); font-family: var(--f-label); text-transform: uppercase; letter-spacing: .06em; }
   .aff li { align-items: baseline; }
   .cond { display: grid; gap: 4px; width: 100%; }
   .crow { display: flex; justify-content: space-between; font-size: var(--t-sm); }

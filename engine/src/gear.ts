@@ -13,8 +13,10 @@ import {
   TIER_BUDGET, GEAR_GRADE_MULT, PRIMARY_STEP, SECONDARY_SHARE, HP_PER_POINT, ROLL_MIN, ROLL_MAX, ENDURING_PCT, DURABILITY,
   ELEMENT_AFFIX, WARD_AFFIX, AFFIXES, WORK_POOL, ELEMENT_AFFIXES, WARD_AFFIXES, STAT_AFFIX, EFFECTS, EFFECT_IDS, GROUP_EFFECTS,
   SKILL_GROUP, GROUP_SET, WORK_AFFIX_VALUE, WEAR_STEPS, TOOL_REPAIR_PER10, TOOL_REPAIR_TIER, OUTFIT_SETS, OUTFIT_PIECES, TOOL_SKILLS,
-  HP_DIV, shareOf, baseStatsRaw
+  HP_DIV, ROLE_POWER, shareOf, baseStatsRaw
 } from './data/gear/model';
+import { ITEM_LORE } from './item-lore';
+import { D } from './core';
 
 // ---------------------------------------------------------------- lookup + where a piece is worn
 export function findGear(state, uid) { return uid ? arr(state && state.gear).find((g) => g.uid === uid) || null : null; }
@@ -66,6 +68,14 @@ export function rollAffixes(it, rIdx) {
   return out;
 }
 export const maxDurOf = (rarity, affixes) => Math.round(num(DURABILITY[rarityIdx(rarity)], 100) * (1 + (arr(affixes).some((a) => a && a.id === 'enduring') ? ENDURING_PCT / 100 : 0)));
+/** who made a piece (save field, additive v8): { kind: 'crafted', name } | { kind: 'raid' | 'starter' | 'shop' } */
+export const MAKER_KINDS = ['crafted', 'raid', 'starter', 'shop'];
+export const playerName = (state) => (state && typeof state.playerName === 'string' && state.playerName.trim() ? state.playerName.trim().slice(0, 24) : 'You');
+export function normMaker(m) {
+  if (!m || typeof m !== 'object' || !MAKER_KINDS.includes(m.kind)) return null;
+  return m.kind === 'crafted' ? { kind: 'crafted', name: typeof m.name === 'string' && m.name ? m.name.slice(0, 24) : 'You' } : { kind: m.kind };
+}
+/** opts.maker: a maker object; default: crafted by the player */
 export function makeGear(state, itemId, rIdx, quality, opts?) {
   const it = item(itemId);
   const rar = rarities()[clamp(Math.floor(num(rIdx, 0)), 0, rarities().length - 1)];
@@ -74,6 +84,7 @@ export function makeGear(state, itemId, rIdx, quality, opts?) {
   const sec = sectionOf(it);
   if (sec === 'fight') { g.maxDur = maxDurOf(rar.id, affixes); g.dur = g.maxDur; }
   else if (sec === 'tool') g.cond = 100;
+  g.maker = normMaker(opts && opts.maker) || { kind: 'crafted', name: playerName(state) };
   state.gear.push(g); markSeen(state, itemId);
   return g;
 }
@@ -495,6 +506,56 @@ E.repairAllTools = function (state) {
 
 // ---------------------------------------------------------------- detail (item card) + info (lists)
 const findAnyGear = (state, uid) => findGear(state, uid) || arr(state && state.crew && state.crew.vault && state.crew.vault.gear).find((g) => g && g.uid === uid) || null;
+// ---------------------------------------------------------------- item score (gear card, 2026-11-13)
+// One integer per piece, the same number everywhere. Computed from the UNROUNDED formula values so it rises strictly
+// with tier (same family), rarity (r at Rough > r-1 at Pristine) and grade:
+//   fight:  round(10 x [ atk x 2.16 + def x 1.16 + heal x 2.05 + maxHP x 0.25 + 0.4 x (element share % + ward %) ])
+//           (the role-power weights; HP on the x2 scale; base stats = base x (grade + 12% per rarity step), plus rolled affixes)
+//   work:   round(200 x [ 2 x speed + 2 x double + 1 x save + 1 x quality + 0.2 x find + 0.3 x rarity ])
+//           (effects in display units; primary = base x (grade + 12% per rarity step), plus rolled affixes)
+export const SCORE_FIGHT = { atk: ROLE_POWER.striker.atk, def: ROLE_POWER.guardian.def, heal: ROLE_POWER.mender.heal, hp: ROLE_POWER.guardian.maxHp, element: 0.4, ward: 0.4, scale: 10 };
+export const SCORE_WORK = { speed: 2, double: 2, save: 1, quality: 1, find: 0.2, rarity: 0.3, scale: 200 };
+export function gearScore(g) {
+  const it = g && item(g.itemId); if (!it) return 0;
+  const sec = sectionOf(it); const gIdx = gradeOf(g.quality); const r = rarityIdx(g.rarity);
+  const mult = (GEAR_GRADE_MULT[gIdx] || 1) + PRIMARY_STEP * r;
+  let s = 0;
+  if (sec === 'fight') {
+    const raw = baseStatsRaw(it);
+    Object.keys(raw).forEach((k) => { s += num(SCORE_FIGHT[k], 0) * raw[k] * (k === 'hp' ? 1 / HP_DIV : 1) * mult; });
+    if (it.element) s += SCORE_FIGHT.element * num(it.elementShare, 0);
+    arr(g.affixes).forEach((af) => {
+      const d = affixDef(af && af.id); if (!d || d.kind !== 'fight' || d.id === 'primary' || d.key === 'dur') return;
+      const v = affixValue(it, af);
+      s += ['atk', 'def', 'heal', 'hp'].includes(d.key) ? SCORE_FIGHT[d.key] * v : (d.key.startsWith('ward_') ? SCORE_FIGHT.ward : SCORE_FIGHT.element) * v;
+    });
+    return Math.round(s * SCORE_FIGHT.scale);
+  }
+  if (sec === 'tool' || sec === 'outfit') {
+    arr(it.effects).forEach((e) => { s += num(SCORE_WORK[e.id], 0) * num(e.value, 0) * mult; });
+    arr(g.affixes).forEach((af) => { const d = affixDef(af && af.id); if (d && d.kind === 'work') s += num(SCORE_WORK[d.key], 0) * affixValue(it, af); });
+    return Math.round(s * SCORE_WORK.scale);
+  }
+  return 0;
+}
+E.gearScore = gearScore;
+const STAT_ICON = { atk: 'stat_atk', def: 'stat_def', heal: 'stat_heal', hp: 'stat_hp', fire: 'el_fire', frost: 'el_frost', venom: 'el_venom', holy: 'el_holy' };
+const iconOfStat = (k) => STAT_ICON[k] || (k.startsWith('ward_') ? 'ward' : 'stat_' + k);
+/** card rows: fight stats (atk, def, heal, hp, element shares, wards) or work effects, each with a 16px icon key */
+export function statRows(g) {
+  const it = g && item(g.itemId); if (!it) return [];
+  if (sectionOf(it) === 'fight') return statLines(g).map((l) => ({ key: l.key, label: l.label, icon: iconOfStat(l.key), value: l.value, valueText: l.text.slice(l.label.length + 1), unit: l.unit }));
+  return pieceEffectLines(g).map((l) => ({ key: l.key, label: l.label, icon: 'fx_' + l.key, value: l.value, valueText: fmtEffect(l.value, l.unit), unit: l.unit }));
+}
+export function loreFor(itemId) {
+  const over = (D().itemLore || {})[itemId]; const l = over != null ? over : (ITEM_LORE || {})[itemId];
+  return typeof l === 'string' ? l : l && typeof l === 'object' ? (l.description || l.text || null) : null;
+}
+const MAKER_TEXT = { raid: 'Found in a raid', starter: 'Starter kit', shop: 'Shop' };
+export function makerView(g) {
+  const m = normMaker(g && g.maker); if (!m) return { kind: 'unknown', text: null };
+  return m.kind === 'crafted' ? { kind: 'crafted', name: m.name, text: `Made by ${m.name}` } : { kind: m.kind, text: MAKER_TEXT[m.kind] };
+}
 E.gearDetail = function (state, uid) {
   const g = findAnyGear(state, uid); if (!g) return null;
   const it = item(g.itemId) || {}; const sec = sectionOf(it); const grade = gradeOf(g.quality);
@@ -503,7 +564,12 @@ E.gearDetail = function (state, uid) {
     uid: g.uid, itemId: g.itemId, name: E.gearName(g), section: sec, slot: it.slot || '', type: it.type || '', material: it.material || '', tier: num(it.tier, 1),
     rarity: g.rarity, grade, gradeName: (grades()[grade] || {}).name || '', value: E.gearValue(g),
     worn, equipped: !!worn, inLoadout: inAnyLoadout(state, g.uid),
-    stats: statLines(g), effects: pieceEffectLines(g), affixes: affixLines(g), repair: null, compare: null
+    stats: statLines(g), effects: pieceEffectLines(g), affixes: affixLines(g), repair: null, compare: null,
+    // gear card (2026-11-13)
+    score: gearScore(g), levelReq: num(it.level, 1), maker: makerView(g), lore: loreFor(g.itemId), statRows: statRows(g),
+    specials: [], // option C placeholder: always [] this release (item data may carry `specials?: string[]` ids later, unused)
+    sellPrice: g.starter ? 0 : Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))),
+    salvage: inBag && !g.starter ? salvageYield(g).map((y) => ({ itemId: y.itemId, grade: y.grade, qtyMin: Math.floor(y.exact), qtyMax: Math.ceil(y.exact) })) : null
   };
   if (sec === 'fight') Object.assign(d, { role: it.role, hands: it.hands, dur: num(g.dur, 0), maxDur: num(g.maxDur, 0), broken: !(num(g.dur, 0) > 0) });
   if (sec === 'tool') Object.assign(d, { toolSkill: it.toolSkill, cond: Math.max(1, Math.round(num(g.cond, 100))), wear: wearPct(g.cond) });
@@ -518,7 +584,8 @@ E.gearDetail = function (state, uid) {
   const at = inBag && !worn ? targetFor(state, g) : null;
   const curUid = at ? uidAt(state, at) : null; const cur = curUid ? findGear(state, curUid) : null;
   if (cur) {
-    const c: any = { uid: cur.uid, name: E.gearName(cur), rarity: cur.rarity, grade: gradeOf(cur.quality), at, stats: statLines(cur), effects: pieceEffectLines(cur) };
+    const c: any = { uid: cur.uid, name: E.gearName(cur), rarity: cur.rarity, grade: gradeOf(cur.quality), at, stats: statLines(cur), effects: pieceEffectLines(cur),
+      score: gearScore(cur), scoreDelta: d.score - gearScore(cur), statRows: statRows(cur) };
     let mine = {}, theirs = {}, keys = [], unitOf = {}, labelOf = {};
     if (sec === 'fight') {
       d.stats.forEach((l) => { mine[l.key] = l.value; unitOf[l.key] = l.unit; labelOf[l.key] = l.label; });
@@ -542,6 +609,19 @@ E.gearDetail = function (state, uid) {
   }
   return d;
 };
+/**
+ * E.gearPreview(state, itemId, rarity = 'common', quality = 30) → GearDetail for a piece that is not owned (a shop offer):
+ * primary-only affixes, maker 'shop', uid '' (empty), repair/salvage null; compare against what it would replace. Never changes state.
+ */
+E.gearPreview = function (state, itemId, rarity, quality) {
+  const it = item(itemId); if (!it || it.kind !== 'gear' || !state) return null;
+  const r = rarities().find((x) => x.id === rarity) ? rarity : 'common'; const ri = rarityIdx(r);
+  const g: any = { uid: '__preview', itemId, rarity: r, quality: clamp(Math.round(num(quality, 30)), 1, 100), affixes: ri > 0 ? [{ id: 'primary', roll: 1 }] : [], maker: { kind: 'shop' } };
+  if (sectionOf(it) === 'fight') { g.maxDur = maxDurOf(r, g.affixes); g.dur = g.maxDur; } else if (sectionOf(it) === 'tool') g.cond = 100;
+  state.gear.push(g);
+  try { const d = E.gearDetail(state, g.uid); return Object.assign(d, { uid: '', repair: null, salvage: null }); }
+  finally { state.gear = state.gear.filter((x) => x !== g); }
+};
 /** E.gearInfo(state) → Record<uid, GearInfo> for every bag gear piece */
 E.gearInfo = function (state) {
   const out = {}; if (!state) return out;
@@ -557,6 +637,7 @@ E.gearInfo = function (state) {
     if (sec === 'tool') Object.assign(info, { cond: Math.max(1, Math.round(num(g.cond, 100))), wear: wearPct(g.cond), repairGold: toolRepairGold(g), low: num(g.cond, 100) < 50 });
     if (sec === 'fight') info.low = num(g.dur, 0) / Math.max(1, num(g.maxDur, 1)) < 0.25;
     if (sec !== 'fight') info.effectLines = pieceEffectLines(g);
+    info.score = gearScore(g);
     out[g.uid] = info;
   });
   return out;

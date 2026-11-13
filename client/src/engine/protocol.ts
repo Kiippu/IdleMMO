@@ -89,10 +89,12 @@ export interface Derived {
 
 import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons, GearDetail, StatLine, EffectLine, GearInfo,
   GearSection, FightSlot, OutfitSet, OutfitPiece, EffectId, SkillGroup, WornAt, GearItem, GearPiece, EquipResult, RepairResult, RepairAllResult,
-  AffixLine, GearCompare, WorkBonus, ActiveWork, OutfitSetTotals, StoreToolRow, WornToolLine, PlayerStats, EquipDelta, CraftQuality } from '@guildwright/engine';
+  AffixLine, GearCompare, WorkBonus, ActiveWork, OutfitSetTotals, StoreToolRow, WornToolLine, PlayerStats, EquipDelta, CraftQuality,
+  GearMaker, GearMakerView, GearStatRow, GearSpecial } from '@guildwright/engine';
 /** Gear overhaul 2026-11-12: see gear-overhaul-contract.md "Engine interface". */
 export type { GearDetail, StatLine, EffectLine, GearInfo, GearSection, FightSlot, OutfitSet, OutfitPiece, EffectId, SkillGroup, WornAt, GearItem, GearPiece,
-  EquipResult, RepairResult, RepairAllResult, AffixLine, GearCompare, WorkBonus, ActiveWork, OutfitSetTotals, StoreToolRow, WornToolLine, PlayerStats, EquipDelta, CraftQuality };
+  EquipResult, RepairResult, RepairAllResult, AffixLine, GearCompare, WorkBonus, ActiveWork, OutfitSetTotals, StoreToolRow, WornToolLine, PlayerStats, EquipDelta, CraftQuality,
+  GearMaker, GearMakerView, GearStatRow, GearSpecial };
 /** Engine summary (items, xp, gold, skills, bestFind, loot, goldBySource, ...) plus the real seconds away added by the worker. */
 export type OfflineSummary = EngineOfflineSummary & { awaySec?: number };
 
@@ -122,6 +124,7 @@ export type Req =
   | { id: string; type: 'salvagePreview'; uids: string[]; allowProtected: boolean }
   | { id: string; type: 'salvage'; uids: string[]; allowProtected: boolean }
   | { id: string; type: 'gearDetail'; uid: string }
+  | { id: string; type: 'gearPreview'; itemId: string; rarity?: string; quality?: number }
   | { id: string; type: 'lockIn' }
   | { id: string; type: 'unlock' }
   | { id: string; type: 'buyListing'; listingId: string; qty: number }

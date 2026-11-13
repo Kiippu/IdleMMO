@@ -112,6 +112,8 @@ export const engineClient = {
     rpc<SalvageResult>({ id: nextId(), type: 'salvage', uids, allowProtected }),
   /** stats, affixes and a compare against the piece worn in the same slot; null when the uid is gone */
   gearDetail: (uid: string) => rpc<GearDetail | null>({ id: nextId(), type: 'gearDetail', uid }),
+  /** gear card for a piece you don't own (shop offer): uid ''; default Common, Rough (shop pieces) */
+  gearPreview: (itemId: string, rarity?: string, quality?: number) => rpc<GearDetail | null>({ id: nextId(), type: 'gearPreview', itemId, rarity, quality }),
   lockIn: () => rpc<{ ok: boolean; reason?: string; warnings?: string[] }>({ id: nextId(), type: 'lockIn' }),
   unlock: () => rpc<{ ok: boolean; reason?: string }>({ id: nextId(), type: 'unlock' }),
   buyListing: (listingId: string, qty: number) =>

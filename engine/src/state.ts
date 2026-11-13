@@ -5,7 +5,7 @@
 import { ctx } from './context';
 import { E, SLOTS, LOG_CAP, D, arr, num, cfg, skillDefs, item, action, clamp, zeros5, gradeOf, rarityDef, grades } from './core';
 import { addItem } from './inventory';
-import { makeGear, clampHp, emptyOutfit, emptyTools, sectionOf, maxDurOf, affixDef } from './gear';
+import { makeGear, clampHp, emptyOutfit, emptyTools, sectionOf, maxDurOf, affixDef, normMaker } from './gear';
 import { OUTFIT_SETS, OUTFIT_PIECES, TOOL_SKILLS, ROLL_MIN, ROLL_MAX } from './data/gear/model';
 import { isGearCraft } from './actions';
 import { makeCrew, loadCrew } from './crew-assist';
@@ -50,14 +50,14 @@ E.newState = function () {
   });
   arr(st.gear).forEach((g) => {
     const id = typeof g === 'string' ? g : g && g.itemId; if (!item(id)) return;
-    const ge = makeGear(s, id, 0, typeof g === 'object' && g.quality != null ? g.quality : 50);
+    const ge = makeGear(s, id, 0, typeof g === 'object' && g.quality != null ? g.quality : 50, { maker: { kind: 'starter' } });
     if (typeof g === 'string' || g.equip !== false) E.equip(s, ge.uid);
   });
   // a free Common tool (Standard) of the starter tier in every tool slot
   const toolTier = num(st.toolTier, 1);
   TOOL_SKILLS.forEach((skill) => {
     const id = Object.keys(D().items || {}).find((k) => { const it = item(k); return it && it.section === 'tool' && it.toolSkill === skill && num(it.tier, 1) === toolTier; });
-    if (id) { const g = makeGear(s, id, 0, 50); g.starter = true; s.tools[skill] = g.uid; } // a loaner: can't be sold or salvaged
+    if (id) { const g = makeGear(s, id, 0, 50, { maker: { kind: 'starter' } }); g.starter = true; s.tools[skill] = g.uid; } // a loaner: can't be sold or salvaged
   });
   s.hp = E.playerStats(s).maxHp;
   const b = E.currentBoss(s); s.raid.bossHp = b ? Math.max(1, num(b.hp, 1)) : 0;
@@ -167,6 +167,7 @@ export function normGearPiece(g) {
   if (sec === 'fight') { out.maxDur = Math.max(1, num(g.maxDur, maxDurOf(rarity, affixes))); out.dur = clamp(num(g.dur, out.maxDur), 0, out.maxDur); }
   else if (sec === 'tool') out.cond = clamp(num(g.cond, 100), 1, 100);
   if (g.starter === true) out.starter = true;
+  const mk = normMaker(g.maker); if (mk) out.maker = mk; // additive (gear card): pieces made before it show no maker
   return out;
 }
 export const hasLS = () => ctx.storage != null;

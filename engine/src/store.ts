@@ -193,7 +193,7 @@ E.storeBuy = function (state, slot, qty) {
   const uids = [];
   if (x.kind === 'gear') {
     const got = [];
-    for (let k = 0; k < qty; k++) { const g = makeGear(state, x.itemId, 0, GEAR_QUALITY); uids.push(g.uid); got.push({ itemId: g.itemId, qty: 1, grade: gradeOf(g.quality), rarity: g.rarity, uid: g.uid }); }
+    for (let k = 0; k < qty; k++) { const g = makeGear(state, x.itemId, 0, GEAR_QUALITY, { maker: { kind: 'shop' } }); uids.push(g.uid); got.push({ itemId: g.itemId, qty: 1, grade: gradeOf(g.quality), rarity: g.rarity, uid: g.uid }); }
     emitGain('buy', got);
   } else { addItem(state, x.itemId, x.grade, qty); emitGain('buy', [{ itemId: x.itemId, qty, grade: x.grade }]); }
   const gradeTxt = x.kind === 'gear' ? '' : ` (${(grades()[x.grade] || {}).name || 'Standard'})`;
