@@ -10,7 +10,7 @@
   import { reducedMotion, settings } from '../settings.svelte';
   import { craftCardOn } from '../settings-core';
   import { play } from '../sound';
-  import ItemIcon from '../art/ItemIcon.svelte';
+  import GearCard from './GearCard.svelte';
   import { DATA } from '@guildwright/engine';
   import { gradeName } from '../engine/grades';
   import { craftReward, enqueueRewards, nextReward, skipRewards } from './rewardQueue.svelte';
@@ -110,7 +110,7 @@
 <svelte:window onkeydown={onKey} />
 
 {#if cur}
-  <div class="cr" class:still={reduced()} role="dialog" aria-modal="true" aria-labelledby="cr-title" style:--ink-r={`var(--r-${cur.rarity})`} style:--rays={rays} style:--glow={`${24 + rank * 14}px`}>
+  <div class="cr" class:still={reduced()} role="dialog" aria-modal="true" aria-label={name || `${cur.rarity} craft`} style:--ink-r={`var(--r-${cur.rarity})`} style:--rays={rays} style:--glow={`${24 + rank * 14}px`}>
     <div class="rays a" aria-hidden="true"></div>
     <div class="rays b" aria-hidden="true"></div>
     <div class="halo" aria-hidden="true"></div>
@@ -121,25 +121,16 @@
       {#if !reduced()}<div class="back" aria-hidden="true"><svg viewBox="0 0 32 32" width="64" height="64" shape-rendering="crispEdges"><path d="M16 3 L19 13 L29 16 L19 19 L16 29 L13 19 L3 16 L13 13 Z" fill="currentColor"/><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>{/if}
       <div class="card">
         <p class="kick">{cap(cur.rarity)} craft{craftReward.total > 1 ? ` · ${step} of ${craftReward.total}` : ''}</p>
-        <span class="tile" aria-hidden="true"><ItemIcon id={cur.itemId} size={32} rarity={cur.rarity} grade={cur.grade} /></span>
-        <h2 id="cr-title">{name || '…'}</h2>
         {#if kind}<p class="meta kind">{kind}</p>{/if}
-        <p class="meta">{cap(cur.rarity)}{detail ? ` · ${detail.gradeName}` : cur.grade != null ? ` · ${gradeName(cur.grade)}` : ''}</p>
-
         {#if detail}
-          {#if detail.stats?.length}<ul class="st">{#each detail.stats as s (s.key)}<li><span>{s.label}</span><b class="num">{s.value}{(s as any).unit === 'pct' ? '%' : ''}</b></li>{/each}</ul>{/if}
-          {#if detail.effects?.length}<ul class="af ef">{#each detail.effects as e (e.key)}<li>{e.text}</li>{/each}</ul>{/if}
-          {#if detail.affixes.length}<ul class="af">{#each detail.affixes as a (a.id)}<li>{a.label}</li>{/each}</ul>{/if}
-          <div class="cmp">
-            {#if detail.compare}
-              <p class="ch">Compared to <span style:color={`var(--r-${detail.compare.rarity})`}>{detail.compare.name}</span>{cmpAt ? ` (${cmpAt})` : ''}</p>
-              <ul>{#each detail.compare.diff as d (d.key)}<li class:up={d.delta > 0} class:dn={d.delta < 0}><span>{d.label}</span><b class="num">{d.mine} <small>(was {d.theirs})</small> <span class="ar">{d.delta > 0 ? '▲' : d.delta < 0 ? '▼' : '='} {sign(d.delta)}{d.delta === 0 ? '' : fmt(d.delta)}</span></b></li>{/each}
-              {#each detail.effects ?? [] as e (e.key)}{@const w = detail.compare.effects?.find((x) => x.key === e.key)}{#if w}{@const dl = Math.round((e.value - w.value) * 100) / 100}<li class="ef2" class:up={dl > 0} class:dn={dl < 0}><span>{e.label}</span><b class="num">{e.value}{e.unit === 'pct' ? '%' : ''} <small>(was {w.value}{w.unit === 'pct' ? '%' : ''})</small> <span class="ar">{dl > 0 ? '▲' : dl < 0 ? '▼' : '='} {sign(dl)}{dl === 0 ? '' : fmt(dl)}</span></b></li>{/if}{/each}</ul>
-            {:else if !detail.equipped}<p class="ch">{emptyAt}</p>{/if}
-          </div>
+          <GearCard detail={detail as any} />
+          {#if !detail.compare && !detail.equipped}<p class="ch">{emptyAt}</p>
+          {:else if detail.compare}<p class="ch">Compared to <span style:color={`var(--r-${detail.compare.rarity})`}>{detail.compare.name}</span>{cmpAt ? ` (${cmpAt})` : ''}</p>{/if}
           {#if finals.length}<ul class="fin">{#each finals as f (f.key)}<li class:up={f.to > f.now} class:dn={f.to < f.now}><span>{effName(f.key)} (skill total)</span><b class="num">{f.to}{f.key === 'quality' ? '' : '%'} <small>(now {f.now}{f.key === 'quality' ? '' : '%'})</small></b></li>{/each}</ul>{/if}
         {:else if loadedFor}
           <p class="meta">Details unavailable.</p>
+        {:else}
+          <p class="meta">{name || '…'}</p>
         {/if}
 
         <p class="hold">Your job is paused while this card is open.</p>
@@ -171,8 +162,8 @@
   .still .rays, .still .halo { animation: none; }
   @media (prefers-reduced-motion: reduce) { .rays, .halo, .sparks i { animation: none; } .cr { animation: none; } }
 
-  .stage { position: relative; width: 100%; max-width: 328px; padding: max(32px, env(safe-area-inset-top)) 32px max(32px, env(safe-area-inset-bottom)); max-height: 100%; overflow-y: auto; perspective: 900px; }
-  .card { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 12px 10px; border-radius: var(--rad-lg); backface-visibility: hidden; min-height: 280px; align-content: start; background: var(--paper); border: 2px solid var(--ink-r); box-shadow: 0 0 var(--glow) color-mix(in srgb, var(--ink-r) 60%, transparent); }
+  .stage { position: relative; width: 100%; max-width: 340px; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); max-height: 100%; overflow-y: auto; perspective: 900px; }
+  .card { display: grid; gap: 6px; justify-items: center; text-align: center; backface-visibility: hidden; align-content: start; min-height: 280px; }
   .flipper { position: relative; transform-style: preserve-3d; transform: rotateY(180deg); }
   .flipper.up { transform: none; }
   .flipper.anim.up { animation: flip 600ms ease-out; }
@@ -180,17 +171,12 @@
   .back { position: absolute; inset: 0; display: grid; place-items: center; transform: rotateY(180deg); backface-visibility: hidden; color: var(--paper); border-radius: var(--rad-lg);
     background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--ink-r) 82%, #000) 0 6px, var(--ink-r) 6px 12px); border: 3px solid color-mix(in srgb, var(--ink-r) 60%, #fff); box-shadow: 0 0 var(--glow) color-mix(in srgb, var(--ink-r) 60%, transparent); }
   .kick { margin: 0; font: 700 var(--t-xs)/1 var(--f-label, var(--f-body)); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-r); }
-  .tile { display: grid; place-items: center; width: 60px; height: 60px; border: 2px solid var(--ink-r); background: var(--sunk); }
-  h2 { margin: 0; font: 600 var(--t-lg)/1.15 var(--f-display); color: var(--ink-r); }
   .meta { margin: 0; color: var(--ink-2); font-size: var(--t-sm); }
-  ul { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 4px; }
-  li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; border-radius: var(--rad-sm); background: var(--sunk); border: 1px solid var(--rule); font-size: var(--t-sm); color: var(--ink); text-align: left; }
-  .af li { color: var(--ink-2); font-size: var(--t-xs); justify-content: flex-start; gap: 4px; }
-  .cmp { width: 100%; display: grid; gap: 4px; }
+  ul.fin { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 4px; }
+  .fin li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; border-radius: var(--rad-sm); background: var(--sunk); border: 1px solid var(--rule); font-size: var(--t-sm); text-align: left; }
   .ch { margin: 4px 0 0; color: var(--ink-2); font-size: var(--t-sm); text-align: left; }
   .fin li.up b { color: var(--ok); } .fin li.dn b { color: var(--bad, var(--warn)); }
   .meta.kind { font: 700 var(--t-xs)/1.2 var(--f-label, var(--f-body)); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); }
-  .cmp li.up b { color: var(--ok); } .cmp li.dn b { color: var(--bad, var(--warn)); }
   small { color: var(--ink-3); font-size: var(--t-xs); font-weight: 400; }
 .hold { margin: 0; color: var(--ink-2); font-size: var(--t-sm); }
   .btns { display: flex; gap: 8px; width: 100%; margin-top: 6px; flex-wrap: wrap; }

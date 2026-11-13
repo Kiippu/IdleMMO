@@ -123,9 +123,30 @@ def parse_spec(spec, item_tint):
     return src, tint, st
 
 
+def fit16(im):
+    """32px pack icon -> crisp 16px: trim, area-shrink to fit a 14px box, hard alpha, centred on 16px (then x2 by normalise_to_32)."""
+    im = im.convert('RGBA')
+    box = im.getchannel('A').point(lambda v: 255 if v >= 128 else 0).getbbox()
+    if box: im = im.crop(box)
+    k = 14 / max(im.size)
+    im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.BOX)
+    px = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            px[x, y] = (r, g, b, 255) if a >= 110 else (0, 0, 0, 0)
+    out = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    out.alpha_composite(im, ((16 - im.width) // 2, (16 - im.height) // 2))
+    return out
+
+
 def make_icon(spec, item_tint=None, grey=False):
+    small = 'fit16' in spec.split()
+    spec = ' '.join(t for t in spec.split() if t != 'fit16')
     src, tint, st = parse_spec(spec, item_tint)
-    im = normalise_to_32(Image.open(crop_path(src)), False if src.split(':')[0] in ('sv', 'own') else 'auto')
+    base = Image.open(crop_path(src))
+    if small: base = fit16(base)
+    im = normalise_to_32(base, 'auto' if small else (False if src.split(':')[0] in ('sv', 'own') else 'auto'))
     if tint:
         im = tint_image(im, tint, st)
     if grey:

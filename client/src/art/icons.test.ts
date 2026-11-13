@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DATA } from '@guildwright/engine';
-import { ICONS, resolveIcon, resolveNamed } from './icons';
+import { ICONS, resolveIcon, resolveNamed, STAT_ICON_KEYS } from './icons';
 
 const items: Record<string, any> = (DATA as any).items;
 const total = ICONS.cols * ICONS.rows;
@@ -25,6 +25,13 @@ describe('icon atlas manifest', () => {
   });
   it('names the non-item icons the UI needs', () => {
     for (const n of ['gold', 'bond', 'hourglass', 'bag', 'chest']) expect(ICONS.named[n]).toBeDefined();
+  });
+});
+
+describe('stat icons', () => {
+  it('has every stat, element, effect and badge icon in the atlas', () => {
+    for (const k of STAT_ICON_KEYS) { expect(ICONS.named[k], k).toBeDefined(); expect(resolveNamed(k).fallback, k).toBe(false); }
+    expect(new Set(STAT_ICON_KEYS.map((k) => ICONS.named[k])).size).toBe(STAT_ICON_KEYS.length);
   });
 });
 

@@ -132,6 +132,14 @@ named = {
  'fight:fight_golems': '04/13', 'fight:fight_roost': '04/62', 'fight:fight_shrine': '07/29', 'fight:fight_marsh': '04/37',
  'fight:fight_spire': '07/10', 'fight:fight_chapel': '07/33', 'fight:fight_barrow': '14/0',
 }
+# 16px stat icons and maker badges (drawn at 16px, x2 into the 32 cell; StatIcon shows them at 16 or 32)
+stat = {
+ 'stat_atk': 'own:stat_atk', 'stat_def': '15/6', 'stat_heal': '15/57', 'stat_hp': '03/1',
+ 'el_fire': '15/33', 'el_frost': '15/2', 'el_venom': '15/0', 'el_holy': 'own:stat_el_holy', 'ward': '15/22',
+ 'fx_speed': '15/3', 'fx_double': 'own:stat_fx_double', 'fx_save': 'own:stat_fx_save', 'fx_quality': '03/2', 'fx_find': '06/88', 'fx_rarity': 'own:stat_fx_rarity',
+ 'badge_crafted': '06/67', 'badge_raid': '15/39', 'badge_starter': '14/49', 'badge_shop': '08/9',
+}
+named.update({k: v + ' fit16' if not v.startswith('own:') else v for k, v in stat.items()})
 def norm(d):
     out = {}
     for k, v in d.items():

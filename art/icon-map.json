@@ -353,6 +353,25 @@
   "fight:fight_marsh": "sv:04/37",
   "fight:fight_spire": "sv:07/10",
   "fight:fight_chapel": "sv:07/33",
-  "fight:fight_barrow": "sv:14/0"
+  "fight:fight_barrow": "sv:14/0",
+  "stat_atk": "own:stat_atk",
+  "stat_def": "sv:15/6 fit16",
+  "stat_heal": "sv:15/57 fit16",
+  "stat_hp": "sv:03/1 fit16",
+  "el_fire": "sv:15/33 fit16",
+  "el_frost": "sv:15/2 fit16",
+  "el_venom": "sv:15/0 fit16",
+  "el_holy": "own:stat_el_holy",
+  "ward": "sv:15/22 fit16",
+  "fx_speed": "sv:15/3 fit16",
+  "fx_double": "own:stat_fx_double",
+  "fx_save": "own:stat_fx_save",
+  "fx_quality": "sv:03/2 fit16",
+  "fx_find": "sv:06/88 fit16",
+  "fx_rarity": "own:stat_fx_rarity",
+  "badge_crafted": "sv:06/67 fit16",
+  "badge_raid": "sv:15/39 fit16",
+  "badge_starter": "sv:14/49 fit16",
+  "badge_shop": "sv:08/9 fit16"
  }
 }
