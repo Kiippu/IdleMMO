@@ -27,18 +27,21 @@
   // Ticks every second. Game clock = last engine clock + wall time since it arrived, so the countdown never stalls between engine updates.
   let wall = $state(Date.now());
   onMount(() => { const t = setInterval(() => (wall = Date.now()), 1000); return () => clearInterval(t); });
-  let anchor = { eng: 0, wall: Date.now() };
+  let anchor = $state({ eng: engine.derived?.now ?? 0, wall: Date.now() });
   let engNow = $derived<number | null>(engine.derived?.now ?? null);
   $effect(() => { if (engNow != null) anchor = { eng: engNow, wall: Date.now() }; });
-  let now = $derived<number>(engNow == null ? wall : anchor.eng + Math.max(0, wall - anchor.wall));
-  let leftSec = $derived(store ? Math.max(0, Math.ceil((store.refreshesAt - now) / 1000)) : 0);
+  let now = $derived<number>(engNow == null || !anchor.eng ? wall : anchor.eng + Math.max(0, wall - anchor.wall));
+  let rawLeft = $derived(store ? Math.ceil((store.refreshesAt - now) / 1000) : NaN);
+  // Never show a countdown that can't be right (clock not synced yet): stock rolls hourly, so valid is 0..1h.
+  let clockOk = $derived(Number.isFinite(rawLeft) && rawLeft > -5 && rawLeft <= 3605);
+  let leftSec = $derived(clockOk ? Math.max(0, rawLeft) : 0);
   const fmtClock = (sec: number) => {
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
     const p = (n: number) => String(n).padStart(2, '0');
     return h ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
   };
   const speakLeft = (sec: number) => (sec >= 3600 ? `${Math.floor(sec / 3600)} hours ` : '') + (sec >= 60 ? `${Math.floor((sec % 3600) / 60)} minutes` : `${sec} seconds`);
-  const backIn = (sec: number) => (sec >= 60 ? `${Math.ceil(sec / 60)}m` : `${Math.max(1, sec)}s`);
+  const backIn = (sec: number) => (!clockOk ? 'soon' : sec >= 60 ? `${Math.ceil(sec / 60)}m` : `${Math.max(1, sec)}s`);
   let gold = $derived(Math.floor(snap?.gold ?? 0));
   let inv = $derived<Record<string, number[]>>(snap?.inv ?? {});
   let gear = $derived<any[]>(snap?.gear ?? []);
@@ -146,9 +149,9 @@
 {#if !store}
   <p class="muted">The shutters are down. Check back shortly.</p>
 {:else}
-  <div class="restock card" role="timer" aria-label="New stock in {speakLeft(leftSec)}">
+  <div class="restock card" role="timer" aria-label={clockOk ? `New stock in ${speakLeft(leftSec)}` : 'New stock timer'}>
     <svg class="clk" viewBox="0 0 16 16" width="22" height="22" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.2V8l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg>
-    <span class="rtxt"><span class="rl">New stock in</span><span class="rt num">{fmtClock(leftSec)}</span></span>
+    <span class="rtxt"><span class="rl">New stock in</span><span class="rt num">{clockOk ? fmtClock(leftSec) : '--:--'}</span></span>
     <span class="have">You have <span class="num brass">{fmtG(gold)}</span></span>
   </div>
   {#if anyFresh}<p class="newcue" role="status">New stock has arrived. Look for the tags.</p>{/if}
@@ -166,7 +169,7 @@
         {#if isNew && !out}<span class="newtag">New</span>{/if}
         <span class="sq" style:color={`var(--r-${rarity})`} style:border-color={`var(--r-${rarity})`} aria-hidden="true"><ItemIcon id={itemId} {rarity} /></span>
         <span class="nm">{name}</span>
-        {#if out}<span class="soldout"><span>Sold out</span><span class="back num">Back in {backIn(leftSec)}</span></span>{:else}<span class="price num">{fmtG(price)}</span>{/if}
+        {#if out}<span class="soldout"><span>Sold out</span><span class="back num">{clockOk ? 'Back in ' : 'Back '}{backIn(leftSec)}</span></span>{:else}<span class="price num">{fmtG(price)}</span>{/if}
       </button>
     </li>
   {/snippet}
