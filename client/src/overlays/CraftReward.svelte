@@ -11,6 +11,7 @@
   import { craftCardOn } from '../settings-core';
   import { play } from '../sound';
   import GearCard from './GearCard.svelte';
+  import LootFrame from '../ui-art/reveal/LootFrame.svelte';
   import { DATA } from '@guildwright/engine';
   import { gradeName } from '../engine/grades';
   import { craftReward, enqueueRewards, nextReward, skipRewards } from './rewardQueue.svelte';
@@ -118,7 +119,8 @@
 
     <div class="stage">
       <div class="flipper" class:up={reduced() || !!loadedFor} class:anim={!reduced()}>
-      {#if !reduced()}<div class="back" aria-hidden="true"><svg viewBox="0 0 32 32" width="64" height="64" shape-rendering="crispEdges"><path d="M16 3 L19 13 L29 16 L19 19 L16 29 L13 19 L3 16 L13 13 Z" fill="currentColor"/><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>{/if}
+      {#if !reduced()}<div class="back" aria-hidden="true"><LootFrame {rank} back still={false}><svg viewBox="0 0 32 32" width="64" height="64" shape-rendering="crispEdges"><path d="M16 3 L19 13 L29 16 L19 19 L16 29 L13 19 L3 16 L13 13 Z" fill="currentColor"/><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="1"/></svg></LootFrame></div>{/if}
+      <LootFrame {rank} still={reduced()}>
       <div class="card">
         <p class="kick">{cap(cur.rarity)} craft{craftReward.total > 1 ? ` · ${step} of ${craftReward.total}` : ''}</p>
         {#if kind}<p class="meta kind">{kind}</p>{/if}
@@ -140,6 +142,7 @@
           <button type="button" class="btn" onclick={nextReward}>Nice</button>
         </div>
       </div>
+      </LootFrame>
       </div>
     </div>
   </div>
@@ -163,13 +166,12 @@
   @media (prefers-reduced-motion: reduce) { .rays, .halo, .sparks i { animation: none; } .cr { animation: none; } }
 
   .stage { position: relative; width: 100%; max-width: 340px; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); max-height: 100%; overflow-y: auto; perspective: 900px; }
-  .card { display: grid; gap: 6px; justify-items: center; text-align: center; backface-visibility: hidden; align-content: start; min-height: 280px; }
+  .card { display: grid; gap: 6px; justify-items: center; text-align: center; backface-visibility: hidden; align-content: start; min-height: 260px; }
   .flipper { position: relative; transform-style: preserve-3d; transform: rotateY(180deg); }
   .flipper.up { transform: none; }
   .flipper.anim.up { animation: flip 600ms ease-out; }
   @keyframes flip { from { transform: rotateY(180deg) scale(.94); } 80% { transform: rotateY(0) scale(1.05); } to { transform: rotateY(0) scale(1); } }
-  .back { position: absolute; inset: 0; display: grid; place-items: center; transform: rotateY(180deg); backface-visibility: hidden; color: var(--paper); border-radius: var(--rad-lg);
-    background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--ink-r) 82%, #000) 0 6px, var(--ink-r) 6px 12px); border: 3px solid color-mix(in srgb, var(--ink-r) 60%, #fff); box-shadow: 0 0 var(--glow) color-mix(in srgb, var(--ink-r) 60%, transparent); }
+  .back { position: absolute; inset: 0; transform: rotateY(180deg); backface-visibility: hidden; }
   .kick { margin: 0; font: 700 var(--t-xs)/1 var(--f-label, var(--f-body)); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-r); }
   .meta { margin: 0; color: var(--ink-2); font-size: var(--t-sm); }
   ul.fin { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 4px; }
