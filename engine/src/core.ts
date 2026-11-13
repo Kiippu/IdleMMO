@@ -7,18 +7,18 @@ import { ctx } from './context';
 // ---------------------------------------------------------------- data access
 export const CFG_DEFAULTS = {
   saveKey: 'guildwright-proto-v1', startingGold: 150, xpMult: 4, xpCurveMult: 1, offlineCapSec: 43200, maxLevel: 99,
-  marketTax: 0.05, pityThreshold: 40,
+  marketTax: 0.05, pityThreshold: 40, rarityNonCommonCap: 0.6,
   baseHp: 120, hpPerCombatLevel: 8,
   // Every action's `sec` is multiplied by this factor at actionTimeWith. Phase 2.5 sets it
   // to 1 (the prototype's pace, owner's call). One knob — change here to retune.
   speedFactor: 1
 };
 export const RARITY_DEFAULTS = [
-  { id: 'common', name: 'Common', baseChance: 0.70, affixSlots: 0, statMult: 1.00, durability: 100, valueMult: 1 },
-  { id: 'uncommon', name: 'Uncommon', baseChance: 0.22, affixSlots: 1, statMult: 1.15, durability: 130, valueMult: 2.5 },
-  { id: 'rare', name: 'Rare', baseChance: 0.065, affixSlots: 2, statMult: 1.30, durability: 160, valueMult: 8 },
-  { id: 'epic', name: 'Epic', baseChance: 0.013, affixSlots: 3, statMult: 1.50, durability: 200, valueMult: 30 },
-  { id: 'legendary', name: 'Legendary', baseChance: 0.002, affixSlots: 4, statMult: 1.75, durability: 300, valueMult: 120 },
+  { id: 'common', name: 'Common', baseChance: 0.85, affixSlots: 0, statMult: 1.00, durability: 100, valueMult: 1 },
+  { id: 'uncommon', name: 'Uncommon', baseChance: 0.11, affixSlots: 1, statMult: 1.15, durability: 130, valueMult: 2.5 },
+  { id: 'rare', name: 'Rare', baseChance: 0.0325, affixSlots: 2, statMult: 1.30, durability: 160, valueMult: 8 },
+  { id: 'epic', name: 'Epic', baseChance: 0.0065, affixSlots: 3, statMult: 1.50, durability: 200, valueMult: 30 },
+  { id: 'legendary', name: 'Legendary', baseChance: 0.001, affixSlots: 4, statMult: 1.75, durability: 300, valueMult: 120 },
   { id: 'mythic', name: 'Mythic', baseChance: 0, affixSlots: 5, statMult: 2.10, durability: 400, valueMult: 500 }
 ];
 export const GRADE_DEFAULTS = [
