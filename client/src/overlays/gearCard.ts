@@ -72,6 +72,26 @@ export const isGilt = (rarity: string) => ['epic', 'legendary', 'mythic'].includ
 export function footerText(d: CardDetail, itemName: (id: string) => string = (id) => id): { gold: number | null; salvage: string | null; note: string | null } {
   const gold = d.sellPrice ?? d.value ?? null;
   if (d.sellPrice === 0) return { gold: null, salvage: null, note: "Starter kit: can't be sold or salvaged" };
-  const parts = (d.salvage ?? []).slice(0, 2).map((s) => `${s.qtyMin === s.qtyMax ? s.qtyMin : `${s.qtyMin}–${s.qtyMax}`} ${plural(itemName(s.itemId), s.qtyMax).toLowerCase()}`);
+  const parts = (d.salvage ?? []).slice(0, 2).map((s) => `${s.qtyMin === s.qtyMax ? s.qtyMin : s.qtyMin <= 0 ? `up to ${s.qtyMax}` : `${s.qtyMin}–${s.qtyMax}`} ${plural(itemName(s.itemId), s.qtyMax).toLowerCase()}`);
   return { gold, salvage: parts.length ? `Salvage: ${parts.join(', ')}` : null, note: null };
 }
+
+// ---- Affix roll colours (engine AffixLine): secondary affixes carry valueText, rangeText, rollPct, rollTier ('common'..'legendary');
+// the primary line has `primary: true`; Enduring has `fixed: true`; neither has roll fields (plain line, no pip, not tappable).
+export type RollAffix = { id: string; name: string; label: string; primary?: boolean; fixed?: boolean; valueText?: string; rangeText?: string; rollPct?: number; rollTier?: string };
+const TIERS = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+/** rollTier -> the rarity ink token: grey, green, blue, purple, orange. */
+export const tierInk = (tier: string | undefined | null): string | null => (tier && TIERS.includes(tier) ? `var(--r-${tier})` : null);
+/** "top 5% roll": 1 - rollPct as a whole percent, never below 1%. */
+export const topPct = (rollPct: number) => Math.max(1, Math.round((1 - rollPct) * 100));
+/** Split "Savage: Attack +21" into the name part and the value part (the value is what gets the roll colour). */
+export function splitAffix(label: string): { head: string; value: string } {
+  const i = label.indexOf(': ');
+  return i < 0 ? { head: '', value: label } : { head: label.slice(0, i + 1), value: label.slice(i + 2) };
+}
+/** Detail line: "+3.3% · range +2.4% to +3.6% · top 5% roll" (null for primary, fixed or range-less lines). */
+export function affixDetail(a: RollAffix): string | null {
+  if (a.primary || a.fixed || !a.rangeText || a.rollPct == null) return null;
+  return `${a.valueText ?? ''} · range ${a.rangeText} · top ${topPct(a.rollPct)}% roll`.replace(/^ · /, '');
+}
+export const isPrimaryAffix = (a: RollAffix, i: number) => (a.primary ?? i === 0);

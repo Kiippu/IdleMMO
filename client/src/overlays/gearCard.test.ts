@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { footerText, cardRows, elementLines, arrow, arrowText, makerText, isGilt, statIconKey, type CardDetail } from './gearCard';
+import { tierInk, topPct, splitAffix, affixDetail, isPrimaryAffix, footerText, cardRows, elementLines, arrow, arrowText, makerText, isGilt, statIconKey, type CardDetail } from './gearCard';
 
 const base = { uid: 'u', itemId: 'steel_sword', name: 'Steel sword', section: 'fight', slot: 'weapon', type: 'sword', material: 'steel', tier: 3, rarity: 'rare', grade: 2, gradeName: 'Fine', value: 120, worn: null, equipped: false, inLoadout: false, effects: [], affixes: [], repair: null, compare: null } as any;
 
@@ -31,5 +31,18 @@ describe('gear card helpers', () => {
     expect(makerText({ kind: 'unknown' })).toBeNull(); expect(makerText(undefined)).toBeNull();
     expect(isGilt('rare')).toBe(false); expect(isGilt('epic')).toBe(true);
     expect(statIconKey('ward_holy')).toBe('ward'); expect(statIconKey('hp')).toBe('stat_hp');
+  });
+  it('roll colours: tier ink, top percent, detail line', () => {
+    expect(['common', 'uncommon', 'rare', 'epic', 'legendary'].map(tierInk)).toEqual(['common', 'uncommon', 'rare', 'epic', 'legendary'].map((r) => `var(--r-${r})`));
+    expect(tierInk(undefined)).toBeNull(); expect(tierInk('mythic')).toBeNull();
+    expect(topPct(0.95)).toBe(5); expect(topPct(1)).toBe(1); expect(topPct(0.2)).toBe(80);
+    expect(splitAffix('Savage: Attack +21')).toEqual({ head: 'Savage:', value: 'Attack +21' }); expect(splitAffix('Hale')).toEqual({ head: '', value: 'Hale' });
+    expect(affixDetail({ id: 'a', name: 'x', label: 'x', valueText: '+3.3%', rangeText: '+2.4% to +3.6%', rollPct: 0.95 })).toBe('+3.3% · range +2.4% to +3.6% · top 5% roll');
+    expect(affixDetail({ id: 'a', name: 'x', label: 'x', primary: true })).toBeNull(); expect(affixDetail({ id: 'e', name: 'Enduring', label: 'x', fixed: true })).toBeNull();
+    expect(isPrimaryAffix({ id: 'a', name: '', label: '' }, 0)).toBe(true); expect(isPrimaryAffix({ id: 'a', name: '', label: '', primary: false }, 0)).toBe(false);
+  });
+  it('salvage with a zero minimum reads "up to"', () => {
+    const t = footerText({ sellPrice: 10, salvage: [{ itemId: 'x', grade: 1, qtyMin: 0, qtyMax: 1 }] } as any, () => 'Yew plank');
+    expect(t.salvage).toBe('Salvage: up to 1 yew plank');
   });
 });

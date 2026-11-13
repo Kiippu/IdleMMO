@@ -35,7 +35,7 @@ export type { EngineContext, SaveStorage } from './context';
 export { mulberry32, memoryStorage, ctx } from './context';
 export { DATA, H, ECON } from './data';
 // pure display helpers (gear overhaul): the one work-effect format and the one stat wording, main-thread safe
-export { fmtEffect, fmtEffectNum, effectShown, statText, fmtHpNow, fmtHpTotal, fmtHpAmount, fmtHpDelta } from './gear';
+export { fmtEffect, fmtEffectNum, effectShown, statText, fmtHpNow, fmtHpTotal, fmtHpAmount, fmtHpDelta, rollTierOf } from './gear';
 export { plural } from './core';
 
 /** The engine object (GW.Engine in the prototype). */

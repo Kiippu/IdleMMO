@@ -519,7 +519,29 @@ export interface RepairAllResult { ok: boolean; reason: string; gold: number; co
 export interface StatLine { key: string; label: string; value: number; unit?: 'pts' | 'pct'; /** statText(key, value), e.g. "Fire damage +3.3%" */ text?: string }
 /** value in display units: 1.5 = +1.5% when unit is 'pct', points when 'pts'. text e.g. "Speed +1.2%". */
 export interface EffectLine { key: EffectId | string; label: string; value: number; unit: 'pct' | 'pts'; text: string }
-export interface AffixLine { id: string; name: string; key: string; value: number; unit: 'pct' | 'pts'; label: string }
+export type RollTier = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export interface AffixLine {
+  id: string; name: string; key: string; value: number; unit: 'pct' | 'pts'; label: string;
+  /** the rarity bonus line (first): no roll fields */
+  primary?: boolean;
+  /** Enduring (+20% max durability) is fixed: no roll fields */
+  fixed?: boolean;
+  // ---- affix roll colours (secondary affixes only; owner 2026-11-13). Range = tier value x 0.8 … x 1.2.
+  /** lowest / highest value this affix can roll on this item (shown units) */
+  min?: number; max?: number;
+  /** "+2" / "+0.24%" / "+4.0%" (same formatter as the value) */
+  minText?: string; maxText?: string;
+  /** "+2 to +3" */
+  rangeText?: string;
+  /** the rolled value, formatted ("+3", "+0.33%") */
+  valueText?: string;
+  /** where the roll sits in its range, 0..1 ((roll - 0.8) / 0.4) */
+  rollPct?: number;
+  /** colour band: < 0.40 common, < 0.70 uncommon, < 0.88 rare, < 0.97 epic, else legendary (E.rollTierOf / rollTierOf) */
+  rollTier?: RollTier;
+}
+/** roll band for a position 0..1 in an affix's range */
+export function rollTierOf(pct: number): RollTier;
 export interface GearCompare {
   uid: string; name: string; rarity: string; grade: number;
   /** the slot this piece would go into (what equip(uid) replaces) */
