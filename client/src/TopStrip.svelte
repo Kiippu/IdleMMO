@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fmtHpNow, fmtHpTotal } from './engine/format';
   // Sticky status strip: gold, health, raid timer and the Menu cog. The running job lives under the Workshop scene.
   import { engine } from './engine/store.svelte';
   import { fmtG, fmtN, fmtDuration } from './format';
@@ -45,10 +46,10 @@
 
 <header class="strip">
   {#if snap}<span class="gold" aria-label="Gold {fmtG(snap.gold)}">{fmtG(Math.floor(shownGold ?? snap.gold))}</span>{/if}
-  <span class="hp" role="img" aria-label="Health {fmtN(hp)} of {fmtN(maxHp)}">
+  <span class="hp" role="img" aria-label="Health {fmtHpNow(hp)} of {fmtHpTotal(maxHp)}">
     <svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true" shape-rendering="crispEdges"><path d="M2 1h4v1h1v1h2V2h1V1h4v1h1v5h-1v1h-1v1h-1v1h-1v1H9v1H7v-1H6v-1H5v-1H4V8H3V7H2V2z" fill="var(--hp)"/></svg>
     <span class="hpbar"><span class="hpfill" style="width: {Math.round(hpPct * 100)}%"></span></span>
-    <span class="num">{fmtN(hp)}/{fmtN(maxHp)}</span>
+    <span class="num">{fmtHpNow(hp)}/{fmtHpTotal(maxHp)}</span>
   </span>
   {#if chip}<span class="chip" class:live={chip.live}>{chip.text}</span>{/if}
   <button type="button" class="btn cog" onclick={onMenu} aria-label="Menu">

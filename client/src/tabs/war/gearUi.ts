@@ -1,6 +1,6 @@
 // Shared labels and helpers for the three Loadout sections (Fight, Work outfit, Tools). Numbers are shown as the engine returns them.
 import { DATA } from '@guildwright/engine';
-import { fmtEffect as engineFmtEffect, statText } from '../../engine/format';
+import { fmtEffect as engineFmtEffect, statText, fmtHpDelta } from '../../engine/format';
 
 export const FIGHT_SLOTS = ['weapon', 'offhand', 'head', 'chest', 'legs', 'ring1', 'ring2', 'amulet'] as const;
 export type FightSlot = (typeof FIGHT_SLOTS)[number];
@@ -61,7 +61,7 @@ export function fightDeltaChips(dl: any): DeltaChip[] {
   const sign = (d: number) => (d > 0 ? '+' : '−');
   for (const k of ['atk', 'def', 'heal', 'hp', 'power'] as const) {
     const d = Math.round((dl[k] ?? 0) * 10) / 10;
-    if (d) out.push({ d, text: `${sign(d)}${Math.abs(d)} ${STAT_LABEL[k]}` });
+    if (d) out.push({ d, text: k === 'hp' ? `${fmtHpDelta(d)} ${STAT_LABEL[k]}` : `${sign(d)}${Math.abs(d)} ${STAT_LABEL[k]}` });
   }
   for (const [e, v] of Object.entries<number>(dl.elements ?? {})) { const d = Math.round(v * 10) / 10; if (d) out.push({ d, text: statText(e, d) }); }
   for (const [e, v] of Object.entries<number>(dl.wards ?? {})) { const d = Math.round(v * 10) / 10; if (d) out.push({ d, text: statText(`ward_${e}`, d) }); }

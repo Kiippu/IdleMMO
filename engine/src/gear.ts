@@ -257,6 +257,26 @@ export function wearTool(state, skillId, secs) {
   return before >= 50 && g.cond < 50;
 }
 
+// ---------------------------------------------------------------- health display (owner 2026-11-13)
+// Health is stored with one decimal (steps of 0.2) so fights match the x10 maths exactly; the screen shows:
+//   current HP rounded UP (never "0" while alive), max HP and totals rounded to whole,
+//   small amounts (gear lines, change chips, heals, hits) with one decimal under 10 and whole from 10 up; never "+0".
+const hpR1 = (v) => Math.round(v * 10) / 10;
+/** current HP: rounded up, so a living hero never shows 0 */
+export function fmtHpNow(v) { const n = num(v, 0); return n <= 0 ? '0' : String(Math.ceil(hpR1(n))); }
+/** max HP and totals: nearest whole number */
+export function fmtHpTotal(v) { return String(Math.round(num(v, 0))); }
+/** small HP amounts (unsigned): "0.2", "3.6", "17", "24" */
+export function fmtHpAmount(v) {
+  const a = Math.abs(hpR1(num(v, 0)));
+  if (a === 0) return '0';
+  if (a < 10) return Number.isInteger(a) ? String(a) : a.toFixed(1);
+  return String(Math.round(a));
+}
+/** signed HP change for chips and compares: "+0.2", "−3.6", "+17" */
+export function fmtHpDelta(v) { const n = num(v, 0); return (n < 0 ? '−' : '+') + fmtHpAmount(n); }
+E.fmtHpNow = fmtHpNow; E.fmtHpTotal = fmtHpTotal; E.fmtHpAmount = fmtHpAmount; E.fmtHpDelta = fmtHpDelta;
+
 // ---------------------------------------------------------------- names, values, labels
 const STAT_LABEL = { atk: 'Attack', def: 'Defence', heal: 'Healing', hp: 'Max HP' };
 export const statLabel = (key) => STAT_LABEL[key] || (key.startsWith('ward_') ? `${elementLabel(key.slice(5))} resistance` : elements().includes(key) ? `${elementLabel(key)} damage` : key);
@@ -264,7 +284,7 @@ const isPts = (k) => ['atk', 'def', 'heal', 'hp'].includes(k);
 /** the ONE stat wording: "Attack +47", "Max HP +150", "Fire damage +3.3%" (share of weapon damage), "Fire resistance +2.0%" */
 export function statText(key, value) {
   const v = num(value, 0); const sign = v < 0 ? '−' : '+';
-  if (key === 'hp') { const a = Math.abs(Math.round(v * 10) / 10); return `${statLabel(key)} ${sign}${Number.isInteger(a) ? a : a.toFixed(1)}`; } // HP can carry one decimal
+  if (key === 'hp') return `${statLabel(key)} ${sign}${fmtHpAmount(Math.abs(v))}`;
   return isPts(key) ? `${statLabel(key)} ${sign}${Math.abs(Math.round(v))}` : `${statLabel(key)} ${sign}${Math.abs(Math.round(v * 10) / 10).toFixed(1)}%`;
 }
 E.statText = statText;

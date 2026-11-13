@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fmtHpAmount } from '../engine/format';
   import { untrack } from 'svelte';
   import ItemIcon from '../art/ItemIcon.svelte';
   // The one item sheet: what it is, how it is made, where it comes from, what uses it, and what you can do with it.
@@ -84,7 +85,7 @@
   let offerCmp = $derived.by(() => (offer ? buyDetail({ kind: 'gear', itemId: ref!.itemId, rarity: offerRarity }).replace(/^[^.]*\.\s*/, '') : ''));
   let rarity = $derived<string>(hint ? 'common' : g?.rarity ?? (offer ? offerRarity : null) ?? (ref ? itemRarity[ref.itemId] : null) ?? 'common');
 
-  const statLine = (id: string) => Object.entries(itemsMap[id]?.stats ?? {}).filter(([, v]) => v).map(([k, v]) => `+${v} ${STAT_NAME[k] ?? k}`).join(', ');
+  const statLine = (id: string) => Object.entries(itemsMap[id]?.stats ?? {}).filter(([, v]) => v).map(([k, v]) => `+${k === 'hp' ? fmtHpAmount(Number(v)) : v} ${STAT_NAME[k] ?? k}`).join(', ');
   // Full gear card from the engine (stats, affixes, compare). Falls back to base stats until it loads.
   type StatLine = { key: string; label: string; value: number; unit?: 'pts' | 'pct' };
   type EffectLine = { key: string; label: string; value: number; unit: 'pct' | 'pts'; text: string };
@@ -193,7 +194,7 @@
   let panelActs = $derived<Action[]>(act && act.kind !== 'combat' ? [act] : ref?.uid || offer ? [] : recipes);
   const KIND_LABEL: Record<string, string> = { gather: 'Gather', refine: 'Refine', craft: 'Craft', combat: 'Fight' };
   // Rough damage per kill from the engine's own formula: dmg x ~1.2, less 30% of defence.
-  const hitDmg = (a: Action) => Math.max(1, Math.round(((a.enemy as any)?.dmg ?? 1) * 1.2 - (view?.playerStats?.def ?? 0) * 0.3));
+  const hitDmg = (a: Action) => Math.max(0.2, ((a.enemy as any)?.dmg ?? 1) * 1.2 - (view?.playerStats?.def ?? 0) * 0.3);
   const maxHp = $derived<number>(view?.playerStats?.maxHp ?? 0);
   function toShop() { closeItem(); ui.goTab = 'Shop'; }
 
@@ -250,7 +251,7 @@
         <dl class="facts">
           <div><dt>Time per kill</dt><dd class="num">{fmtSecs(timeOf(fightAct) ?? 0)}</dd></div>
           <div><dt>XP per kill</dt><dd class="num">{fmtN(fightAct.xp ?? 0)}</dd></div>
-          <div><dt>Damage risk</dt><dd class="num">about {hitDmg(fightAct)} per kill · {fmtN(Math.floor(maxHp / hitDmg(fightAct)))} kills from full health</dd></div>
+          <div><dt>Damage risk</dt><dd class="num">about {fmtHpAmount(hitDmg(fightAct))} per kill · {fmtN(Math.floor(maxHp / hitDmg(fightAct)))} kills from full health</dd></div>
         </dl>
         {#if fightAct.drops?.length}<p class="meta">Drops: {#each fightAct.drops as d, i}{#if i}, {/if}{@render link(d.item)}{/each}</p>{/if}
         {@render startCtl(fightAct)}
@@ -370,7 +371,7 @@
         <section class="gear" aria-label="Shop offer">
           <p class="meta"><span style:color={`var(--r-${offerRarity})`}>{cap(offerRarity)}</span> · Rough · for sale</p>
           {#if statLine(ref.itemId)}
-            <dl class="facts">{#each Object.entries(it.stats ?? {}).filter(([, v]) => v) as [k, v] (k)}<div><dt>{cap(STAT_NAME[k] ?? k)}</dt><dd class="num">+{v}</dd></div>{/each}</dl>
+            <dl class="facts">{#each Object.entries(it.stats ?? {}).filter(([, v]) => v) as [k, v] (k)}<div><dt>{cap(STAT_NAME[k] ?? k)}</dt><dd class="num">+{k === 'hp' ? fmtHpAmount(Number(v)) : v}</dd></div>{/each}</dl>
           {/if}
           {#if it.effects?.length}
             <h3>Effects</h3>
