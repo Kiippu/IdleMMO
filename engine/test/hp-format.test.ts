@@ -10,6 +10,9 @@ describe('health display', () => {
     expect(fmtHpNow(137.4)).toBe('138');
     expect(fmtHpNow(137)).toBe('137');
     expect(fmtHpNow(0)).toBe('0');
+    expect(fmtHpNow(217.4, 217.4)).toBe('217'); // full health never reads 218/217
+    expect(fmtHpNow(217.2, 217.4)).toBe('217');
+    expect(fmtHpNow(0.2, 217.4)).toBe('1');
   });
   it('max HP and totals are whole', () => {
     expect(fmtHpTotal(137.4)).toBe('137');

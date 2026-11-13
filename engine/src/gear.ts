@@ -263,7 +263,13 @@ export function wearTool(state, skillId, secs) {
 //   small amounts (gear lines, change chips, heals, hits) with one decimal under 10 and whole from 10 up; never "+0".
 const hpR1 = (v) => Math.round(v * 10) / 10;
 /** current HP: rounded up, so a living hero never shows 0 */
-export function fmtHpNow(v) { const n = num(v, 0); return n <= 0 ? '0' : String(Math.ceil(hpR1(n))); }
+export function fmtHpNow(v, max?) {
+  const n = num(v, 0); if (n <= 0) return '0';
+  const up = Math.ceil(hpR1(n));
+  if (max == null) return String(up);
+  const top = Math.round(num(max, 0)); // never show more than the max shown beside it (218/217)
+  return String(Math.max(1, Math.min(up, top)));
+}
 /** max HP and totals: nearest whole number */
 export function fmtHpTotal(v) { return String(Math.round(num(v, 0))); }
 /** small HP amounts (unsigned): "0.2", "3.6", "17", "24" */
