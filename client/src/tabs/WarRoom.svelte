@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fmtHpNow, fmtHpTotal } from '../engine/format';
   import ItemIcon from '../art/ItemIcon.svelte';
   import BossPortrait from '../scene/BossPortrait.svelte';
   import { DATA } from '@guildwright/engine';
@@ -248,7 +249,7 @@
       </article>
       {#if stats}
         <dl class="stats">
-          <div><dt>HP</dt><dd class="num">{fmtN(hp)} / {fmtN(stats.maxHp)}</dd></div>
+          <div><dt>HP</dt><dd class="num">{fmtHpNow(hp)} / {fmtHpTotal(stats.maxHp)}</dd></div>
           <div><dt>Attack</dt><dd class="num">{fmtN(Math.round(stats.atk))}</dd></div>
           <div><dt>Defence</dt><dd class="num">{fmtN(Math.round(stats.def))}</dd></div>
           <div><dt>Heal</dt><dd class="num">{fmtN(Math.round(stats.heal))}</dd></div>

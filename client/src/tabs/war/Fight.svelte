@@ -9,7 +9,7 @@
   import { ui } from '../../ui.svelte';
   import HeroPreview from './HeroPreview.svelte';
   import { groupGear, protectedUids } from './gearStack';
-  import { statText } from '../../engine/format';
+  import { statText, fmtHpTotal } from '../../engine/format';
   import { FIGHT_SLOTS, SLOT_LABEL, ELEMENTS, fightTags, fightDeltaChips, elementName, type FightSlot } from './gearUi';
 
   const SORTS = [['best', 'Best first'], ['rarity', 'Rarity'], ['name', 'Name'], ['new', 'Newest']] as const;
@@ -117,7 +117,7 @@
   </ul>
   {#if stats}
     <dl class="stats">
-      <div><dt>HP</dt><dd class="num">{fmtN(Math.round(stats.maxHp))}</dd></div>
+      <div><dt>HP</dt><dd class="num">{fmtHpTotal(stats.maxHp)}</dd></div>
       <div><dt>Attack</dt><dd class="num">{fmtN(Math.round(stats.atk))}</dd></div>
       <div><dt>Defence</dt><dd class="num">{fmtN(Math.round(stats.def))}</dd></div>
       <div><dt>Healing</dt><dd class="num">{fmtN(Math.round(stats.heal))}</dd></div>

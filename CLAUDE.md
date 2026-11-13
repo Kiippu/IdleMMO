@@ -86,7 +86,9 @@ Game design
     Fight durability 100/130/160/200/300/400. Stats AND boss requirements are shown x10 (boss 1 needs 300 power).
     Health is on its own x2 scale (owner 2026-11-13): base HP 120, +8 per combat level, chest HP 0.5 x defence, food heals
     and enemy damage = old values / 5; computed on the x10 scale then divided by 5, so outcomes match exactly (HP can show
-    one decimal, steps of 0.2; test engine/test/hp-scale.test.ts).
+    one decimal, steps of 0.2; test engine/test/hp-scale.test.ts). Display (owner 2026-11-13): engine fmtHpNow (current HP
+    rounded up, never 0 while alive), fmtHpTotal (max HP and totals whole), fmtHpAmount / fmtHpDelta (one decimal under 10,
+    whole from 10; never +0). Use them for every HP number on screen.
   - Swift is removed. Tags foraging/hunting/speed/quality are replaced by effect ids speed, double, save, quality, find, rarity.
     The `boundTo` auto-equip-on-start and the flat 14-affix list are gone.
   - Tools wear but never break: condition 100 to 1, -3% / -5% / -8% action speed below 50 / 25 / 10%. Repair is gold only,

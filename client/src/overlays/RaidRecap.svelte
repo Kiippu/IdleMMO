@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fmtHpTotal } from '../engine/format';
   import ItemIcon from '../art/ItemIcon.svelte';
   import BossPortrait from '../scene/BossPortrait.svelte';
   // Full-screen raid recap, in mockup order. Gold only: no coin, raid tokens or pity tokens.
@@ -107,7 +108,7 @@
         <h3>Crew stock, per member</h3>
         <ul class="rows">
           {#each members as m}
-            <li><span>{m.name ?? m.who}</span><small class="num">healed {fmtN(m.healed ?? 0)} · buffed {fmtN(m.buffed ?? 0)} · +{fmtN(m.credit ?? 0)} credit</small></li>
+            <li><span>{m.name ?? m.who}</span><small class="num">healed {fmtHpTotal(m.healed ?? 0)} · buffed {fmtN(m.buffed ?? 0)} · +{fmtN(m.credit ?? 0)} credit</small></li>
           {/each}
         </ul>
       </section>
