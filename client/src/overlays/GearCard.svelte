@@ -6,7 +6,8 @@
   import ItemIcon from '../art/ItemIcon.svelte';
   import { DATA } from '@guildwright/engine';
   import { resolveNamed } from '../art/icons';
-  import { cardRows, elementLines, arrow, arrowText, makerText, makerIcon, footerText, isGilt, type CardDetail } from './gearCard';
+  import { fmtG } from '../format';
+  import { cardRows, elementLines, arrow, arrowText, makerText, makerIcon, footerText, isGilt, tierInk, splitAffix, affixDetail, isPrimaryAffix, type CardDetail, type RollAffix } from './gearCard';
 
   type Props = { detail: CardDetail; compare?: boolean; salvageHint?: string | null };
   let { detail, compare = true, salvageHint = null }: Props = $props();
@@ -20,6 +21,8 @@
   let specials = $derived(detail.specials ?? []);
   let scoreDelta = $derived(compare ? detail.compare?.scoreDelta ?? null : null);
   let foot = $derived(footerText(detail, (id) => (DATA as any).items?.[id]?.name ?? id));
+  let openRow = $state<Record<string, boolean>>({});
+  const toggle = (id: string) => { openRow[id] = !openRow[id]; };
   let gilt = $derived(isGilt(detail.rarity));
   // Stat icons are 16px art from the atlas (art agent); until a key exists in the atlas a plain dot stands in.
   const hasIcon = (k: string) => { try { return !resolveNamed(k).fallback; } catch { return false; } };
@@ -62,7 +65,20 @@
   {#if detail.lore}<p class="lore">{detail.lore}</p>{/if}
 
   {#if detail.affixes?.length}
-    <ul class="aff">{#each detail.affixes as a, i (a.id)}<li class:first={i === 0}>{a.label}</li>{/each}</ul>
+    <ul class="aff">{#each detail.affixes as a, i (a.id)}
+      {@const ra = a as unknown as RollAffix}
+      {@const sp = splitAffix(a.label)}
+      {@const prim = isPrimaryAffix(ra, i)}
+      {@const ink = prim || ra.fixed ? null : tierInk(ra.rollTier)}
+      {@const dt = prim ? null : affixDetail(ra)}
+      <li class:first={prim}>
+        {#if dt}
+          <button type="button" class="arow" aria-expanded={!!openRow[a.id]} onclick={() => toggle(a.id)}>
+            <span class="atxt">{#if sp.head}{sp.head + '\u00a0'}{/if}<b class="av" style:color={ink ?? undefined}>{sp.value}</b>{#if ink}<i class="pip" style:background={ink} aria-hidden="true"></i>{/if}</span>
+          </button>
+          {#if openRow[a.id]}<p class="adet num">{dt}</p>{/if}
+        {:else}<span class="atxt">{sp.head ? sp.head + '\u00a0' : ''}<b class="av" style:color={ink ?? undefined}>{sp.value}</b>{#if ink}<i class="pip" style:background={ink} aria-hidden="true"></i>{/if}</span>{/if}
+      </li>{/each}</ul>
   {/if}
 
   {#if specials.length}
@@ -72,7 +88,7 @@
     </section>
   {/if}
 
-  <footer class="foot">{#if foot.note}<span class="hint">{foot.note}</span>{:else}{#if foot.gold != null}<span class="sell">Sells for <b class="gold num">{foot.gold}g</b></span>{/if}{#if salvageHint ?? foot.salvage}<span class="hint">{salvageHint ?? foot.salvage}</span>{/if}{/if}</footer>
+  <footer class="foot">{#if foot.note}<span class="hint">{foot.note}</span>{:else}{#if foot.gold != null}<span class="sell">Sells for <b class="gold num">{fmtG(foot.gold)}</b></span>{/if}{#if salvageHint ?? foot.salvage}<span class="hint">{salvageHint ?? foot.salvage}</span>{/if}{/if}</footer>
 </article>
 
 <style>
@@ -124,11 +140,21 @@
   .aff { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
   .aff li { position: relative; padding-left: 12px; font-size: var(--t-sm); color: var(--ink-2); }
   .aff li::before { content: ''; position: absolute; left: 2px; top: .5em; width: 5px; height: 5px; background: var(--ink-3); }
+  .arow { position: relative; display: flex; align-items: center; width: 100%; height: 28px; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; }
+  .av { font-weight: 700; } .aff li:not(.first) .av { font-weight: 700; }
+  .aff li:has(.arow) { padding-left: 0; } .aff li:has(.arow)::before { display: none; }
+  /* 44px hit area on a 28px row: 8px above and below; rows sit 8px apart so the hit boxes only overlap inside the gap */
+  .arow::after { content: ''; position: absolute; inset: -8px 0; }
+  .aff:has(.arow) { gap: 8px; }
+  .arow::before { content: ''; flex: none; width: 5px; height: 5px; margin: 0 7px 0 2px; background: var(--ink-3); }
+  .adet { padding-left: 14px; }
+  .pip { display: inline-block; width: 7px; height: 7px; margin-left: 6px; vertical-align: middle; }
+  .adet { margin: 0 0 4px; font-size: var(--t-xs); color: var(--ink-3); }
   .aff li.first { color: var(--ink); font-weight: 700; } .aff li.first::before { background: var(--ink-r); }
   .spec { padding: 6px 8px; border: 1px dashed var(--brass-fill); background: color-mix(in srgb, var(--brass-fill) 10%, var(--sunk)); border-radius: var(--rad-sm); }
   .spec h4 { margin: 0 0 2px; font: 400 var(--t-xs)/1 var(--f-label); text-transform: uppercase; letter-spacing: .05em; color: var(--brass); }
   .spec p { margin: 0; font-size: var(--t-sm); color: var(--ink); } .spec b { color: var(--brass); }
   .foot { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-top: 4px; border-top: 1px solid var(--rule); }
-  .sell { font-size: var(--t-sm); color: var(--ink-2); } .gold { font-weight: 700; color: var(--brass); }
+  .sell { font-size: var(--t-sm); color: var(--ink-2); white-space: nowrap; } .gold { font-weight: 700; color: var(--brass); }
   .hint { font-size: var(--t-xs); color: var(--ink-3); text-align: right; }
 </style>

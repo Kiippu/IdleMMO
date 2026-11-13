@@ -90,11 +90,11 @@ export interface Derived {
 import type { OfflineSummary as EngineOfflineSummary, RecapView, CrewActivity, SellListRow, DisabledReasons, GearDetail, StatLine, EffectLine, GearInfo,
   GearSection, FightSlot, OutfitSet, OutfitPiece, EffectId, SkillGroup, WornAt, GearItem, GearPiece, EquipResult, RepairResult, RepairAllResult,
   AffixLine, GearCompare, WorkBonus, ActiveWork, OutfitSetTotals, StoreToolRow, WornToolLine, PlayerStats, EquipDelta, CraftQuality,
-  GearMaker, GearMakerView, GearStatRow, GearSpecial } from '@guildwright/engine';
+  GearMaker, GearMakerView, GearStatRow, GearSpecial, RollTier } from '@guildwright/engine';
 /** Gear overhaul 2026-11-12: see gear-overhaul-contract.md "Engine interface". */
 export type { GearDetail, StatLine, EffectLine, GearInfo, GearSection, FightSlot, OutfitSet, OutfitPiece, EffectId, SkillGroup, WornAt, GearItem, GearPiece,
   EquipResult, RepairResult, RepairAllResult, AffixLine, GearCompare, WorkBonus, ActiveWork, OutfitSetTotals, StoreToolRow, WornToolLine, PlayerStats, EquipDelta, CraftQuality,
-  GearMaker, GearMakerView, GearStatRow, GearSpecial };
+  GearMaker, GearMakerView, GearStatRow, GearSpecial, RollTier };
 /** Engine summary (items, xp, gold, skills, bestFind, loot, goldBySource, ...) plus the real seconds away added by the worker. */
 export type OfflineSummary = EngineOfflineSummary & { awaySec?: number };
 

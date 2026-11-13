@@ -339,6 +339,21 @@ E.gearValue = function (g) {
   const it = g && item(g.itemId); if (!it) return 0;
   return Math.max(1, Math.round(num(it.value, 1) * num(rarityDef(g.rarity).valueMult, 1) * gradeMult(gradeOf(g.quality)) * wearFactor(g)));
 };
+// ---- affix roll colours (owner 2026-11-13): where a SECONDARY affix's roll sits in its range
+// Range = the affix's tier value x ROLL_MIN (0.8) … x ROLL_MAX (1.2) (rounded the same way as the value itself).
+// rollPct = (roll - 0.8) / 0.4; bands by position: < 0.40 common, < 0.70 uncommon, < 0.88 rare, < 0.97 epic, else legendary.
+export const ROLL_TIERS = [{ below: 0.40, tier: 'common' }, { below: 0.70, tier: 'uncommon' }, { below: 0.88, tier: 'rare' }, { below: 0.97, tier: 'epic' }];
+export function rollTierOf(pct) { const p = num(pct, 0); for (const b of ROLL_TIERS) if (p < b.below) return b.tier; return 'legendary'; }
+E.rollTierOf = rollTierOf;
+const affixText = (d, v) => (d.kind === 'work' ? fmtEffect(v, (effectDef(d.key) || {}).unit === 'pts' ? 'pts' : 'pct') : statText(d.key, v).slice(statLabel(d.key).length + 1));
+function rollRange(it, af) {
+  const d = affixDef(af && af.id);
+  const min = affixValue(it, { id: af.id, roll: ROLL_MIN }); const max = affixValue(it, { id: af.id, roll: ROLL_MAX });
+  const rollPct = clamp((num(af.roll, 1) - ROLL_MIN) / (ROLL_MAX - ROLL_MIN), 0, 1);
+  const minShown = d.kind === 'work' ? effectShown(min) : min; const maxShown = d.kind === 'work' ? effectShown(max) : max;
+  const minText = affixText(d, min), maxText = affixText(d, max);
+  return { min: minShown, max: maxShown, minText, maxText, rangeText: `${minText} to ${maxText}`, valueText: affixText(d, affixValue(it, af)), rollPct: Math.round(rollPct * 1000) / 1000, rollTier: rollTierOf(rollPct) };
+}
 function affixLines(g) {
   const it = item(g.itemId); if (!it) return [];
   const sec = sectionOf(it); const r = rarityIdx(g.rarity);
@@ -351,7 +366,7 @@ function affixLines(g) {
         const raw = baseStatsRaw(it); const parts = [];
         ['atk', 'def', 'heal', 'hp'].forEach((k) => { if (!(raw[k] > 0)) return; const dv = (primaryValue(raw[k], gIdx, r) - primaryValue(raw[k], gIdx, 0)) / (k === 'hp' ? HP_DIV : 1); if (dv) parts.push(statText(k, dv)); });
         const v = primaryValue(raw[it.primary] || 0, gIdx, r) - primaryValue(raw[it.primary] || 0, gIdx, 0);
-        return { id: 'primary', name, key: it.primary, value: v, unit: 'pts', label: `${name}: ${parts.join(', ')}` };
+        return { id: 'primary', primary: true, name, key: it.primary, value: v, unit: 'pts', label: `${name}: ${parts.join(', ')}` };
       }
       const parts = []; let first = null;
       arr(it.effects).forEach((e) => {
@@ -361,12 +376,13 @@ function affixLines(g) {
         parts.push(`${(effectDef(e.id) || {}).name}${e.group ? (e.group === 'gearcraft' ? ' (gear crafts)' : ' (food, potions)') : ''} ${fmtEffect(dv, unit)}`);
       });
       if (!first) return null;
-      return { id: 'primary', name, key: first.key, value: first.value, unit: first.unit, label: `${name}: ${parts.join(', ')}` };
+      return { id: 'primary', primary: true, name, key: first.key, value: first.value, unit: first.unit, label: `${name}: ${parts.join(', ')}` };
     }
-    if (d.key === 'dur') return { id: d.id, name: d.name, key: 'dur', value: ENDURING_PCT, unit: 'pct', label: `${d.name}: +${ENDURING_PCT}% max durability` };
-    const v = affixValue(it, af);
-    if (d.kind === 'work') { const unit = (effectDef(d.key) || {}).unit === 'pts' ? 'pts' : 'pct'; return { id: d.id, name: d.name, key: d.key, value: effectShown(v), unit, label: `${d.name}: ${(effectDef(d.key) || {}).name} ${fmtEffect(v, unit)}` }; }
-    return { id: d.id, name: d.name, key: d.key, value: v, unit: isPts(d.key) ? 'pts' : 'pct', label: `${d.name}: ${statText(d.key, v)}` };
+    // Enduring is a fixed +20% max durability: no roll to show (fixed: true)
+    if (d.key === 'dur') return { id: d.id, primary: false, fixed: true, name: d.name, key: 'dur', value: ENDURING_PCT, unit: 'pct', label: `${d.name}: +${ENDURING_PCT}% max durability` };
+    const v = affixValue(it, af); const roll = rollRange(it, af);
+    if (d.kind === 'work') { const unit = (effectDef(d.key) || {}).unit === 'pts' ? 'pts' : 'pct'; return Object.assign({ id: d.id, primary: false, name: d.name, key: d.key, value: effectShown(v), unit, label: `${d.name}: ${(effectDef(d.key) || {}).name} ${fmtEffect(v, unit)}` }, roll); }
+    return Object.assign({ id: d.id, primary: false, name: d.name, key: d.key, value: v, unit: isPts(d.key) ? 'pts' : 'pct', label: `${d.name}: ${statText(d.key, v)}` }, roll);
   }).filter(Boolean);
 }
 

@@ -151,7 +151,6 @@
   const WEAR_AT: Record<number, number> = { 3: 50, 5: 25, 8: 10 };
   const gname = () => (g ? (view?.gearNames?.[g.uid] ?? itemName(g.itemId)) : ref ? itemName(ref.itemId) : '');
   let note = $state('');
-  let salvageHint = $derived(salvageYield ? `Salvage: ${salvageYield}` : null);
   $effect(() => { void ref; note = ''; });
 
   async function equip() {
@@ -275,7 +274,7 @@
   <div class="scrim" onclick={closeItem} role="presentation">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="it-title" tabindex="-1" bind:this={dlg} onclick={(e) => e.stopPropagation()}>
-      <header>
+      <header class:vh={!hint && it?.kind === 'gear' && !!(detail || preview)}>
         <span class="tile" style:--ink-r={`var(--r-${rarity})`} aria-hidden="true"><ItemIcon id={ref.itemId} size={64} rarity={hint ? undefined : rarity} silhouette={hint} /></span>
         <div>
           <h2 id="it-title" style:color={hint ? undefined : `var(--r-${rarity})`}>{hint ? '???' : gname()}{#if !hint && (ref.count ?? 0) > 1} <span class="num cnt">×{fmtN(ref.count ?? 0)}</span>{/if}</h2>
@@ -301,7 +300,7 @@
 
       {#if it.kind === 'gear'}
         {#if detail && g}
-          <GearCard detail={detail as any} compare={!detail.equipped} {salvageHint} />
+          <GearCard detail={detail as any} compare={!detail.equipped} />
           <section class="gear" aria-label="Condition and use">
             <p class="meta">{#if detail.equipped}<b>{detail.section === 'tool' ? 'In use' : 'Worn'}</b>{:else}In your bag{/if}{#if detail.inLoadout && detail.section === 'fight'} · In a loadout{/if}</p>
             {#if detail.section === 'tool' && detail.final}
@@ -447,4 +446,6 @@
   .warn { color: var(--bad); }
   .salv { color: var(--bad); }
   .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  /* gear: the card carries the name and icon; keep the heading for screen readers only */
+  header.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
