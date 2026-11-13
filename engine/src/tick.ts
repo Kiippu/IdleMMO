@@ -13,6 +13,7 @@ import { ensureStore } from './store';
 import { sweepSeen } from './codex';
 import { beginLevelBatch, endLevelBatch } from './skills';
 import { takeGains } from './gains';
+import { stopIfNoTool } from './gear';
 
 // ---------------------------------------------------------------- tick
 export function advanceAction(state, dt, events, maxN) {
@@ -63,6 +64,7 @@ function tickBody(state, dt, opts, events) {
   const act = state.active && action(state.active.actionId);
   if (!act || act.kind !== 'combat') state.hp = Math.min(ps.maxHp, num(state.hp, 0) + ps.maxHp * 0.01 * dt); // gentle regen out of combat
   state.hp = clamp(state.hp, 0, ps.maxHp);
+  stopIfNoTool(state, events); // safety net: an empty tool slot ends the job that needs it (owner 2026-11-14)
   // a held job (craft card on screen) makes no progress; everything else runs. Held time is never credited later.
   if (!(state.active && state.active.jobId) && !(state.active && state.active.held)) advanceAction(state, dt, events, TICK_MAX_COMPLETIONS);
   crewStep(state, dt, events, 1);

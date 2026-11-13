@@ -12,7 +12,7 @@ import { mulberry32 } from './context';
 import { E, SLOTS, arr, num, item, itemsMap, allActions, bosses, clamp, itemName, isStackable, zeros5, fmtGold, lcFirst, grades, gradeOf, qtyName, plural } from './core';
 import { ECON } from './data';
 import { addItem, cleanInv } from './inventory';
-import { findGear, makeGear, isEquipped, sectionOf, IN_USE_REASON, STARTER_REASON, outfitTotals, workBonus } from './gear';
+import { findGear, makeGear, isEquipped, sectionOf, IN_USE_REASON, keepReasonOf, outfitTotals, workBonus } from './gear';
 import { TOOL_SKILLS } from './data/gear/model';
 import { nowOf } from './clock';
 import { lockedNow } from './raid-rules';
@@ -133,7 +133,7 @@ export function storeSellPrice(itemId, grade) {
   if (!item(itemId)) return 0;
   return storeSellLadder(itemId)[gIdx(grade)];
 }
-export function storeGearSellPrice(g) { return g && !g.starter ? Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))) : 0; }
+export function storeGearSellPrice(g) { return g ? Math.max(1, Math.round(E.gearValue(g) * num(ECON.storeSellMult, 0.4))) : 0; }
 E.storeBuyPrice = storeBuyPrice;
 E.storeSellPrice = storeSellPrice;
 
@@ -218,7 +218,7 @@ E.storeSellGear = function (state, uid) {
   const g = findGear(state, uid); const fail = (reason) => ({ ok: false, reason, qty: 0, gold: 0 });
   if (!g) return fail('That item is no longer in your bag.');
   if (isEquipped(state, uid)) return fail(IN_USE_REASON);
-  if (g.starter) return fail(STARTER_REASON);
+  const keep = keepReasonOf(state, g); if (keep) return fail(keep); // the last tool for a skill stays
   if (lockedNow(state) && state.raid.lock && SLOTS.some((s) => state.raid.lock.slots[s] === uid)) return fail('It is locked in for this week\'s raid.');
   const gold = storeGearSellPrice(g); const name = E.gearName(g);
   state.gear = state.gear.filter((x) => x !== g); state.gold = num(state.gold, 0) + gold;

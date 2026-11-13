@@ -4,7 +4,7 @@
 /* eslint-disable */
 import { E, SLOTS, D, arr, num, cfg, grades, item, allActions, bosses, rand, clamp, randInt, pick, lcFirst, itemName, isStackable, nextId, fmtGold, qtyName, plural } from './core';
 import { addItem } from './inventory';
-import { findGear, gearHp } from './gear';
+import { findGear, gearHp, keepReasonOf, stopIfNoTool } from './gear';
 import { SCHEMA, FEED_CAP, TREASURY_LOG_CAP, mulberry, clone, rankDefs, rankDef, invCount, invAdd, invTake, BEST, WORST } from './v4-helpers';
 import { mondayOf, addDays, dayKey, nowOf, ensureClock, schedule } from './clock';
 import { ensureRecord, curRecord } from './server';
@@ -138,6 +138,7 @@ E.vaultDeposit = function (state, a, grade, qty) {
 E.vaultDepositGear = function (state, uid) {
   const c = E.can(state, 'deposit'); if (!c.ok) return Object.assign(c, { loadoutsAffected: [] });
   const g = findGear(state, uid); if (!g) return { ok: false, reason: 'That item is no longer in your bag.', loadoutsAffected: [] };
+  const keep = keepReasonOf(state, g); if (keep) return { ok: false, reason: keep, loadoutsAffected: [] }; // the last tool for a skill stays
   const max0 = E.playerStats(state).maxHp;
   SLOTS.forEach((s) => { if (state.equipped[s] === uid) state.equipped[s] = null; });
   if (state.tools) Object.keys(state.tools).forEach((k) => { if (state.tools[k] === uid) state.tools[k] = null; });
@@ -146,7 +147,8 @@ E.vaultDepositGear = function (state, uid) {
   logTreasury(state, 'deposit', 0, 'You', `Deposited ${E.gearName(g)}`, { itemId: g.itemId, qty: 1, uid: g.uid });
   const affected = arr(state.loadouts).filter((l) => SLOTS.some((s) => l.slots[s] === uid)).map((l) => l.id);
   feedPush(state, 'vault', 'You', `Deposited ${E.gearName(g)}.`);
-  return { ok: true, reason: '', loadoutsAffected: affected };
+  const stopped = stopIfNoTool(state); // depositing the worn tool empties its slot: the job that needs it ends
+  return stopped ? { ok: true, reason: '', loadoutsAffected: affected, stopped } : { ok: true, reason: '', loadoutsAffected: affected };
 };
 E.depositToVault = E.vaultDeposit; E.sendToVault = E.vaultDeposit;
 export function withdrawUsed(state) { const day = dayKey(nowOf(state)); const w = state.crew.withdrawn; return w && w.day === day ? num(w.units, 0) : 0; }

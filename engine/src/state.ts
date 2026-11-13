@@ -57,7 +57,7 @@ E.newState = function () {
   const toolTier = num(st.toolTier, 1);
   TOOL_SKILLS.forEach((skill) => {
     const id = Object.keys(D().items || {}).find((k) => { const it = item(k); return it && it.section === 'tool' && it.toolSkill === skill && num(it.tier, 1) === toolTier; });
-    if (id) { const g = makeGear(s, id, 0, 50, { maker: { kind: 'starter' } }); g.starter = true; s.tools[skill] = g.uid; } // a loaner: can't be sold or salvaged
+    if (id) { const g = makeGear(s, id, 0, 50, { maker: { kind: 'starter' } }); g.starter = true; s.tools[skill] = g.uid; } // starter data (maker line); sold/salvaged like any Common T1 tool (owner 2026-11-14)
   });
   s.hp = E.playerStats(s).maxHp;
   const b = E.currentBoss(s); s.raid.bossHp = b ? Math.max(1, num(b.hp, 1)) : 0;

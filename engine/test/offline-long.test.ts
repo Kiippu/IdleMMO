@@ -39,9 +39,9 @@ describe('long offline catch-up', () => {
   });
 
   it('30 days: fast, deterministic, four or five raids, XP matches offlineRate x the time exactly in bulk', async () => {
-    // gearless, so the time per rep is constant (a worn tool slows reps; covered by the next test)
-    const noTools = (E: any, s: any) => { for (const k of Object.keys(s.tools)) s.tools[k] = null; E.start(s, 'mine_copper'); };
-    const a = await away(30, 7, noTools); const b = await away(30, 7, noTools);
+    // mining needs a tool in its slot (owner 2026-11-14), so the pickaxe stays and wears: the time per rep runs from
+    // fresh (cond 100) to worn (cond 1, 8% slower); the credited time sits between the two
+    const a = await away(30, 7); const b = await away(30, 7);
     expect(a.ms).toBeLessThan(2000);
     expect(a.r.summary).toEqual(b.r.summary);
     expect(a.s.skills).toEqual(b.s.skills);
@@ -49,9 +49,11 @@ describe('long offline catch-up', () => {
     expect(a.s.week).toBeGreaterThanOrEqual(5);
     // ~30d x offlineRate at <=3 s per rep; bulk keeps the yield per rep of the sampled reps
     const reps = a.s.mastery.mine_copper as number;
-    const secPerRep = a.E.actionTime(a.s, 'mine_copper');
-    expect(reps * secPerRep).toBeGreaterThan(30 * 86400 * a.h.mod.DATA.config.offlineRate * 0.95);
-    expect(reps * secPerRep).toBeLessThanOrEqual(30 * 86400 * a.h.mod.DATA.config.offlineRate + 10);
+    const pick = a.s.gear.find((g: any) => g.uid === a.s.tools.mining);
+    pick.cond = 1; const tSlow = a.E.actionTime(a.s, 'mine_copper');
+    pick.cond = 100; const tFast = a.E.actionTime(a.s, 'mine_copper');
+    expect(reps * tSlow).toBeGreaterThan(30 * 86400 * a.h.mod.DATA.config.offlineRate * 0.95);
+    expect(reps * tFast).toBeLessThanOrEqual(30 * 86400 * a.h.mod.DATA.config.offlineRate + 10);
     expect(a.s.skills.mining.xp).toBe(reps * a.h.mod.DATA.actions.find((x: any) => x.id === 'mine_copper').xp * a.h.mod.DATA.config.xpMult);
     expect(a.r.summary.items.copper_ore).toBeGreaterThan(reps * 0.99);
   });

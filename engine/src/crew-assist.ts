@@ -7,7 +7,7 @@ import { E, D, arr, num, cfg, rarities, skillDefs, item, allActions, action, ran
 import { pushEvent } from './events';
 import { addXp } from './skills';
 import { rarityOdds } from './actions';
-import { wearTool } from './gear';
+import { wearTool, noToolReason } from './gear';
 import { schedule } from './clock';
 import { ensureCrewV5 } from './crew-economy';
 import { noteJobDone } from './crew-activity';
@@ -161,6 +161,7 @@ E.canAssist = function (state, jobId) {
   const act = action(job.actionId);
   if (!isJobAction(act)) return { ok: false, reason: 'That job can no longer be worked.' };
   if (E.skillLevel(state, act.skill) < num(act.level, 1)) return { ok: false, reason: `Requires ${skillName(act.skill)} level ${act.level}.` };
+  const nt = noToolReason(state, act.skill); if (nt) return { ok: false, reason: nt, noTool: true }; // assisting works with your own tool
   return { ok: true, reason: '' };
 };
 E.assist = function (state, jobId) {
