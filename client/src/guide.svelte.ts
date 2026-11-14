@@ -1,26 +1,41 @@
-// First-hour guide progress. The engine has no free-form UI slot in the save, so this lives in
-// localStorage (wrapped in try/catch; the guide still works for the session without it).
+// First-hour guide progress. Lives in the engine save (state.guide, via setGuide); `guide` below is a local mirror
+// the components read. On a save from before the field (snapshot.guide === null) the localStorage copy seeds it once.
+import { engine } from './engine/store.svelte';
+import { engineClient } from './engine/client';
+
 const KEY = 'guildwright-guide-v1';
 type Saved = { dismissed: boolean; done: Record<string, boolean>; baseEquipped: string[] | null };
+const EMPTY = (): Saved => ({ dismissed: false, done: {}, baseEquipped: null });
 
-function load(): Saved {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return { dismissed: false, done: {}, baseEquipped: null, ...JSON.parse(raw) };
-  } catch { /* storage blocked */ }
-  return { dismissed: false, done: {}, baseEquipped: null };
+function legacy(): Saved {
+  try { const raw = localStorage.getItem(KEY); if (raw) return { ...EMPTY(), ...JSON.parse(raw) }; } catch { /* storage blocked */ }
+  return EMPTY();
 }
-export const guide = $state<Saved>(load());
+export const guide = $state<Saved>(EMPTY());
 
-function persist() {
-  try { localStorage.setItem(KEY, JSON.stringify($state.snapshot(guide))); } catch { /* ignore */ }
+let seeding = false;
+$effect.root(() => {
+  $effect(() => {
+    const g = (engine.snapshot as any)?.guide as Saved | null | undefined;
+    if (g) { guide.dismissed = !!g.dismissed; guide.done = { ...g.done }; guide.baseEquipped = g.baseEquipped ? [...g.baseEquipped] : null; return; }
+    if (g === null && !seeding) {
+      seeding = true;
+      const l = legacy();
+      Object.assign(guide, l);
+      Promise.resolve(engineClient.setGuide({ dismissed: l.dismissed, done: l.done as Record<string, true>, baseEquipped: l.baseEquipped })).catch((e) => console.error('guide seed failed', e)).finally(() => { seeding = false; });
+    }
+  });
+});
+
+function persist(part: Partial<Saved>) {
+  Promise.resolve(engineClient.setGuide(part as any)).catch((e) => console.error('guide save failed', e));
 }
 export function markDone(id: string) {
   if (guide.done[id]) return;
-  guide.done[id] = true; persist();
+  guide.done[id] = true; persist({ done: { ...guide.done } });
 }
-export function dismissGuide() { guide.dismissed = true; persist(); }
-export function setBaseEquipped(uids: string[]) { guide.baseEquipped = uids; persist(); }
+export function dismissGuide() { guide.dismissed = true; persist({ dismissed: true }); }
+export function setBaseEquipped(uids: string[]) { guide.baseEquipped = uids; persist({ baseEquipped: uids }); }
 
 export type Step = { id: string; text: string; tab: string; selector: string; subs?: any };
 export const STEPS: Step[] = [

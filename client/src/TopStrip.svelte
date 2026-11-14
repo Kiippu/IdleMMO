@@ -2,8 +2,7 @@
   import { fmtHpNow, fmtHpTotal } from './engine/format';
   // Sticky status strip: gold, health, raid timer and the Menu cog. The running job lives under the Workshop scene.
   import { engine } from './engine/store.svelte';
-  import { fmtG, fmtN, fmtDuration } from './format';
-  import { reducedMotion } from './settings.svelte';
+  import { fmtGoldBar, fmtDuration } from './format';
 
   type Props = { onMenu: () => void };
   let { onMenu }: Props = $props();
@@ -24,28 +23,11 @@
     return { text: `Raid ${fmtDuration(raid.secToStart)}`, live: false };
   });
 
-  // Gold counts up (~600ms, eased) a moment after it rises, so it lands with the coin fountain; drops and reduced motion are instant.
-  let shownGold = $state<number | null>(null);
-  $effect(() => {
-    const target = snap?.gold;
-    if (typeof target !== 'number') return;
-    const from = shownGold;
-    if (from == null || target <= from || reducedMotion() || typeof requestAnimationFrame !== 'function') { shownGold = target; return; }
-    let raf = 0, t0 = 0;
-    const DELAY = 900, DUR = 600;
-    const step = (now: number) => {
-      if (!t0) t0 = now;
-      const k = Math.min(1, Math.max(0, (now - t0 - DELAY) / DUR));
-      shownGold = from + (target - from) * (1 - Math.pow(1 - k, 3));
-      if (k < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  });
+  // Gold shows the engine's exact value on the same snapshot as the Shop (no count-up tween: it lagged the Shop by a few g).
 </script>
 
 <header class="strip">
-  {#if snap}<span class="gold" aria-label="Gold {fmtG(snap.gold)}">{fmtG(Math.floor(shownGold ?? snap.gold))}</span>{/if}
+  {#if snap}<span class="gold" aria-label="Gold {fmtGoldBar(snap.gold)}">{fmtGoldBar(snap.gold)}</span>{/if}
   <span class="hp" role="img" aria-label="Health {fmtHpNow(hp, maxHp)} of {fmtHpTotal(maxHp)}">
     <svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true" shape-rendering="crispEdges"><path d="M2 1h4v1h1v1h2V2h1V1h4v1h1v5h-1v1h-1v1h-1v1h-1v1H9v1H7v-1H6v-1H5v-1H4V8H3V7H2V2z" fill="var(--hp)"/></svg>
     <span class="hpbar"><span class="hpfill" style="width: {Math.round(hpPct * 100)}%"></span></span>

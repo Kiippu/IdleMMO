@@ -5,7 +5,7 @@
   import { DATA } from '@guildwright/engine';
   import { engine } from '../engine/store.svelte';
   import { engineClient, type StoreResult } from '../engine/client';
-  import { fmtG, fmtN, fmtDuration, fmtSecs } from '../format';
+  import { fmtG, fmtGoldBar, fmtN, fmtDuration, fmtSecs } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
   import { markDone } from '../guide.svelte';
   import { ui } from '../ui.svelte';
@@ -114,7 +114,7 @@
     const qty = await askNumber({
       title: `Sell ${r.name}`,
       body: `${GRADE_LABEL[r.grade]} · the shop pays ${fmtG(r.price)} each (${sellPct}% of value). Crewmates and contracts pay more.`,
-      number: { min: 1, max: r.qty, value: Math.min(r.qty, 1), label: 'How many?', lines: (n) => [`You get ${fmtG(n * r.price)}`, `Gold after ${fmtG(gold + n * r.price)}`] },
+      number: { min: 1, max: r.qty, value: Math.min(r.qty, 1), label: 'How many?', lines: (n) => [`You get ${fmtG(n * r.price)}`, `Gold after ${fmtGoldBar(gold + n * r.price)}`] },
       confirmLabel: 'Sell',
     });
     if (qty == null) return;
@@ -152,7 +152,7 @@
   <div class="restock card" role="timer" aria-label={clockOk ? `New stock in ${speakLeft(leftSec)}` : 'New stock timer'}>
     <svg class="clk" viewBox="0 0 16 16" width="22" height="22" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.2V8l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg>
     <span class="rtxt"><span class="rl">New stock in</span><span class="rt num">{clockOk ? fmtClock(leftSec) : '--:--'}</span></span>
-    <span class="have">You have <span class="num brass">{fmtG(gold)}</span></span>
+    <span class="have">You have <span class="num brass">{fmtGoldBar(gold)}</span></span>
   </div>
   {#if anyFresh}<p class="newcue" role="status">New stock has arrived. Look for the tags.</p>{/if}
 

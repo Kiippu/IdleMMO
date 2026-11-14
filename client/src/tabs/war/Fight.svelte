@@ -171,7 +171,7 @@
                 <span class="meta">{SLOT_LABEL[it.slot]}{#if it.element} · {elementName(it.element)} damage{/if} · {cap(g.rarity)}{#if it.slot === 'offhand' && twoHand} · needs a one-hand weapon{/if}</span>
                 <span class="deltas">
                   {#if dl.length === 0}<span class="d same">Same as worn</span>
-                  {:else}{#each dl as d}<span class="d num" class:up={d.d > 0} class:down={d.d < 0}>{d.text}</span>{/each}{/if}
+                  {:else}<span class="d same">vs worn:</span>{#each dl as d}<span class="d num" class:up={d.d > 0} class:down={d.d < 0}>{d.text}</span>{/each}{/if}
                 </span>
               </span>
             </button>
@@ -210,8 +210,7 @@
   .search { width: 100%; padding-right: 44px; }
   .clr { position: absolute; right: 0; top: 0; width: 44px; height: 44px; border: 0; background: none; color: var(--ink-2); font: 700 var(--t-lg)/1 var(--f-body); }
   .cyc { flex: none; padding: 0 12px; white-space: nowrap; }
-  .chips { display: flex; gap: 6px; margin-bottom: 6px; overflow-x: auto; scrollbar-width: none; padding-right: 32px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
-  .chips::-webkit-scrollbar { display: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
   .chip { flex: none; padding: 0 12px; white-space: nowrap; }
   .gear { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
   .gear li { display: flex; align-items: stretch; background: var(--paper); border: 1px solid var(--rule); border-left: 3px solid var(--ink-r); }

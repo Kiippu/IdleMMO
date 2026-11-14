@@ -5,7 +5,7 @@
 import { ctx } from './context';
 import { E, OFFLINE_MAX_COMPLETIONS, MARKET_REFRESH_SEC, arr, num, cfg, action, clamp, flags, fmtGold } from './core';
 import { completeOnce, countRep, mainOutput, clearHold } from './actions';
-import { wearTool, findGear, stopIfNoTool } from './gear';
+import { wearTool, findGear, stopIfNoTool, stopIfBrokenWeapon } from './gear';
 import { beginOfflineGains, endOfflineGains, emitGain } from './gains';
 import { crewStep } from './crew-assist';
 import { marketFills } from './tick';
@@ -96,7 +96,7 @@ E.applyOffline = function (state, nowMs) {
   }); };
   flags.quiet = true; beginLevelBatch();
   try {
-    { const ev = []; stopIfNoTool(state, ev); tally(ev); } // a saved job whose tool slot is empty ends cleanly (owner 2026-11-14)
+    { const ev = []; stopIfNoTool(state, ev); stopIfBrokenWeapon(state, ev); tally(ev); } // a saved job whose tool slot is empty ends cleanly (owner 2026-11-14)
     const a = state.active; const act = a && action(a.actionId);
     if (a && !act) state.active = null;
     const solo = !!(a && act && !a.jobId);

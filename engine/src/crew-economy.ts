@@ -13,6 +13,7 @@ import { normRules, lockedNow, raidDoneThisWeek } from './raid-rules';
 import { shuffleWith } from './raid-sim';
 import { gapItem, gapDraft } from './raid-payouts';
 import { pushEvent } from './events';
+import { itemSources } from './store';
 
 // ================================================================ v4: crew economy
 // Week buffs a save may hold: only configured kinds (the market-tax buff was removed 2026-11-09).
@@ -176,10 +177,18 @@ E.vaultWithdrawGear = function (state, uid) {
   feedPush(state, 'vault', 'You', `Withdrew ${E.gearName(g)}.`);
   return { ok: true, reason: '' };
 };
+// Requests to an officer are answered (approved) by the stand-in officers, so they get their own daily cap
+// (friends-test fix 2026-11-14): cfg.withdrawRequestDailyCap units a game day (gear counts 1), counted when asked.
+// crew.requested = { day, units } (additive save field).
+export function requestedToday(state) { const day = dayKey(nowOf(state)); const r = state.crew && state.crew.requested; return r && r.day === day ? num(r.units, 0) : 0; }
+E.requestCapLeft = function (state) { return Math.max(0, Math.floor(num(cfg().withdrawRequestDailyCap, 20)) - requestedToday(state)); };
 E.requestWithdrawal = function (state, spec, note) {
   spec = spec || {}; const cr = state.crew;
   if (spec.uid) { if (!findVaultGear(state, spec.uid)) return { ok: false, reason: 'That item is not in the vault.' }; }
   else { if (!item(spec.itemId)) return { ok: false, reason: 'Unknown item.' }; if (!(num(spec.qty, 0) >= 1)) return { ok: false, reason: 'Ask for at least 1.' }; }
+  const units = spec.uid ? 1 : Math.floor(num(spec.qty, 0)); const capLeft = E.requestCapLeft(state);
+  if (units > capLeft) return { ok: false, reason: capLeft > 0 ? `Daily request limit: ${capLeft} more today.` : 'Daily request limit reached. Ask again tomorrow.', capLeft };
+  cr.requested = { day: dayKey(nowOf(state)), units: requestedToday(state) + units };
   const req = { id: nextId(state, 'W'), who: 'You', isYou: true, itemId: spec.uid ? null : spec.itemId, grade: spec.grade == null ? null : clamp(Math.floor(spec.grade), 0, 4), qty: spec.uid ? 1 : Math.floor(spec.qty), uid: spec.uid || null,
     note: String(note || '').slice(0, 80), t: nowOf(state), status: 'pending', answeredBy: null, answerIn: randInt(45, 100) };
   cr.withdrawRequests.unshift(req); cr.withdrawRequests = cr.withdrawRequests.slice(0, 20);
@@ -315,6 +324,7 @@ export function ensureCrewV5(state) {
   cr.withdrawRequests = arr(cr.withdrawRequests).filter((r) => r && r.id);
   cr.feed = arr(cr.feed).filter((f) => f && f.text).slice(0, FEED_CAP);
   if (!cr.withdrawn || typeof cr.withdrawn !== 'object') cr.withdrawn = { day: '', units: 0 };
+  if (!cr.requested || typeof cr.requested !== 'object') cr.requested = { day: '', units: 0 };
   if (cr.schedule && typeof cr.schedule !== 'object') cr.schedule = null;
 }
 export function ensureV5(state) {
@@ -535,13 +545,27 @@ export function npcFillWindow(state) {
   if (raidDoneThisWeek(state)) return false;
   const clk = E.clock(state); return clk.weekday >= 4 && clk.now < clk.raidStart;
 }
+// Stand-ins fill only what they could plausibly make or gather, at a fair price (friends-test fix 2026-11-14:
+// a 1g/unit request was being half-filled with boss cores). Never raid-only items (cores, boss materials, anything
+// no gather/refine/craft/fight action yields); only contracts paying >= 1x the item's value (at its minimum grade,
+// Standard at least) per unit.
+export function raidOnlyItem(itemId) {
+  const it = item(itemId); if (!it) return true;
+  if (it.kind === 'core') return true;
+  if (bosses().some((b) => b.coreItem === itemId || b.bossMat === itemId)) return true;
+  return !itemSources()[itemId];
+}
+export function npcMayFill(k) {
+  if (!k || raidOnlyItem(k.itemId)) return false;
+  return num(k.rewardPer, 0) >= E.itemValue(k.itemId, Math.max(1, num(k.minGrade, 1)));
+}
 export function npcContractStep(state, dt, events) {
   const cr = state.crew; if (!cr || !cr.members.length) return;
   if (!npcFillWindow(state)) return;
   cr.contractSimIn = num(cr.contractSimIn, 1800) - dt; if (cr.contractSimIn > 0) return;
   cr.contractSimIn = randInt(1800, 3600);
   const share = clamp(num(cfg().contractNpcShare, 0.5), 0, 1);
-  const open = arr(cr.contracts).filter((k) => contractOpenNow(state, k) && contractCapacity(k) > 0 && npcFilled(k) < Math.floor(k.qty * share));
+  const open = arr(cr.contracts).filter((k) => contractOpenNow(state, k) && npcMayFill(k) && contractCapacity(k) > 0 && npcFilled(k) < Math.floor(k.qty * share));
   if (!open.length) return;
   const k = pick(open); const m = pick(cr.members);
   const room = Math.min(Math.floor(k.qty * share) - npcFilled(k), contractCapacity(k));

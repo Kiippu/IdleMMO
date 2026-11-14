@@ -23,6 +23,7 @@ import './crew-economy';
 import './events';
 import './gains';
 import './unlocks';
+import './guide';
 import './readiness';
 import './store';
 import './codex';

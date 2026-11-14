@@ -219,7 +219,7 @@ export function loadCrew(out, rc) {
       }),
       nextPostIn: clamp(num(rc.nextPostIn, 60), 0, 600)
     };
-    ['playerRank', 'vault', 'treasury', 'contracts', 'withdrawRequests', 'feed', 'withdrawn', 'schedule', 'contractSimIn', 'jobsDone'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
+    ['playerRank', 'vault', 'treasury', 'contracts', 'withdrawRequests', 'feed', 'withdrawn', 'requested', 'schedule', 'contractSimIn', 'jobsDone'].forEach((k) => { if (rc[k] !== undefined) out.crew[k] = rc[k]; });
     ensureCrewV5(out);
   } else makeCrew(out);
 }

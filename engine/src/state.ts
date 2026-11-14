@@ -20,6 +20,7 @@ import { ensureEvents } from './events';
 import { normStore } from './store';
 import { sweepSeen, seedSeen } from './codex';
 import { normSeenUnlocks, seedSeenUnlocks } from './unlocks';
+import { emptyGuide, normGuide } from './guide';
 
 // ---------------------------------------------------------------- state lifecycle
 E.newState = function () {
@@ -40,7 +41,9 @@ E.newState = function () {
     // discovery (codex.ts, 2026-11-11): item ids the player has touched
     seen: {},
     // recently unlocked actions the player has dismissed (unlocks.ts, 2026-11-12)
-    seenUnlocks: {}
+    seenUnlocks: {},
+    // first-hour guide progress (guide.ts, 2026-11-14); null on a loaded save that predates it
+    guide: emptyGuide()
   };
   skillDefs().forEach((d) => { s.skills[d.id] = { xp: 0 }; });
   const st = D().starter || {};
@@ -157,6 +160,8 @@ export function migrate(raw) {
   // has already unlocked as seen, so only unlocks gained from now on show up
   out.seenUnlocks = raw.seenUnlocks && typeof raw.seenUnlocks === 'object' && !Array.isArray(raw.seenUnlocks)
     ? normSeenUnlocks(raw.seenUnlocks) : seedSeenUnlocks(out);
+  // guide progress (additive, 2026-11-14): null when the save has none, so the client can seed it once from localStorage
+  out.guide = normGuide(raw.guide);
   return out;
 }
 /** a v8 gear piece, normalised: fight gear keeps dur/maxDur, tools cond (1..100), outfit pieces neither */

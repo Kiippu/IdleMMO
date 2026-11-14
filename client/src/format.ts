@@ -25,6 +25,12 @@ export const fmtG = (n: number): string => {
   return /[kMBT]$/.test(s) ? `${s}\u00a0g` : `${s}g`;
 };
 
+/** Gold for the top bar: exact with separators up to 99,999 (48,000g), compact above (123.4k g). */
+export const fmtGoldBar = (n: number): string => {
+  const v = Math.floor(Number.isFinite(n) ? n : 0);
+  return Math.abs(v) <= 99_999 ? `${v < 0 ? '−' : ''}${Math.abs(v).toLocaleString('en-US')}g` : fmtG(v);
+};
+
 /** True when a raid recap carries the phase 2.5 payout block (older saves' recaps do not). */
 export const hasPayout = (p: any): boolean => !!p && typeof p.pool === 'number' && isFinite(p.pool);
 

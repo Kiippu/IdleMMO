@@ -1,7 +1,7 @@
 <script lang="ts">
   // Shop buy sheet with 1 / 10 / Max quick buttons. Inline errors, no toasts.
   import { engineClient } from '../../engine/client';
-  import { fmtG } from '../../format';
+  import { fmtG, fmtGoldBar } from '../../format';
 
   import { pushBack } from '../../overlays/backStack.svelte';
   type Props = { s: any; gold: number; detail: string; onClose: () => void; onBought: (qty: number, spent: number) => void };
@@ -51,7 +51,7 @@
       <input class="num" type="number" inputmode="numeric" min="1" max={max} value={n} aria-label="Quantity" onchange={(e) => set(Number((e.currentTarget as HTMLInputElement).value))} />
       <button type="button" class="btn" aria-label="More" disabled={n >= max} onclick={() => set(n + 1)}>+</button>
     </div>
-    <ul class="sum num"><li>Total {fmtG(n * s.price)}</li><li>Gold after {fmtG(gold - n * s.price)}</li></ul>
+    <ul class="sum num"><li>Total {fmtG(n * s.price)}</li><li>Gold after {fmtGoldBar(gold - n * s.price)}</li></ul>
     {#if err}<p class="err" role="alert">{err}</p>{/if}
     <div class="actions">
       <button type="button" class="btn ghost" onclick={onClose}>Cancel</button>

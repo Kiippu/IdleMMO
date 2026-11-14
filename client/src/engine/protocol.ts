@@ -98,6 +98,9 @@ export type { GearDetail, StatLine, EffectLine, GearInfo, GearSection, FightSlot
 /** Engine summary (items, xp, gold, skills, bestFind, loot, goldBySource, ...) plus the real seconds away added by the worker. */
 export type OfflineSummary = EngineOfflineSummary & { awaySec?: number };
 
+/** First-hour guide progress saved in the engine save (state.guide). null on a save from before 2026-11-14: seed it once. */
+export interface GuideSave { dismissed: boolean; done: Record<string, true>; baseEquipped: string[] | null }
+
 export type Req =
   | { id: string; type: 'init' }
   | { id: string; type: 'start'; actionId: string; count?: number | null }
@@ -135,6 +138,8 @@ export type Req =
   | { id: string; type: 'postCrewRequest'; spec: { itemId: string; qty: number; rewardPer: number; minGrade?: number; note?: string } }
   | { id: string; type: 'cancelCrewRequest'; contractId: string }
   | { id: string; type: 'switchSpec'; skillId: string }
+  /** guide progress into the save (2026-11-14): fields given replace the saved ones (done is replaced whole). Snapshot: state.guide */
+  | { id: string; type: 'setGuide'; guide: Partial<GuideSave> }
   | { id: string; type: 'export' }
   | { id: string; type: 'import'; code: string }
   | { id: string; type: 'reset' };

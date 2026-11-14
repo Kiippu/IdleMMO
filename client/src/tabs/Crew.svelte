@@ -9,7 +9,7 @@
   import RequestSheet from '../overlays/RequestSheet.svelte';
   
   import { markDone } from '../guide.svelte';
-  import { fmtG, fmtN, fmtAgo } from '../format';
+  import { fmtG, fmtGoldBar, fmtN, fmtAgo } from '../format';
   import { askNumber, confirmSheet, noticeSheet } from '../overlays/confirm.svelte';
 
   let sub = $state<'roster' | 'jobs' | 'contracts' | 'treasury'>('roster');
@@ -190,7 +190,7 @@
         {:else}
           <p class="meta">
             {#if spec.firstPickFree}First pick is free.{:else}Switching costs <span class="brass num">{fmtG(spec.cost)}</span>{H > 0 ? ` (about ${Math.round(spec.cost / H)} h of work)` : ''}; your old skill is capped at level {spec.capLevel} and keeps its XP.{/if}
-            {cooldown.ready ? '' : `Next switch in ${cooldown.text}.`} You have <span class="brass num">{fmtG(gold)}</span>.
+            {cooldown.ready ? '' : `Next switch in ${cooldown.text}.`} You have <span class="brass num">{fmtGoldBar(gold)}</span>.
           </p>
           <div class="row sub">
             <select bind:value={pickSkill} aria-label="New specialization" disabled={(spec.eligible ?? []).length === 0}>
@@ -262,7 +262,7 @@
     <article class="treasury">
       <div class="totals">
         <div><dt>Crew gold</dt><dd>{fmtG(cg.total)}</dd></div>
-        <div><dt>Your gold</dt><dd>{fmtG(gold)}</dd></div>
+        <div><dt>Your gold</dt><dd>{fmtGoldBar(gold)}</dd></div>
       </div>
       <p class="meta">Items you hand in go to the crew stock for raids. Town contracts pay from the crew treasury; crew requests pay from the poster's gold.</p>
       {#if msg}<p class="meta">{msg}</p>{/if}

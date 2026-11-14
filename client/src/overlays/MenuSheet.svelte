@@ -2,7 +2,6 @@
   // One menu for the rarely used things: Log, Save, Credits, Settings.
   import { settings, setSetting } from '../settings.svelte';
   import { CRAFT_RARITIES, type CraftRarity } from '../settings-core';
-  const SHORT: Record<CraftRarity, string> = { uncommon: 'Unc', rare: 'Rare', epic: 'Epic', legendary: 'Leg', mythic: 'Myth' };
   const toggleCard = (r: CraftRarity) => setSetting('craftCards', { ...settings.craftCards, [r]: !settings.craftCards[r] });
   import { CREDITS } from '../art/credits';
 
@@ -72,10 +71,10 @@
           <span id="cc-l">Craft celebration</span>
           <div class="chips" role="group" aria-labelledby="cc-l">
             {#each CRAFT_RARITIES as r (r)}
-              <button type="button" class="chip" style:--ink-r={`var(--r-${r})`} aria-pressed={settings.craftCards[r]} aria-label={r[0].toUpperCase() + r.slice(1)} onclick={() => toggleCard(r)}>{SHORT[r]}</button>
+              <button type="button" class="chip" style:--ink-r={`var(--r-${r})`} aria-pressed={settings.craftCards[r]} onclick={() => toggleCard(r)}><span class="cn">{r[0].toUpperCase() + r.slice(1)}</span><span class="cs" aria-hidden="true">{settings.craftCards[r] ? 'On' : 'Off'}</span></button>
             {/each}
           </div>
-          <small>Show the full-screen card for these crafts.</small>
+          <small>Pressed = a full-screen card shows for that rarity. Off = no card.</small>
         </li>
       </ul>
     {:else}
@@ -127,8 +126,9 @@
   .cc { display: grid; gap: 6px; padding: 8px 12px; border: 1px solid var(--rule); background: var(--sunk); }
   .cc span { font: 700 var(--t-md)/1.1 var(--f-body); }
   .cc small { color: var(--ink-3); font-size: var(--t-xs); }
-  .chips { display: flex; gap: 6px; }
-  .chip { flex: 1; min-width: 44px; min-height: 44px; padding: 0 4px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-3); font: 700 var(--t-sm)/1 var(--f-body); }
+  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .chip { display: grid; gap: 2px; align-content: center; justify-items: center; min-height: 48px; padding: 4px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-3); font: 700 var(--t-sm)/1 var(--f-body); }
+  .chip .cs { font: 700 var(--t-xs)/1 var(--f-body); }
   .chip[aria-pressed='true'] { border: 2px solid var(--ink-r); color: var(--ink-r); background: color-mix(in srgb, var(--ink-r) 16%, var(--paper)); }
   .credits { color: var(--ink-2); font-size: var(--t-sm); }
   .credits p { margin: 0 0 12px; }

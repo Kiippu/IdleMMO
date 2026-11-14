@@ -5,7 +5,7 @@
   import { engine } from '../../engine/store.svelte';
   import { engineClient } from '../../engine/client';
   import { openItem } from '../../overlays/itemRef.svelte';
-  import { fmtG } from '../../format';
+  import { fmtG, fmtGoldBar } from '../../format';
   import { ui } from '../../ui.svelte';
   import { workDeltaChips, fmtEffect, lineText, repairCostGuess, wearOf } from './gearUi';
 
@@ -42,7 +42,7 @@
 
   async function repair(g: any) {
     const cost = repairOf(g);
-    if (cost > gold) { say(`Repairing ${nameOf(g)} costs ${fmtG(cost)} and you have ${fmtG(gold)}.`, true); return; }
+    if (cost > gold) { say(`Repairing ${nameOf(g)} costs ${fmtG(cost)} and you have ${fmtGoldBar(gold)}.`, true); return; }
     try {
       const res: any = await engineClient.repair(g.uid);
       if (res && res.ok === false) { say(res.reason || 'Could not repair.', true); return; }
@@ -50,7 +50,7 @@
     } catch (e) { console.error(e); say('Could not repair.', true); }
   }
   async function repairAll() {
-    if (all.gold > gold) { say(`Repairing everything costs ${fmtG(all.gold)} and you have ${fmtG(gold)}.`, true); return; }
+    if (all.gold > gold) { say(`Repairing everything costs ${fmtG(all.gold)} and you have ${fmtGoldBar(gold)}.`, true); return; }
     try {
       const res: any = await engineClient.repairAllTools();
       if (res && res.ok === false) { say(res.reason || 'Could not repair.', true); return; }
@@ -67,7 +67,7 @@
   }
 </script>
 
-<p class="help">Each skill uses its own tool automatically. Tools never break, but they slow you down when worn.</p>
+<p class="help">Each skill uses its own tool automatically. Tools wear but never break. Below 50% condition they slow you down. Repair restores condition for gold.</p>
 <div class="top">
   <button type="button" class="btn" aria-disabled={all.count === 0} class:dim={all.count === 0} onclick={() => { if (all.count > 0) repairAll(); else say('Every tool is at full condition.'); }}>Repair all ({fmtG(all.gold)})</button>
 </div>
@@ -90,8 +90,8 @@
                   {@const c = condOf(g)}
                   {@const w = info(g.uid).wear ?? wearOf(c)}
                   <span class="name">{nameOf(g)} <span class="meta">T{items[g.itemId]?.tier}</span></span>
-                  <span class="eff num">{effOf(g)}</span>
-                  <span class="cond"><span class="bar" role="progressbar" aria-label="Condition" aria-valuemin="0" aria-valuemax="100" aria-valuenow={c}><span class="fill" class:low={c < 50} style="width: {c}%"></span></span><b class="num">{c}%</b>{#if w > 0}<span class="pen num">−{w}% speed</span>{/if}</span>
+                  {#if effOf(g)}<span class="eff num">Bonus: {effOf(g)}</span>{/if}
+                  <span class="cond"><span class="meta">Condition</span><span class="bar" role="progressbar" aria-label="Condition" aria-valuemin="0" aria-valuemax="100" aria-valuenow={c}><span class="fill" class:low={c < 50} style="width: {c}%"></span></span><b class="num">{c}%</b>{#if w > 0}<span class="pen num">Slowed −{w}%</span>{/if}</span>
                 {:else}
                   <span class="meta">No tool. Buy or craft one{spare.length ? ', or pick one below' : ''}.</span>
                 {/if}
@@ -116,9 +116,9 @@
                       <button type="button" class="swap" onclick={() => swapIn(s)} aria-label="Use {nameOf(s)}" style:--ink-r={`var(--r-${s.rarity})`}>
                         <ItemIcon id={s.itemId} rarity={s.rarity} />
                         <span class="info">
-                          <span class="name">{nameOf(s)} <span class="meta">T{items[s.itemId]?.tier} · {condOf(s)}%</span></span>
-                          <span class="eff num">{effOf(s)}</span>
-                          <span class="deltas">{#each dl as d}<span class="d num" class:up={d.d > 0} class:down={d.d < 0}>{d.text}</span>{/each}</span>
+                          <span class="name">{nameOf(s)} <span class="meta">T{items[s.itemId]?.tier} · Condition {condOf(s)}%</span></span>
+                          {#if effOf(s)}<span class="eff num">Bonus: {effOf(s)}</span>{/if}
+                          <span class="deltas">{#if dl.length}<span class="meta">vs worn:</span>{/if}{#each dl as d}<span class="d num" class:up={d.d > 0} class:down={d.d < 0}>{d.text}</span>{/each}</span>
                         </span>
                       </button>
                     </li>

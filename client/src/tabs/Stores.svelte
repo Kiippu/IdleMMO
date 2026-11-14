@@ -161,7 +161,7 @@
       {:else}<button type="button" class="btn" onclick={() => (ui.goTab = 'Workshop')}>Go to the Workshop</button>{/if}
     {/if}
   {:else}
-    <ul class="grid">
+    <ul class="grid named">
       {#each list as t (t.key)}
         <li>
           <button type="button" class="tile" data-gear={t.kind === "gear" ? "1" : undefined} style:--ink-r={`var(--r-${t.rarity})`} onclick={() => tapTile(t, readOnly)} class:picked={!!sel[t.key]} aria-pressed={selecting && t.kind === 'gear' && !readOnly ? !!sel[t.key] : undefined} aria-label="{t.name}{t.section ? `, ${SECTION_LABEL[t.section]} gear` : ''}{t.qty ? `, quantity ${t.qty}` : ''}{sel[t.key] ? `, ${sel[t.key]} selected` : ''}">
@@ -170,6 +170,7 @@
             {#if t.qty}<span class="qty num">{#if sel[t.key]}{sel[t.key]}/{/if}{t.qty > 999 ? '999+' : t.qty}</span>{/if}
             {#if sel[t.key]}<span class="chk num" aria-hidden="true">✓</span>{/if}
           </button>
+          <span class="nm" style:color={t.rarity === 'common' ? undefined : `var(--r-${t.rarity})`}>{t.name}</span>
         </li>
       {/each}
     </ul>
@@ -239,10 +240,8 @@
 <style>
   .group h3 { margin: 0 0 8px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
   .muted { margin: 0; padding: 12px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
-  .chips { display: flex; flex-wrap: nowrap; gap: 6px; margin: 0 calc(-1 * var(--gut-r, 0px)) 8px 0; padding-right: var(--gut-r, 0px); overflow-x: auto; scrollbar-width: none; }
-  .chips::-webkit-scrollbar { display: none; }
-  .chips { padding-right: 32px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
-  .chip { flex: none; padding: 0 12px; white-space: nowrap; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .chip { flex: none; padding: 0 12px; white-space: nowrap; max-width: 100%; }
   .chip.rar.on { border-color: var(--ink-r); color: var(--ink-r); }
   .foot { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .meta { margin: 8px 0 0; color: var(--ink-3); font-size: var(--t-xs); }
@@ -257,6 +256,8 @@
   .selbar .btn { min-height: 44px; flex: none; }
   .cyc { flex: none; padding: 0 12px; white-space: nowrap; }
 
+  .grid.named { grid-template-columns: repeat(4, 1fr); gap: 8px 6px; }
+  .nm { display: block; margin-top: 2px; font: 700 11px/1.2 var(--f-body); color: var(--ink-2); text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
   .tile { position: relative; width: 100%; aspect-ratio: 1; min-height: 44px; display: grid; place-items: center; padding: 0; background: var(--paper); border: 2px solid var(--ink-r, var(--rule)); color: var(--ink-r, var(--ink)); }
   .tile:hover { background: var(--woad-soft); }
   .qty { position: absolute; right: 1px; bottom: 1px; padding: 0 3px; background: var(--ink); color: var(--paper); font: 700 11px/1.3 var(--f-num); }

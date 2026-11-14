@@ -90,6 +90,27 @@ export function stopIfNoTool(state, events?) {
   logq(state, 'warn', `${reason} ${act.name} stopped.`);
   return reason;
 }
+/** "Your Iron sword broke. Repair it to keep fighting." when the equipped weapon is at 0 durability, else '' */
+export function brokenWeaponReason(state) {
+  const g = findGear(state, state && state.equipped && state.equipped.weapon);
+  if (!g || num(g.dur, 0) > 0) return '';
+  return `Your ${E.gearName(g)} broke. Repair it to keep fighting.`;
+}
+/**
+ * Ends a running fight when the equipped weapon is broken (friends-test fix 2026-11-14: fighting went on at 0 attack,
+ * overnight too). Same pattern as stopIfNoTool: events given (tick, catch-up) → the 'stopped' event goes there, else it is
+ * queued for the verb's response. Returns the reason or ''.
+ */
+export function stopIfBrokenWeapon(state, events?) {
+  const a = state && state.active; if (!a || a.jobId) return '';
+  const act = action(a.actionId); if (!act || act.kind !== 'combat') return '';
+  const reason = brokenWeaponReason(state); if (!reason) return '';
+  state.active = null;
+  const ev: any = { type: 'stopped', reason, actionId: act.id, brokenWeapon: true };
+  if (events) events.push(ev); else emitEvent(ev);
+  logq(state, 'warn', `${reason} ${act.name} stopped.`);
+  return reason;
+}
 export const emptyElements = () => { const o = {}; elements().forEach((e) => { o[e] = 0; }); return o; };
 const ELEMENT_LABEL = { fire: 'Fire', frost: 'Frost', venom: 'Poison', holy: 'Holy' };
 export const elementLabel = (e) => ELEMENT_LABEL[e] || (e ? e[0].toUpperCase() + e.slice(1) : '');

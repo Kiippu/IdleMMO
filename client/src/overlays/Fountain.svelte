@@ -225,7 +225,8 @@
 </script>
 
 <style>
-  .fx { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; }
+  /* Above the tab bar (20), below every sheet (30+) so pops never cover sheet buttons or text. */
+  .fx { position: fixed; inset: 0; z-index: 25; pointer-events: none; overflow: hidden; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .fx :global(.pop) { position: absolute; left: 0; top: 0; display: grid; place-items: center; will-change: transform, opacity; opacity: 0; }
   .fx :global(.pop > i.glow) { position: absolute; width: var(--g); height: var(--g); left: 50%; top: 50%; margin: calc(var(--g) / -2) 0 0 calc(var(--g) / -2); border-radius: 50%;

@@ -692,6 +692,18 @@ export function effectShown(value: number): number;
  *  statText('ward_fire', 2) → "Fire resistance +2.0%". Element keys are fire / frost / venom ("Poison") / holy. */
 export function statText(key: string, value: number): string;
 
+// ---- Friends-test fix pass 2026-11-14. Additive (save schema stays v8).
+// Guide in the save: state.guide = GuideSave | null (null = a save from before the field; seed it once with E.setGuide).
+//   E.guide(state) → GuideSave | null; E.setGuide(state, Partial<GuideSave>) → { ok, reason, guide } (given fields replace).
+// Broken weapon: a fight stops when the equipped weapon reaches 0 durability (after the kill that broke it), in E.tick and
+//   E.applyOffline: { type: 'stopped', reason: "Your Iron sword broke. Repair it to keep fighting.", actionId, brokenWeapon: true }
+//   (summary.stoppedReason offline). E.canStart refuses a fight with a broken weapon (brokenWeapon: true).
+// Stand-ins (NPC crewmates) fill a contract only when it pays >= 1x the item's value (at its min grade, Standard at least)
+//   and the item is not raid-only (cores, boss materials, anything no action yields).
+// E.requestWithdrawal: at most cfg.withdrawRequestDailyCap (20) units a game day (gear = 1); E.requestCapLeft(state) → number.
+//   state.crew.requested = { day, units } (additive).
+export interface GuideSave { dismissed: boolean; done: Record<string, true>; baseEquipped: string[] | null }
+
 /** Economy unit: one hour of a typical level-40 player's income, in gold (see data.ts). */
 export const H: number;
 /** Hour-based economy knobs that every hours-priced amount derives from. */

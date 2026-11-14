@@ -40,7 +40,9 @@ describe('HP on the x2 scale: identical outcomes to main', () => {
   it('solo fights: same kills, faints, food, gold, time per kill, and damage as a share of max HP', async () => {
     expect(await soloOutcome('fight_quarry_road', 1, 120)).toEqual({ kills: 75, faints: 1, eats: 10, gold: 299, active: false, hpFrac: 0.299892, hp0: 1, t0: 3.846154, dmgTakenFrac: 2.04315, bread: 0 });
     expect(await soloOutcome('fight_ridge', 12, 60)).toEqual({ kills: 39, faints: 1, eats: 10, gold: 371, active: false, hpFrac: 0.299917, hp0: 1, t0: 17.142857, dmgTakenFrac: 1.922121, bread: 0 });
-    expect(await soloOutcome('fight_shrine', 3, 90)).toEqual({ kills: 272, faints: 1, eats: 10, gold: 695, active: false, hpFrac: 0.3, hp0: 1, t0: 6.521739, dmgTakenFrac: 3.548333, bread: 0 });
+    // friends-test fix 2026-11-14: the starter weapon (100 durability, 0.5 a kill) breaks on kill 200 and the fight now
+    // stops there (main kept fighting at 0 attack to 272 kills and a faint)
+    expect(await soloOutcome('fight_shrine', 3, 90)).toEqual({ kills: 200, faints: 0, eats: 1, gold: 555, active: false, hpFrac: 0.586111, hp0: 1, t0: 6.521739, dmgTakenFrac: 2.362963, bread: 7 });
   });
   it('raid sim, every role: same faints, food eaten, contribution, payout and HP curve', async () => {
     const BREAD = '{"total":20,"items":{"bread":20}}';

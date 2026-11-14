@@ -272,6 +272,11 @@ async function handle(req: Req): Promise<unknown> {
       E.save(state);
       return res;
     }
+    case 'setGuide': {
+      const res = E.setGuide(state, req.guide);
+      E.save(state);
+      return res.guide;
+    }
     case 'switchSpec': {
       const res = E.switchSpec(state, req.skillId);
       E.save(state);
@@ -331,7 +336,7 @@ async function handle(req: Req): Promise<unknown> {
 
 // Requests that mean "the player is using the game": if the worker is still paused (e.g. a pause from
 // beforeunload/pagehide that was never followed by a resume), catch up and tick again first.
-const PASSIVE = new Set(['init', 'pause', 'resume', 'holdJob', 'export', 'import', 'reset', 'salvagePreview', 'gearDetail', 'gearPreview']);
+const PASSIVE = new Set(['init', 'pause', 'resume', 'holdJob', 'export', 'import', 'reset', 'salvagePreview', 'gearDetail', 'gearPreview', 'setGuide']);
 
 self.addEventListener('message', async (ev: MessageEvent<Req>) => {
   const req = ev.data;

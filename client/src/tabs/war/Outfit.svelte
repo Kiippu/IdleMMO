@@ -134,7 +134,7 @@
                 <span class="meta num">{effText(g)}</span>
                 <span class="deltas">
                   {#if dl.length === 0}<span class="d same">Same as worn</span>
-                  {:else}{#each dl as d}<span class="d num" class:up={d.d > 0} class:down={d.d < 0}>{d.text}</span>{/each}{/if}
+                  {:else}<span class="d same">vs worn:</span>{#each dl as d}<span class="d num" class:up={d.d > 0} class:down={d.d < 0}>{d.text}</span>{/each}{/if}
                 </span>
               </span>
             </button>
@@ -167,8 +167,7 @@
   .bagsec { margin-top: 16px; }
   .muted { margin: 0; padding: 12px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-sm); }
   .next { margin-top: 8px; }
-  .chips { display: flex; gap: 6px; margin-bottom: 6px; overflow-x: auto; scrollbar-width: none; padding-right: 32px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
-  .chips::-webkit-scrollbar { display: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
   .chip { flex: none; padding: 0 12px; white-space: nowrap; }
   .gear { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
   .gear li { display: flex; align-items: stretch; background: var(--paper); border: 1px solid var(--rule); border-left: 3px solid var(--ink-r); }

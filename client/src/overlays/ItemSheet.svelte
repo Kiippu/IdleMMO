@@ -238,7 +238,7 @@
   {#if lockd}<p class="meta">Needs {skillName(a.skill)} Lv <span class="num">{a.level}</span>.</p>
   {:else if !ref?.readOnly}
     {#if runningId === a.id}
-      <button type="button" class="btn" onclick={stopJob}>Running · Stop</button>
+      <button type="button" class="btn start" onclick={stopJob}>Running · Stop</button>
     {:else}
       <button type="button" class="btn primary start" disabled={blocked} onclick={() => begin(a)}>{runningName ? `Start · stops ${runningName}` : 'Start'}</button>
       {#if runningName && !blocked}<p class="meta">This stops {runningName}.</p>{/if}
@@ -361,7 +361,7 @@
             {@const wb = wbOf(a)}
             <div class="wb" aria-label="Work bonuses">
               <h3>Your bonuses</h3>
-              {#if wb.toolItemId}<p class="meta">Tool: {itemName(wb.toolItemId)}{wb.toolCond != null ? ` ${wb.toolCond}%` : ''}</p>{/if}
+              {#if wb.toolItemId}<p class="meta">Tool: {itemName(wb.toolItemId)}{wb.toolCond != null ? ` · condition ${wb.toolCond}%` : ''}</p>{/if}
               {#each wb.lines ?? [] as l (l.key)}<p class="wbl num">{effLine(l)}</p>{/each}
               {#if !wb.lines?.length}<p class="meta">No bonus yet.</p>{/if}
               {#if wb.wearText}<p class="meta warn">{wb.wearText}</p>{/if}
@@ -454,6 +454,7 @@
   .wbl { margin: 0; font-size: var(--t-sm); color: var(--ink); }
   .warn { color: var(--bad); }
   .salv { color: var(--bad); }
+  .start { width: 100%; min-height: 44px; }
   .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
   /* gear: the card carries the name and icon; keep the heading for screen readers only */
   header.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

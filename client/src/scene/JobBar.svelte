@@ -89,7 +89,7 @@
     {#if work && toolName}
       <button type="button" class="tool" onclick={() => openItem({ itemId: work.toolItemId, uid: work.toolUid })}>
         <span class="tl">Tool: {toolName}</span>
-        {#if toolCond != null && toolCond < 50}<span class="chip num" class:crit={toolCond < 25}>{toolCond}%</span>{/if}
+        {#if toolCond != null && toolCond < 50}<span class="chip num" class:crit={toolCond < 25}>condition {toolCond}%</span>{/if}
       </button>
     {/if}
     <div class="bar" role="progressbar" aria-label="Job progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}>

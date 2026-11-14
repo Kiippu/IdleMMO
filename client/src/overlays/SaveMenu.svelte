@@ -86,6 +86,8 @@
       <button type="button" class="btn ghost" onclick={onClose} aria-label="Close">✕</button>
     </header>
 
+    <p class="meta">Moving to a new link? Export your code first — a new link starts with an empty save.</p>
+
     <section>
       <h3>Back up your game</h3>
       <p class="meta">Your game saves itself on this device. To play somewhere else, copy this code and paste it into the other device under "Load a backup".</p>
@@ -127,17 +129,16 @@
 
 <style>
   .scrim {
-    position: fixed; inset: 0; z-index: 30;
+    position: fixed; inset: 0; z-index: 40;
     background: var(--scrim);
-    display: flex; align-items: flex-start; justify-content: center;
-    padding: 24px 12px calc(var(--tabbar-h) + 24px);
-    overflow-y: auto;
+    display: flex; align-items: flex-end; justify-content: center;
   }
   .sheet {
-    width: 100%; max-width: var(--col);
-    display: grid; gap: 16px; padding: 16px;
-    background: var(--paper); border: 1px solid var(--rule);
-    box-shadow: 0 8px 24px var(--shadow);
+    width: 100%; max-width: var(--col); max-height: 80dvh; overflow-y: auto;
+    display: grid; gap: 16px; align-content: start;
+    padding: 12px var(--gut-r) calc(16px + env(safe-area-inset-bottom, 0px)) var(--gut-l);
+    background: var(--paper); border: 1px solid var(--rule); border-bottom: 0;
+    box-shadow: 0 -8px 24px var(--shadow);
   }
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   header h2 { margin: 0; font: 600 var(--t-lg)/1.1 var(--f-display); color: var(--ink); }
@@ -146,7 +147,7 @@
     margin: 0 0 4px; font: 400 var(--t-xs)/1 var(--f-label); color: var(--ink-3);
     letter-spacing: .08em; text-transform: uppercase;
   }
-  section.danger { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 16px; }
+  section.danger { margin-top: 8px; }
   .why { margin: 6px 0 0; color: var(--ink-3); font-size: var(--t-xs); text-align: right; }
   .meta { margin: 0 0 8px; color: var(--ink-3); font-size: var(--t-xs); }
   .bad { margin: 6px 0 0; color: var(--bad); font-size: var(--t-sm); }

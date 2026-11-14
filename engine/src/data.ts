@@ -436,6 +436,7 @@ export const DATA: any = {
     contractBudgetShare: 0.75,    // share of free treasury gold escrowed for town contract rewards
     contractRewardMult: ECON.contractRewardMult, // gold per unit = item value x this (>= market after tax)
     contractNpcShare: 0.5,        // NPC crewmates fill at most this share of each contract (Fri until the raid)
+    withdrawRequestDailyCap: 20,  // units a game day you can ask an officer for from the vault (gear piece = 1)
     // ~3 hours of a typical level-40 player's income: the median, across the four gathering skills,
     // of each skill's best level-40 action sold at Standard value after tax (~14,800 g/h at speedFactor 1).
     // Pinned by test/economy.test.ts (cost / hourly income must stay within 2.5-3.5).

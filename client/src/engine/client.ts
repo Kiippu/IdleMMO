@@ -1,6 +1,6 @@
 // Main-thread RPC client. Holds the worker handle, correlates requests by id,
 // and pipes every incoming snapshot into the reactive engine store.
-import type { Req, FromWorker, OfflineSummary, GearDetail, EquipResult, RepairResult, RepairAllResult } from './protocol';
+import type { Req, FromWorker, OfflineSummary, GearDetail, EquipResult, RepairResult, RepairAllResult, GuideSave } from './protocol';
 import { engine } from './store.svelte';
 
 export type StoreAllResult = { ok: boolean; reason: string; qty: number; gold: number; grades: { grade: number; qty: number; gold: number }[] };
@@ -132,6 +132,12 @@ export const engineClient = {
     rpc<{ ok: boolean; reason?: string; refunded?: number }>({ id: nextId(), type: 'cancelCrewRequest', contractId }),
   switchSpec: (skillId: string) =>
     rpc<{ ok: boolean; reason?: string; cost?: number; first?: boolean }>({ id: nextId(), type: 'switchSpec', skillId }),
+  /**
+   * Guide progress into the save. Fields given replace the saved ones (done is replaced whole). Returns the saved guide;
+   * the snapshot carries it as snapshot.guide. snapshot.guide === null on a save from before the field: seed it once
+   * from the old localStorage copy (guildwright-guide-v1).
+   */
+  setGuide: (guide: Partial<GuideSave>) => rpc<GuideSave>({ id: nextId(), type: 'setGuide', guide }),
   export: () => rpc<string>({ id: nextId(), type: 'export' }),
   import: (code: string) => rpc<void>({ id: nextId(), type: 'import', code }),
   reset: () => rpc<void>({ id: nextId(), type: 'reset' }),

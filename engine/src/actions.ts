@@ -6,7 +6,7 @@ import { E, SLOTS, ROLES, arr, num, cfg, rarities, masteryTiers, skillDefs, item
 import { emitGain } from './gains';
 import { addXp } from './skills';
 import { addItem, consume, ownedOfKind } from './inventory';
-import { findGear, makeGear, autoEat, workBonus, wearTool, noToolReason } from './gear';
+import { findGear, makeGear, autoEat, workBonus, wearTool, noToolReason, brokenWeaponReason, stopIfBrokenWeapon } from './gear';
 import { SKILL_GROUP, MASTERY_QUALITY, HP_DIV } from './data/gear/model';
 import { invCount } from './v4-helpers';
 import { lockedNow } from './raid-rules';
@@ -85,6 +85,7 @@ E.canStart = function (state, actionId) {
   const pb = pouchBlock(state, act); if (pb) return { ok: false, reason: pb, pouchBlocked: true };
   if (act.kind === 'combat') {
     if (!findGear(state, state.equipped.weapon)) return { ok: false, reason: 'Equip a weapon before fighting.' };
+    if (brokenWeaponReason(state)) return { ok: false, reason: `Your ${E.gearName(findGear(state, state.equipped.weapon))} is broken. Repair it to fight.`, brokenWeapon: true };
     if (!(state.hp > 0)) return { ok: false, reason: 'You are too hurt to fight. Eat something first.' };
   }
   return { ok: true, reason: '' };
@@ -322,6 +323,7 @@ export function completeOnce(state, act, events) {
   if (act.kind === 'combat') {
     const ps = E.playerStats(state); const enemy = act.enemy || {};
     if (!findGear(state, state.equipped.weapon)) { stopWith('No weapon equipped.'); return; }
+    if (stopIfBrokenWeapon(state, events)) return; // a broken weapon ends the fight (live and in catch-up)
     autoEat(state, events, 0.5, ps.maxHp);
     // enemy damage is on the x2 HP scale; worked out on the x10 scale against defence (x10), then / 5: same fights as before
     const dmg = Math.max(1, Math.round(num(enemy.dmg, 1) * HP_DIV * (1 + rand() * 0.4) - ps.def * 0.3)) / HP_DIV;
@@ -352,7 +354,8 @@ export function completeOnce(state, act, events) {
     events.push({ type: 'complete', actionId: act.id, kind: act.kind, items: drops, xp });
     addXp(state, role, xp, events);
     autoEat(state, events, 0.5, E.playerStats(state).maxHp);
-    countRep(state, act, events, 1);
+    if (countRep(state, act, events, 1)) return;
+    stopIfBrokenWeapon(state, events); // the weapon broke on this kill: the kill counts, then the job ends
     return;
   }
   stopWith('This action cannot be repeated.');

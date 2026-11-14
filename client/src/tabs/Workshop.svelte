@@ -69,10 +69,23 @@
 
   // Recently unlocked (levelled into, not yet dismissed).
   let recent = $derived<Action[]>((view?.extras?.recentUnlocks ?? []).map((id: string) => actionsAll.find((a) => a.id === id)).filter((a): a is Action => !!a));
+  // Show the newest 8 (the engine lists highest unlock level first); "+N more" expands the rest.
+  const RECENT_CAP = 8;
+  let recentAll = $state(false);
+  let recentShown = $derived(recentAll ? recent : recent.slice(0, RECENT_CAP));
   async function dismissRecent() {
     try { await engineClient.dismissUnlocks(recent.map((a) => a.id)); } catch (err) { console.error('dismiss failed', err); }
   }
   const openAction = (a: Action) => openItem({ itemId: outId(a) ?? '', actionId: a.id });
+  // Tier filter (craft/refine skills with several tiers): default = your highest makeable tier and the one below; "Show older" reveals the rest.
+  const tierOf = (a: Action) => { const id = outId(a); return Number(id ? (DATA as any).items?.[id]?.tier : 1) || 1; };
+  let showOlder = $state<Record<string, boolean>>({});
+  function visibleActs(unlocked: Action[], skillId: string): { shown: Action[]; hidden: number } {
+    if (showOlder[skillId] || unlocked.length < 10) return { shown: unlocked, hidden: 0 };
+    const top = Math.max(1, ...unlocked.map(tierOf));
+    const shown = unlocked.filter((a) => tierOf(a) >= top - 1);
+    return { shown, hidden: unlocked.length - shown.length };
+  }
   const capNote = (id: string) => (view?.skillProgress?.[id]?.capped ? ' (cap)' : '');
 </script>
 
@@ -98,7 +111,8 @@
 {#if recent.length}
   <section class="recent" aria-labelledby="ru-title">
     <div class="rh"><h3 id="ru-title">Recently unlocked</h3><button type="button" class="btn ghost x" aria-label="Dismiss recently unlocked" onclick={dismissRecent}>×</button></div>
-    <div class="grid">{#each recent as a (a.id)}{@render tile(a)}{/each}</div>
+    <div class="grid">{#each recentShown as a (a.id)}{@render tile(a)}{/each}</div>
+    {#if recent.length > RECENT_CAP}<button type="button" class="btn ghost more" onclick={() => (recentAll = !recentAll)}>{recentAll ? 'Show fewer' : `+${recent.length - RECENT_CAP} more`}</button>{/if}
   </section>
 {/if}
 
@@ -112,6 +126,7 @@
   {@const acts = actionsBySkill[skill.id] ?? []}
   {@const unlocked = acts.filter((a) => !locked(a))}
   {@const lockedActs = acts.filter((a) => locked(a))}
+  {@const vis = visibleActs(unlocked, skill.id)}
   <section class="skill">
     <h4>
       <span class="sq" aria-hidden="true"><ItemIcon skill={skill.id} /></span>
@@ -119,7 +134,8 @@
       <span class="skill-lvl">Lv <span class="num">{lvl}</span>{capNote(skill.id)}</span>
       <span class="xp" role="progressbar" aria-label="{skill.name} XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((prog?.pct ?? 0) * 100)}><i style="width: {Math.round((prog?.pct ?? 0) * 100)}%"></i></span>
     </h4>
-    <div class="grid">{#each unlocked as a (a.id)}{@render tile(a)}{/each}</div>
+    <div class="grid">{#each vis.shown as a (a.id)}{@render tile(a)}{/each}</div>
+    {#if vis.hidden > 0 || showOlder[skill.id]}<button type="button" class="btn ghost more" onclick={() => (showOlder[skill.id] = !showOlder[skill.id])}>{showOlder[skill.id] ? 'Hide older tiers' : `Show older (${vis.hidden})`}</button>{/if}
     {#if lockedActs.length}
       <p class="next">Next: {lockedActs[0].name} <span class="num">{`at Lv ${lockedActs[0].level}${lockedActs.length > 1 ? ` · ${lockedActs.length - 1} more locked` : ''}`}</span></p>
     {/if}
@@ -148,6 +164,7 @@
   .mark { position: absolute; right: -4px; top: -4px; width: 14px; height: 14px; display: grid; place-items: center; background: var(--brass-fill); color: var(--ink); font: 700 10px/1 var(--f-num); font-style: normal; border: 1px solid var(--ink); }
   .run { position: absolute; left: 2px; right: 2px; bottom: 2px; height: 3px; background: var(--woad); transform: scaleX(var(--rep, 0)); transform-origin: left; }
   .tn { max-width: 100%; font: 400 11px/1.1 var(--f-body); color: var(--ink-2); text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+  .more { width: 100%; min-height: 44px; }
   .legend { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; color: var(--ink-3); font-size: var(--t-xs); }
   .legend .mark { position: static; flex: none; }
   .next { margin: 0; color: var(--ink-3); font-size: var(--t-sm); }

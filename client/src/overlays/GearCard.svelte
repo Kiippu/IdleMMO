@@ -38,7 +38,7 @@
   {#if gilt}<span class="gl tl" aria-hidden="true"></span><span class="gl tr" aria-hidden="true"></span><span class="gl bl" aria-hidden="true"></span><span class="gl br" aria-hidden="true"></span>{/if}
 
   <header class="top">
-    <span class="score"><small>Item score</small>{#if detail.score != null}<b class="num">{detail.score}</b>{#if arrow(scoreDelta)}<span class="ar {arrow(scoreDelta)}">{arrowText(scoreDelta)}</span>{/if}{:else}<b class="num">–</b>{/if}</span>
+    <span class="score"><small>Item score</small>{#if detail.score != null}<b class="num">{detail.score}</b>{#if arrow(scoreDelta)}<span class="ar {arrow(scoreDelta)}">{arrowText(scoreDelta)}</span><span class="vs">vs worn</span>{/if}{:else}<b class="num">–</b>{/if}</span>
     <span class="req num">Tier {detail.tier}{level ? ` · Lv ${level}` : ''}</span>
   </header>
 
@@ -56,6 +56,7 @@
         <li><span class="lab">{@render sicon(r.icon)}<span>{r.label}</span></span>
           <b class="val num">{r.text}{#if arrow(r.delta)}<span class="ar {arrow(r.delta)}">{arrowText(r.delta)}</span>{/if}</b></li>
       {/each}
+      {#if compare && detail.compare && rows.some((r) => arrow(r.delta))}<li class="legend">▲ ▼ compared with what you wear</li>{/if}
     </ul>
   </div>
 
@@ -135,6 +136,8 @@
   .si { flex: none; width: 16px; height: 16px; display: inline-grid; place-items: center; overflow: hidden; position: relative; }
   .si :global(.ii) { position: absolute; left: 0; top: 0; transform: scale(.5); transform-origin: 0 0; }
   .dot { width: 6px; height: 6px; background: var(--ink-3); display: block; }
+  .vs { margin-left: 4px; font-size: var(--t-xs); color: var(--ink-3); white-space: nowrap; }
+  .rows li.legend { background: none; border: 0; min-height: 0; padding: 0 2px; font-size: var(--t-xs); color: var(--ink-3); justify-content: flex-start; }
   .ar { margin-left: 4px; font-size: var(--t-xs); font-weight: 700; }
   .ar.up { color: var(--ok); } .ar.down { color: var(--bad); } .ar.same { color: var(--ink-3); }
 

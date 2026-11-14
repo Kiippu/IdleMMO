@@ -160,16 +160,17 @@
 
       {#if !finished}<p class="hint">Tap anywhere to skip</p>{/if}
       </div>
-      <div class="foot"><button type="button" class="btn primary collect" bind:this={btn} disabled={!finished} onclick={(e) => { e.stopPropagation(); collect(); }}>Collect</button></div>
     </div>
   </div>
+  <!-- Own fixed layer above the fountain (z 25) so the haul never covers the button. -->
+  <div class="foot"><div class="footin"><button type="button" class="btn primary collect" bind:this={btn} disabled={!finished} onclick={collect}>Collect</button></div></div>
 {/if}
 
 <style>
   .full {
-    position: fixed; inset: 0; z-index: 45; overflow-y: auto; background: var(--plaster);
+    position: fixed; inset: 0; z-index: 22; overflow-y: auto; background: var(--plaster);
     display: flex; justify-content: center;
-    padding: max(16px, env(safe-area-inset-top)) var(--gut-r) 0 var(--gut-l);
+    padding: max(16px, env(safe-area-inset-top)) var(--gut-r) calc(80px + env(safe-area-inset-bottom, 0px)) var(--gut-l);
   }
   .col { width: 100%; max-width: var(--col); min-height: 100%; display: flex; flex-direction: column; gap: 12px; }
   .full { animation: fin 220ms ease-out; }
@@ -205,7 +206,8 @@
   .stopped { margin: 0; padding: 8px; background: var(--sunk); border: 1px solid var(--rule); color: var(--warn); font-size: var(--t-sm); }
   .worn { margin: 0; padding: 8px 12px; background: var(--sunk); border: 1px solid var(--rule); color: var(--warn); font-size: var(--t-sm); }
   .hint { margin: 0; text-align: center; color: var(--ink-3); font-size: var(--t-sm); }
-  .foot { position: sticky; bottom: 0; margin: 0 calc(var(--gut-r) * -1) 0 calc(var(--gut-l) * -1); padding: 12px var(--gut-r) max(12px, env(safe-area-inset-bottom)) var(--gut-l); background: var(--plaster); border-top: 1px solid var(--rule); }
+  .foot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 26; display: flex; justify-content: center; background: var(--plaster); border-top: 1px solid var(--rule); }
+  .footin { width: 100%; max-width: var(--col); padding: 12px var(--gut-r) max(12px, env(safe-area-inset-bottom)) var(--gut-l); }
   .collect { width: 100%; }
   .mid { padding-bottom: 12px; }
   li { min-height: 48px; display: flex; flex-direction: column; justify-content: center; }

@@ -3,7 +3,7 @@ import { DATA } from '@guildwright/engine';
 import { engine } from '../engine/store.svelte';
 import { engineClient } from '../engine/client';
 import { GRADE_NAMES } from '../engine/grades';
-import { fmtG } from '../format';
+import { fmtG, fmtGoldBar } from '../format';
 import { fmtEffect } from '../tabs/war/gearUi';
 import { askNumber, noticeSheet } from './confirm.svelte';
 
@@ -60,11 +60,11 @@ export async function buyFromShop(s: any): Promise<boolean> {
   if (s.qty < 1) return false;
   const afford = s.price > 0 ? Math.floor(gold / s.price) : s.qty;
   const max = Math.min(s.qty, afford);
-  if (max < 1) { await noticeSheet('Not enough gold', `${s.name} costs ${fmtG(s.price)} and you have ${fmtG(gold)}.`); return false; }
+  if (max < 1) { await noticeSheet('Not enough gold', `${s.name} costs ${fmtG(s.price)} and you have ${fmtGoldBar(gold)}.`); return false; }
   const detail = s.kind === 'gear' ? `${SLOT_LABEL[itemsMap[s.itemId]?.slot] ?? 'Gear'} · ${cap(s.rarity)}. ${statDiff(s.itemId)}.` : `${GRADE_LABEL[s.grade] ?? ''} · ${cap(s.rarity)}.`;
   const qty = await askNumber({
     title: `Buy ${s.name}`, body: `${detail} ${fmtG(s.price)} each.`,
-    number: { min: 1, max, value: 1, label: 'How many?', lines: (n) => [`Total ${fmtG(n * s.price)}`, `Gold after ${fmtG(gold - n * s.price)}`] },
+    number: { min: 1, max, value: 1, label: 'How many?', lines: (n) => [`Total ${fmtG(n * s.price)}`, `Gold after ${fmtGoldBar(gold - n * s.price)}`] },
     confirmLabel: 'Buy',
   });
   if (qty == null) return false;
